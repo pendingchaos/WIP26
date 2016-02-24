@@ -15,6 +15,6 @@ mem_group_t* create_mem_group();
 void destroy_mem_group(mem_group_t* group);
 void* mem_group_alloc(mem_group_t* group, size_t amount);
 void mem_group_replace(mem_group_t* group, void* old, void* new);
-char* copy_str(char* str);
-char* copy_str_group(mem_group_t* group, char* str);
+char* copy_str(const char* str);
+char* copy_str_group(mem_group_t* group, const char* str);
 #endif

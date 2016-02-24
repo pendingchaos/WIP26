@@ -198,8 +198,8 @@ static bool write_bin_vn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
 static bool write_bin_nn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     const uint32_t truei = 0xFFFFFFFF;
     const uint32_t falsei = 0;
-    const float truef = *(const float*)truei;
-    const float falsef = *(const float*)falsei;
+    const float truef = *(const float*)&truei;
+    const float falsef = *(const float*)&falsei;
     
     WRITEB(BC_OP_MOV_F);
     WRITEB(dest_reg);
