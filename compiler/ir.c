@@ -296,7 +296,10 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     case NODET_SUB:
     case NODET_MUL:
     case NODET_DIV:
-    case NODET_POW: {
+    case NODET_POW:
+    case NODET_LESS:
+    case NODET_GREATER:
+    case NODET_EQUAL: {
         bin_node_t* bin = (bin_node_t*)node;
         
         ir_var_decl_t* lhs = node_to_ir(bin->lhs, ir, returned, func_count, funcs);
@@ -315,6 +318,9 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         case NODET_MUL: inst.op = IR_OP_MUL; break;
         case NODET_DIV: inst.op = IR_OP_DIV; break;
         case NODET_POW: inst.op = IR_OP_POW; break;
+        case NODET_LESS: inst.op = IR_OP_LESS; break;
+        case NODET_GREATER: inst.op = IR_OP_GREATER; break;
+        case NODET_EQUAL: inst.op = IR_OP_EQUAL; break;
         default: assert(false);
         }
         inst.operand_count = 3;

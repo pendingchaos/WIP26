@@ -19,6 +19,9 @@ typedef enum {
     IR_OP_DROP,
     IR_OP_MIN,
     IR_OP_MAX,
+    IR_OP_LESS,
+    IR_OP_GREATER,
+    IR_OP_EQUAL,
     IR_OP_SQRT,
     IR_OP_LOAD_PROP,
     IR_OP_STORE_PROP
