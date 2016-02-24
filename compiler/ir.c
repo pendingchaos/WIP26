@@ -66,20 +66,15 @@ static ir_var_decl_t* decl_var(ir_t* ir, char* name, size_t comp, size_t func_co
     var_name.funcs = funcs;
     var_name.name = name;
     for (size_t i = 0; i < ir->var_count; i++)
-        if (var_name_equal(var_name, ir->vars[i]->name)) {
+        if (var_name_equal(var_name, ir->vars[i]->name))
             return ir->vars[i];
-        }
     
     ir_var_decl_t* var = alloc_mem(sizeof(ir_var_decl_t));
     var->name.func_count = func_count;
     var->name.funcs = alloc_mem(sizeof(char*)*func_count);
-    for (size_t i = 0; i < func_count; i++) {
-        char* func = alloc_mem(strlen(funcs[i])+1);
-        strcpy(func, funcs[i]);
-        var->name.funcs[i] = func;
-    }
-    var->name.name = alloc_mem(strlen(name)+1);
-    strcpy(var->name.name, name);
+    for (size_t i = 0; i < func_count; i++)
+        var->name.funcs[i] = copy_str(funcs[i]);
+    var->name.name = copy_str(name);
     var->comp = comp;
     for (size_t i = 0; i < 4; i++) var->current_ver[i] = 0;
     
@@ -364,8 +359,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         decl_node_t* decl = (decl_node_t*)node;
         ir_var_decl_t* var = decl_var(ir, decl->name, get_dtype_comp(decl->dtype), func_count, funcs);
         if (node->type == NODET_PROP_DECL) {
-            char* name = alloc_mem(strlen(decl->name)+1);
-            strcpy(name, decl->name);
+            char* name = copy_str(decl->name);
             size_t comp = var->comp;
             ir->properties = append_mem(ir->properties, ir->prop_count, sizeof(char*), &name);
             ir->prop_comp = append_mem(ir->prop_comp, ir->prop_count++, sizeof(size_t), &comp);

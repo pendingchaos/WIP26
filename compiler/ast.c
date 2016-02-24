@@ -17,8 +17,7 @@ num_node_t* create_num_node(ast_t* ast, double val) {
 id_node_t* create_id_node(ast_t* ast, const char* name) {
     id_node_t* node = mem_group_alloc(ast->mem, sizeof(id_node_t));
     node->head.type = NODET_ID;
-    node->name = mem_group_alloc(ast->mem, strlen(name)+1);
-    strcpy(node->name, name);
+    node->name = copy_str_group(ast->mem, name);
     return node;
 }
 
@@ -40,21 +39,18 @@ unary_node_t* create_unary_node(ast_t* ast, node_type_t type, node_t* val) {
 decl_node_t* create_decl_node(ast_t* ast, node_type_t type, const char* name, const char* dtype) {
     decl_node_t* node = mem_group_alloc(ast->mem, sizeof(decl_node_t));
     node->head.type = type;
-    node->name = mem_group_alloc(ast->mem, strlen(name)+1);
-    node->dtype = mem_group_alloc(ast->mem, strlen(dtype)+1);
-    strcpy(node->name, name);
-    strcpy(node->dtype, dtype);
+    node->name = copy_str_group(ast->mem, name);
+    node->dtype = copy_str_group(ast->mem, dtype);
     return node;
 }
 
 call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, node_t** args) {
     call_node_t* node = mem_group_alloc(ast->mem, sizeof(call_node_t));
     node->head.type = NODET_CALL;
-    node->func = mem_group_alloc(ast->mem, strlen(func)+1);
+    node->func = copy_str_group(ast->mem, func);
     node->args = mem_group_alloc(ast->mem, arg_count*sizeof(node_t*));
     node->arg_count = arg_count;
     memcpy(node->args, args, arg_count*sizeof(node_t*));
-    strcpy(node->func, func);
     return node;
 }
 
@@ -65,13 +61,11 @@ func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl) {
     node->arg_names = NULL;
     node->arg_types = NULL;
     node->ret_type = NULL;
-    node->name = mem_group_alloc(ast->mem, strlen(decl->name)+1);
-    node->ret_type = mem_group_alloc(ast->mem, strlen(decl->ret_type)+1);
+    node->name = copy_str_group(ast->mem, decl->name);
+    node->ret_type = copy_str_group(ast->mem, decl->ret_type);
     node->arg_names = mem_group_alloc(ast->mem, decl->arg_count*sizeof(char*));
     node->arg_types = mem_group_alloc(ast->mem, decl->arg_count*sizeof(char*));
     node->stmts = mem_group_alloc(ast->mem, decl->stmt_count*sizeof(node_t*));
-    strcpy(node->ret_type, decl->ret_type);
-    strcpy(node->name, decl->name);
     for (size_t i = 0; i < decl->arg_count; i++) {
         node->arg_names[i] = copy_str_group(ast->mem, decl->arg_names[i]);
         node->arg_types[i] = copy_str_group(ast->mem, decl->arg_types[i]);

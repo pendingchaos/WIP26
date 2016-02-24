@@ -184,8 +184,7 @@ int main(int argc, char** argv) {
         case 'o': ptr = &output; goto setstr;
         case 't': ptr = &type; goto setstr;
         case 'I': {
-            char* dir = alloc_mem(strlen(optarg)+1);
-            strcpy(dir, optarg);
+            char* dir = copy_str(optarg);
             inc_dirs = append_mem(inc_dirs, inc_dir_count, sizeof(char*), &dir);
             inc_dir_count++;
             continue;
@@ -194,8 +193,7 @@ int main(int argc, char** argv) {
         }
         setstr:
             free(*ptr);
-            *ptr = alloc_mem(strlen(optarg)+1);
-            strcpy(*ptr, optarg);
+            *ptr = copy_str(optarg);
     }
     
     if (!input) {
