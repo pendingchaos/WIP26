@@ -1,0 +1,13 @@
+include stdlib;
+
+property position:vec3;
+property velocity:vec3;
+property accel:vec3;
+property colorrgb:vec3;
+
+position = position + velocity;
+velocity = velocity*vec3(0.9) + accel;
+accel = accel * vec3(0.8);
+
+var brightness:float = saturate(length(velocity));
+colorrgb = vec3(lerp(0.1, 1.0, brightness));

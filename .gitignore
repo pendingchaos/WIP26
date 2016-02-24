@@ -1,0 +1,9 @@
+*.o
+*.d
+*.geany
+# Old compiler
+compiler
+main
+compile/compiler
+testing/runtest
+*.bin # Compiled programs
