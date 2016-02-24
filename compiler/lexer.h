@@ -24,7 +24,10 @@ typedef enum token_type_t {
     TOKT_RETURN,
     TOKT_COMMA,
     TOKT_FUNC,
-    TOKT_IF
+    TOKT_IF,
+    TOKT_LESS,
+    TOKT_GREATER,
+    TOKT_EQUAL
 } token_type_t;
 
 typedef struct tokens_t tokens_t;

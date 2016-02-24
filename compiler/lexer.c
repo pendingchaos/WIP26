@@ -49,6 +49,9 @@ const char* get_tok_type_str(token_type_t type) {
     case TOKT_COMMA: return "','";
     case TOKT_FUNC: return "func";
     case TOKT_IF: return "if";
+    case TOKT_LESS: return "<";
+    case TOKT_GREATER: return ">";
+    case TOKT_EQUAL: return "==";
     }
     assert(false);
 }
@@ -76,6 +79,9 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
     tok->end = src;
     #define CHAR_TOK(c, t) else if (*tok->begin == c) {tok->type = t; tok->end = src + 1;}
     if (false) {
+    } if (*toks->src && *(toks->src+1) && !strncmp(toks->src, "==", 2)) {
+        tok->type = TOKT_EQUAL;
+        tok->end = src + 2;
     } CHAR_TOK('=', TOKT_ASSIGN)
     CHAR_TOK('+', TOKT_ADD)
     CHAR_TOK('-', TOKT_SUB)
@@ -90,6 +96,8 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
     CHAR_TOK('{', TOKT_LEFT_BRACE)
     CHAR_TOK('}', TOKT_RIGHT_BRACE)
     CHAR_TOK(',', TOKT_COMMA)
+    CHAR_TOK('<', TOKT_LESS)
+    CHAR_TOK('>', TOKT_GREATER)
     else if (*src == '#') {
         while (true) {
             char c = *toks->src++;
