@@ -43,10 +43,7 @@ static node_t* parse_primary(tokens_t* toks) {
                     } else continue;
                     
                     error:
-                        for (size_t i = 0; i < arg_count; i++)
-                            free_node(args[i]);
                         free(args);
-                        free_node(arg);
                         return NULL;
                 }
             } else {
@@ -66,10 +63,7 @@ static node_t* parse_primary(tokens_t* toks) {
     case TOKT_LEFT_PAREN: {
         node_t* res = (node_t*)parse_expr(toks, TOKT_RIGHT_PAREN, TOKT_RIGHT_PAREN);
         token_t tok;
-        if (!expect_token(toks, TOKT_RIGHT_PAREN, &tok)) {
-            free_node(res);
-            return NULL;
-        }
+        if (!expect_token(toks, TOKT_RIGHT_PAREN, &tok)) return NULL;
         return res;
     }
     default: {
@@ -128,16 +122,9 @@ static node_t* _parse_expr(tokens_t* toks, token_type_t delim1, token_type_t del
     
     while (is_binary_op(lookahead.type) ? (get_precedence(lookahead.type)>=min_prec) : false) {
         token_t op = lookahead;
-        if (!get_token(toks, &lookahead)) {
-            free_node(lhs);
-            return NULL;
-        }
+        if (!get_token(toks, &lookahead)) return NULL;
         node_t* rhs = parse_primary(toks);
-        if (!peek_token(toks, &lookahead) || !rhs) {
-            free_node(lhs);
-            free_node(rhs);
-            return NULL;
-        }
+        if (!peek_token(toks, &lookahead) || !rhs) return NULL;
         
         if (lookahead.type==TOKT_EOF || lookahead.type==delim1 ||
             lookahead.type==delim2)
@@ -149,11 +136,7 @@ static node_t* _parse_expr(tokens_t* toks, token_type_t delim1, token_type_t del
         while ((is_binary_op(lookahead.type) ? lookahead_prec>op_prec : false) ||
                (is_right_associative(lookahead.type)&&lookahead_prec==op_prec)) {
             rhs = _parse_expr(toks, delim1, delim2, rhs, lookahead_prec);
-            if (!peek_token(toks, &lookahead)) {
-                free_node(lhs);
-                free_node(rhs);
-                return NULL;
-            }
+            if (!peek_token(toks, &lookahead)) return NULL;
             if (lookahead.type==TOKT_EOF || lookahead.type==delim1 ||
                 lookahead.type==delim2)
                 return create_node(toks->ast, op.type, lhs, rhs);
@@ -238,9 +221,7 @@ static bool parse_stmts(tokens_t* toks, size_t* count_, node_t*** stmts_, bool i
             goto error;
         continue;
         error:
-            for (size_t i = 0; i < count; i++) free_node(stmts[i]);
             free(stmts);
-            free_node(stmt);
             return false;
     }
     
@@ -281,12 +262,8 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
         token_t type_tok;
         if (!expect_token(toks, TOKT_ID, &type_tok)) goto error;
         
-        name = calloc(tok.end-tok.begin+1, 1);
-        dtype = calloc(type_tok.end-type_tok.begin+1, 1);
-        if (!name || !dtype) {
-            set_error(toks->ast, "Failed to allocate memory.\n");
-            goto error;
-        }
+        name = alloc_mem(tok.end-tok.begin+1);
+        dtype = alloc_mem(type_tok.end-type_tok.begin+1);
         strncpy(name, tok.begin, tok.end-tok.begin);
         strncpy(dtype, type_tok.begin, type_tok.end-type_tok.begin);
         
@@ -328,12 +305,8 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
     node_t** stmts;
     if (!parse_stmts(toks, &stmt_count, &stmts, true, inc_dir_count, inc_dirs)) goto error;
     
-    rtype = calloc(rtype_tok.end-rtype_tok.begin+1, 1);
-    name = calloc(name_tok.end-name_tok.begin+1, 1);
-    if (!name || !rtype) {
-        set_error(toks->ast, "Failed to allocate memory.\n");
-        goto error2;
-    }
+    rtype = alloc_mem(rtype_tok.end-rtype_tok.begin+1);
+    name = alloc_mem(name_tok.end-name_tok.begin+1);
     strncpy(rtype, rtype_tok.begin, rtype_tok.end-rtype_tok.begin);
     strncpy(name, name_tok.begin, name_tok.end-name_tok.begin);
     
@@ -348,6 +321,10 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
     node_t* res = (node_t*)create_func_decl_node(toks->ast, &decl);
     free(name);
     free(rtype);
+    for (size_t i = 0; i < arg_count; i++) {
+        free(arg_names[i]);
+        free(arg_dtypes[i]);
+    }
     free(arg_names);
     free(arg_dtypes);
     free(stmts);
@@ -355,7 +332,6 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
     
     error2:
         free(name);
-        for (size_t i = 0; i < stmt_count; i++) free_node(stmts[i]);
         free(stmts);
         free(rtype);
         for (size_t i = 0; i < arg_count; i++) {
@@ -447,6 +423,7 @@ bool parse_program(const char* src, ast_t* ast, size_t inc_dir_count, char** inc
     ast->error[0] = 0;
     ast->stmt_count = 0;
     ast->stmts = NULL;
+    ast->mem = create_mem_group();
     
     tokens_t toks;
     create_tokens(&toks, ast, src);

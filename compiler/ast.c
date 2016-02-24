@@ -8,22 +8,22 @@
 #include <stdio.h>
 
 num_node_t* create_num_node(ast_t* ast, double val) {
-    num_node_t* node = alloc_mem(sizeof(num_node_t));
+    num_node_t* node = mem_group_alloc(ast->mem, sizeof(num_node_t));
     node->head.type = NODET_NUM;
     node->val = val;
     return node;
 }
 
 id_node_t* create_id_node(ast_t* ast, const char* name) {
-    id_node_t* node = alloc_mem(sizeof(id_node_t));
+    id_node_t* node = mem_group_alloc(ast->mem, sizeof(id_node_t));
     node->head.type = NODET_ID;
-    node->name = alloc_mem(strlen(name)+1);
+    node->name = mem_group_alloc(ast->mem, strlen(name)+1);
     strcpy(node->name, name);
     return node;
 }
 
 bin_node_t* create_bin_node(ast_t* ast, node_type_t type, node_t* lhs, node_t* rhs) {
-    bin_node_t* node = alloc_mem(sizeof(bin_node_t));
+    bin_node_t* node = mem_group_alloc(ast->mem, sizeof(bin_node_t));
     node->head.type = type;
     node->lhs = lhs;
     node->rhs = rhs;
@@ -31,27 +31,27 @@ bin_node_t* create_bin_node(ast_t* ast, node_type_t type, node_t* lhs, node_t* r
 }
 
 unary_node_t* create_unary_node(ast_t* ast, node_type_t type, node_t* val) {
-    unary_node_t* node = alloc_mem(sizeof(unary_node_t));
+    unary_node_t* node = mem_group_alloc(ast->mem, sizeof(unary_node_t));
     node->head.type = type;
     node->val = val;
     return node;
 }
 
 decl_node_t* create_decl_node(ast_t* ast, node_type_t type, const char* name, const char* dtype) {
-    decl_node_t* node = alloc_mem(sizeof(decl_node_t));
+    decl_node_t* node = mem_group_alloc(ast->mem, sizeof(decl_node_t));
     node->head.type = type;
-    node->name = malloc(strlen(name)+1);
-    node->dtype = alloc_mem(strlen(dtype)+1);
+    node->name = mem_group_alloc(ast->mem, strlen(name)+1);
+    node->dtype = mem_group_alloc(ast->mem, strlen(dtype)+1);
     strcpy(node->name, name);
     strcpy(node->dtype, dtype);
     return node;
 }
 
 call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, node_t** args) {
-    call_node_t* node = alloc_mem(sizeof(call_node_t));
+    call_node_t* node = mem_group_alloc(ast->mem, sizeof(call_node_t));
     node->head.type = NODET_CALL;
-    node->func = alloc_mem(strlen(func)+1);
-    node->args = alloc_mem(arg_count*sizeof(node_t*));
+    node->func = mem_group_alloc(ast->mem, strlen(func)+1);
+    node->args = mem_group_alloc(ast->mem, arg_count*sizeof(node_t*));
     node->arg_count = arg_count;
     memcpy(node->args, args, arg_count*sizeof(node_t*));
     strcpy(node->func, func);
@@ -59,21 +59,23 @@ call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, no
 }
 
 func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl) {
-    func_decl_node_t* node = alloc_mem(sizeof(func_decl_node_t));
+    func_decl_node_t* node = mem_group_alloc(ast->mem, sizeof(func_decl_node_t));
     node->head.type = NODET_FUNC_DECL;
     node->name = NULL;
     node->arg_names = NULL;
     node->arg_types = NULL;
     node->ret_type = NULL;
-    node->name = alloc_mem(strlen(decl->name)+1);
-    node->ret_type = alloc_mem(strlen(decl->ret_type)+1);
-    node->arg_names = alloc_mem(decl->arg_count*sizeof(char*));
-    node->arg_types = alloc_mem(decl->arg_count*sizeof(char*));
-    node->stmts = alloc_mem(decl->stmt_count*sizeof(node_t*));
+    node->name = mem_group_alloc(ast->mem, strlen(decl->name)+1);
+    node->ret_type = mem_group_alloc(ast->mem, strlen(decl->ret_type)+1);
+    node->arg_names = mem_group_alloc(ast->mem, decl->arg_count*sizeof(char*));
+    node->arg_types = mem_group_alloc(ast->mem, decl->arg_count*sizeof(char*));
+    node->stmts = mem_group_alloc(ast->mem, decl->stmt_count*sizeof(node_t*));
     strcpy(node->ret_type, decl->ret_type);
     strcpy(node->name, decl->name);
-    memcpy(node->arg_names, decl->arg_names, decl->arg_count*sizeof(char*));
-    memcpy(node->arg_types, decl->arg_types, decl->arg_count*sizeof(char*));
+    for (size_t i = 0; i < decl->arg_count; i++) {
+        node->arg_names[i] = copy_str_group(ast->mem, decl->arg_names[i]);
+        node->arg_types[i] = copy_str_group(ast->mem, decl->arg_types[i]);
+    }
     memcpy(node->stmts, decl->stmts, decl->stmt_count*sizeof(node_t*));
     node->stmt_count = decl->stmt_count;
     node->arg_count = decl->arg_count;
@@ -81,71 +83,14 @@ func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl) {
 }
 
 node_t* create_nop_node(ast_t* ast) {
-    node_t* node = alloc_mem(sizeof(node_t));
+    node_t* node = mem_group_alloc(ast->mem, sizeof(node_t));
     node->type = NODET_NOP;
     return node;
 }
 
-void free_node(node_t* node) {
-    if (!node) return;
-    switch (node->type) {
-    case NODET_NUM:
-    case NODET_NOP: break;
-    case NODET_ID: free(((id_node_t*)node)->name); break;
-    case NODET_ASSIGN:
-    case NODET_ADD:
-    case NODET_SUB:
-    case NODET_MUL:
-    case NODET_DIV:
-    case NODET_POW:
-    case NODET_MEMBER: {
-        free_node(((bin_node_t*)node)->lhs);
-        free_node(((bin_node_t*)node)->rhs);
-        break;
-    }
-    case NODET_VAR_DECL:
-    case NODET_PROP_DECL: {
-        free(((decl_node_t*)node)->name);
-        free(((decl_node_t*)node)->dtype);
-        break;
-    }
-    case NODET_DROP:
-    case NODET_RETURN:
-    case NODET_NEG: {
-        free_node(((unary_node_t*)node)->val);
-        break;
-    }
-    case NODET_CALL: {
-        call_node_t* call = (call_node_t*)node;
-        free(call->func);
-        for (size_t i = 0; i < call->arg_count; i++)
-            free_node(call->args[i]);
-        free(call->args);
-        break;
-    }
-    case NODET_FUNC_DECL: {
-        func_decl_node_t* decl = (func_decl_node_t*)node;
-        free(decl->name);
-        free(decl->ret_type);
-        for (size_t i = 0; i < decl->arg_count; i++) free(decl->arg_names[i]);
-        for (size_t i = 0; i < decl->arg_count; i++) free(decl->arg_types[i]);
-        for (size_t i = 0; i < decl->stmt_count; i++)
-            free_node(decl->stmts[i]);
-        free(decl->arg_names);
-        free(decl->arg_types);
-        free(decl->stmts);
-        break;
-    }
-    }
-    free(node);
-}
-
 bool free_ast(ast_t* ast) {
-    for (size_t i = 0; i < ast->stmt_count; i++)
-        free_node(ast->stmts[i]);
+    destroy_mem_group(ast->mem);
     free(ast->stmts);
-    ast->stmt_count = 0;
-    ast->stmts = NULL;
     return true;
 }
 
@@ -228,7 +173,7 @@ static void _add_drop_vars(ast_t* ast, size_t count, node_t** nodes, size_t* res
             size_t stmt_count = 0;
             node_t** stmts = NULL;
             _add_drop_vars(ast, decl->stmt_count, decl->stmts, &stmt_count, &stmts);
-            free(decl->stmts);
+            mem_group_replace(ast->mem, decl->stmts, stmts);
             decl->stmt_count = stmt_count;
             decl->stmts = stmts;
         }

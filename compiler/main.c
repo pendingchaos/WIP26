@@ -275,6 +275,8 @@ int main(int argc, char** argv) {
     return 0;
     
     error:
+        for (size_t i = 0; i < inc_dir_count; i++) free(inc_dirs[i]);
+        free(inc_dirs);
         free(input);
         free(output);
         free(type);

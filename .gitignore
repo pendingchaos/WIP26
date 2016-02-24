@@ -5,4 +5,5 @@ old_compiler
 main
 compiler/compiler
 testing/runtest
-*.bin # Compiled programs
+# Compiled programs
+*.bin

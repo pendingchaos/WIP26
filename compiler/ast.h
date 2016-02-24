@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "shared.h"
+
 typedef enum node_type_t {
     NODET_NUM,
     NODET_ID,
@@ -86,6 +88,7 @@ struct ast_t {
     size_t stmt_count;
     node_t** stmts;
     char error[1024];
+    mem_group_t* mem;
 };
 
 num_node_t* create_num_node(ast_t* ast, double val);

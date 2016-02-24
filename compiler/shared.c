@@ -49,3 +49,44 @@ char* read_file(const char* filename) {
     
     return source;
 }
+
+mem_group_t* create_mem_group() {
+    mem_group_t* group = alloc_mem(sizeof(mem_group_t));
+    group->count = 0;
+    group->allocs = NULL;
+    return group;
+}
+
+void destroy_mem_group(mem_group_t* group) {
+    for (size_t i = 0; i < group->count; i++) free(group->allocs[i]);
+    free(group->allocs);
+    free(group);
+}
+
+void* mem_group_alloc(mem_group_t* group, size_t amount) {
+    if (!amount) amount = 1;
+    void* alloc = alloc_mem(amount);
+    group->allocs = append_mem(group->allocs, group->count++, sizeof(void*), &alloc);
+    return alloc;
+}
+
+void mem_group_replace(mem_group_t* group, void* old, void* new) {
+    for (size_t i = 0; i < group->count; i++)
+        if (group->allocs[i] == old) {
+            free(group->allocs[i]);
+            group->allocs[i] = new;
+            return;
+        }
+}
+
+char* copy_str(char* str) {
+    char* res = alloc_mem(strlen(str)+1);
+    strcpy(res, str);
+    return res;
+}
+
+char* copy_str_group(mem_group_t* group, char* str) {
+    char* res = mem_group_alloc(group, strlen(str)+1);
+    strcpy(res, str);
+    return res;
+}
