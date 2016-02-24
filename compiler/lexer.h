@@ -23,7 +23,8 @@ typedef enum token_type_t {
     TOKT_RIGHT_BRACE,
     TOKT_RETURN,
     TOKT_COMMA,
-    TOKT_FUNC
+    TOKT_FUNC,
+    TOKT_IF
 } token_type_t;
 
 typedef struct tokens_t tokens_t;

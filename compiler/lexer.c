@@ -48,6 +48,7 @@ const char* get_tok_type_str(token_type_t type) {
     case TOKT_RETURN: return "'return'";
     case TOKT_COMMA: return "','";
     case TOKT_FUNC: return "func";
+    case TOKT_IF: return "if";
     }
     assert(false);
 }
@@ -125,6 +126,8 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
             tok->type = TOKT_RETURN;
         else if (len==4 && !strncmp(tok->begin, "func", len))
             tok->type = TOKT_FUNC;
+        else if (len==2 && !strncmp(tok->begin, "if", len))
+            tok->type = TOKT_IF;
     } else {
         set_error(toks->ast, "%u:%u: Unexpected character: '%c'", tok->line, tok->column, *src);
         return false;

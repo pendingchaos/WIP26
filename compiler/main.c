@@ -70,6 +70,9 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_DROP:
         printf("DROP: ");
         goto unary;
+    case NODET_IF:
+        printf("IF: ");
+        goto if_;
     }
     
     num:
@@ -109,6 +112,13 @@ static void print_node(node_t* node, unsigned int indent) {
         printf("\n");
         print_node(((unary_node_t*)node)->val, indent+1);
         return;
+    if_:
+        printf("\n");
+        if_node_t* if_ = (if_node_t*)node;
+        print_node(if_->condition, indent+1);
+        for (size_t i = 0; i < if_->stmt_count; i++)
+            print_node(if_->stmts[i], indent+1);
+        return;
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst) {
@@ -140,7 +150,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
         case IR_OPERAND_VAR:
             for (size_t j = 0; j < op.var.decl->name.func_count; j++)
                 printf("%s::", op.var.decl->name.funcs[j]);
-            printf("%s_%u", op.var.decl->name.name, op.var.ver);
+            printf("%s", op.var.decl->name.name);
             switch (op.var.comp_idx) {
             case 0: printf(".x "); break;
             case 1: printf(".y "); break;

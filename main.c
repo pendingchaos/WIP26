@@ -20,7 +20,7 @@ int main() {
     
     program_t program;
     program.runtime = &runtime;
-    if (!open_program("program.bin", &program)) {
+    if (!open_program("compiler/test.sim.bin", &program)) {
         fprintf(stderr, "Unable to open program.bin: %s\n", runtime.error);
         return 1;
     }

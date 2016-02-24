@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     snprintf(prog, sizeof(prog), "%s.bin", argv[1]);
     
     char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "../compile/compiler -I../compile/ -i %s -o %s -t sim", argv[1], prog);
+    snprintf(cmd, sizeof(cmd), "../compiler/compiler -I../compiler/ -i %s -o %s -t sim", argv[1], prog);
     system(cmd);
     
     int count = atoi(argv[2]);
