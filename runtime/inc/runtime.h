@@ -27,9 +27,9 @@ typedef enum bc_op_t {
     BC_OP_LOAD_PROP = 19,
     BC_OP_STORE_PROP = 20,
     BC_OP_DELETE = 21,
-    BC_OP_LESS_RR = 22,
-    BC_OP_GREATER_RR = 23,
-    BC_OP_EQUAL_RR = 24,
+    BC_OP_LESS = 22,
+    BC_OP_GREATER = 23,
+    BC_OP_EQUAL = 24,
     BC_OP_COND_BEGIN = 25,
     BC_OP_COND_END = 26,
     BC_OP_END = 27
