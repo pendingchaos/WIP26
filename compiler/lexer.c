@@ -81,7 +81,7 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
     tok->line = toks->cur_line;
     tok->end = src;
     #define CHAR_TOK(c, t) else if (*tok->begin == c) {tok->type = t; tok->end = src + 1;}
-    #define TWO_CHAR_TOK(c1, c2, t) else if ((*toks->src)==c1 && (*(toks->src+1))==c2) {tok->type = t; tok->end = src + 2;}
+    #define TWO_CHAR_TOK(c1, c2, t) else if ((*tok->begin)==c1 && (*(tok->begin+1))==c2) {tok->type = t; tok->end = src + 2;}
     if (false) {
     } TWO_CHAR_TOK('=', '=', TOKT_EQUAL)
     TWO_CHAR_TOK('&', '&', TOKT_BOOL_AND)
