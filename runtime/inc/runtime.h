@@ -30,9 +30,12 @@ typedef enum bc_op_t {
     BC_OP_LESS = 22,
     BC_OP_GREATER = 23,
     BC_OP_EQUAL = 24,
-    BC_OP_COND_BEGIN = 25,
-    BC_OP_COND_END = 26,
-    BC_OP_END = 27
+    BC_OP_BOOL_AND = 25,
+    BC_OP_BOOL_OR = 26,
+    BC_OP_BOOL_NOT = 27,
+    BC_OP_COND_BEGIN = 28,
+    BC_OP_COND_END = 29,
+    BC_OP_END = 30
 } bc_op_t;
 
 typedef enum program_type_t {

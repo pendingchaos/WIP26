@@ -64,6 +64,34 @@ static void simd8f_sqrt(simd8f_t* dest, simd8f_t a) {
     *dest = _mm256_sqrt_ps(a);
 }
 
+static void simd8f_bool_and(simd8f_t* dest, simd8f_t a, simd8f_t b) {
+    uint32_t ai[8];
+    _mm256_storeu_ps((float*)ai, a);
+    uint32_t bi[8];
+    _mm256_storeu_ps((float*)bi, b);
+    uint32_t di[8];
+    for (uint_fast8_t i = 0; i < 8; i++) di[i] = ai[i] && bi[i];
+    *dest = _mm256_loadu_ps((float*)di);
+}
+
+static void simd8f_bool_or(simd8f_t* dest, simd8f_t a, simd8f_t b) {
+    uint32_t ai[8];
+    _mm256_storeu_ps((float*)ai, a);
+    uint32_t bi[8];
+    _mm256_storeu_ps((float*)bi, b);
+    uint32_t di[8];
+    for (uint_fast8_t i = 0; i < 8; i++) di[i] = ai[i] || bi[i];
+    *dest = _mm256_loadu_ps((float*)di);
+}
+
+static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
+    uint32_t ai[8];
+    _mm256_storeu_ps((float*)ai, a);
+    uint32_t di[8];
+    for (uint_fast8_t i = 0; i < 8; i++) di[i] = !ai[i];
+    *dest = _mm256_loadu_ps((float*)di);
+}
+
 static void simd8f_init1(simd8f_t* dest, float v) {
     *dest = _mm256_set1_ps(v);
 }
@@ -122,6 +150,18 @@ static void simd8f_equal(simd8f_t* dest, simd8f_t a, simd8f_t b) {
     for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = a.v[i] == b.v[i];
 }
 
+static void simd8f_bool_and(simd8f_t* dest, simd8f_t a, simd8f_t b) {
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)a.v)[i] && (uint32_t*)b.v)[i];
+}
+
+static void simd8f_bool_or(simd8f_t* dest, simd8f_t a, simd8f_t b) {
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)a.v)[i] || (uint32_t*)b.v)[i];
+}
+
+static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = !(uint32_t*)a.v)[i];
+}
+
 static void simd8f_init1(simd8f_t* dest, float v) {
     for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = v;
 }
@@ -158,6 +198,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
                                      &&BC_OP_SQRT, &&BC_OP_LOAD_PROP,
                                      &&BC_OP_STORE_PROP, &&BC_OP_DELETE,
                                      &&BC_OP_LESS, &&BC_OP_GREATER, &&BC_OP_EQUAL,
+                                     &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR, &&BC_OP_BOOL_NOT,
                                      &&BC_OP_COND_BEGIN, &&BC_OP_COND_END,
                                      &&BC_OP_END};
     DISPATCH;
@@ -321,6 +362,23 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t b = *bc++;
             ((uint32_t*)regs)[d] = regs[a] == regs[b];
         END_CASE
+        BEGIN_CASE(BC_OP_BOOL_AND)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            ((uint32_t*)regs)[d] = ((uint32_t*)regs)[a] && ((uint32_t*)regs)[b];
+        END_CASE
+        BEGIN_CASE(BC_OP_BOOL_OR)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            ((uint32_t*)regs)[d] = ((uint32_t*)regs)[a] && ((uint32_t*)regs)[b];
+        END_CASE
+        BEGIN_CASE(BC_OP_BOOL_NOT)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            ((uint32_t*)regs)[d] = !((uint32_t*)regs)[a];
+        END_CASE
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
@@ -364,6 +422,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
                                      &&BC_OP_SQRT, &&BC_OP_LOAD_PROP,
                                      &&BC_OP_STORE_PROP, &&BC_OP_DELETE,
                                      &&BC_OP_LESS, &&BC_OP_GREATER, &&BC_OP_EQUAL,
+                                     &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR, &&BC_OP_BOOL_NOT,
                                      &&BC_OP_COND_BEGIN, &&BC_OP_COND_END,
                                      &&BC_OP_END};
     DISPATCH;
@@ -537,6 +596,23 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_equal(regs+d, regs[a], regs[b]);
+        END_CASE
+        BEGIN_CASE(BC_OP_BOOL_AND)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            simd8f_bool_and(regs+d, regs[a], regs[b]);
+        END_CASE
+        BEGIN_CASE(BC_OP_BOOL_OR)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            simd8f_bool_or(regs+d, regs[a], regs[b]);
+        END_CASE
+        BEGIN_CASE(BC_OP_BOOL_NOT)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            simd8f_bool_not(regs+d, regs[a]);
         END_CASE
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;

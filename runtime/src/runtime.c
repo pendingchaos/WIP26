@@ -130,8 +130,11 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         case BC_OP_LESS:
         case BC_OP_GREATER:
         case BC_OP_EQUAL:
+        case BC_OP_BOOL_AND:
+        case BC_OP_BOOL_OR:
         case BC_OP_MAX_RR: required = 3; break;
         case BC_OP_SQRT:
+        case BC_OP_BOOL_NOT:
         case BC_OP_LOAD_PROP:
         case BC_OP_STORE_PROP: required = 2; break;
         case BC_OP_COND_BEGIN: required = 7; break;
