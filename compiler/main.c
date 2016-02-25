@@ -281,8 +281,8 @@ int main(int argc, char** argv) {
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
-    for (size_t i = 0; i < ir.inst_count; i++)
-        print_inst(&ir, ir.insts[i]);
+    //for (size_t i = 0; i < ir.inst_count; i++)
+    //    print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     

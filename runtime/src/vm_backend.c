@@ -161,19 +161,19 @@ static void simd8f_equal(simd8f_t* dest, simd8f_t a, simd8f_t b) {
 }
 
 static void simd8f_bool_and(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)a.v)[i] && (uint32_t*)b.v)[i];
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = ((uint32_t*)a.v)[i] && ((uint32_t*)b.v)[i];
 }
 
 static void simd8f_bool_or(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)a.v)[i] || (uint32_t*)b.v)[i];
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = ((uint32_t*)a.v)[i] || ((uint32_t*)b.v)[i];
 }
 
 static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
-    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = !(uint32_t*)a.v)[i];
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = !((uint32_t*)a.v)[i];
 }
 
 static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
-    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)cond.v)[i] ? b.v[i] : a.v[i];
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = ((uint32_t*)cond.v)[i] ? b.v[i] : a.v[i];
 }
 
 static void simd8f_init1(simd8f_t* dest, float v) {
