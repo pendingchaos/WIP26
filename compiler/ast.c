@@ -223,6 +223,7 @@ bool add_drop_vars(ast_t* ast) {
     _add_drop_vars(ast, ast->stmt_count, ast->stmts, &res_count, &res_nodes);
     free(ast->stmts);
     ast->stmt_count = res_count;
+    mem_group_replace(ast->mem, ast->stmts, res_nodes);
     ast->stmts = res_nodes;
     return true;
 }
