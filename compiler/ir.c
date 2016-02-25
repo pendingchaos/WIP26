@@ -20,6 +20,9 @@ static bool ir_set_error(ir_t* ir, const char* format, ...) {
 static size_t get_dtype_comp(const char* dtype) {
     if (!strcmp(dtype, "float")) return 1;
     else if (!strcmp(dtype, "bool")) return 1;
+    else if (!strcmp(dtype, "bvec2")) return 2;
+    else if (!strcmp(dtype, "bvec3")) return 3;
+    else if (!strcmp(dtype, "bvec4")) return 4;
     else if (!strcmp(dtype, "vec2")) return 2;
     else if (!strcmp(dtype, "vec3")) return 3;
     else if (!strcmp(dtype, "vec4")) return 4;
