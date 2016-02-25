@@ -43,6 +43,15 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_POW:
         printf("POW: ");
         goto binary;
+    case NODET_LESS:
+        printf("LESS: ");
+        goto binary;
+    case NODET_GREATER:
+        printf("GREATER: ");
+        goto binary;
+    case NODET_EQUAL:
+        printf("EQUAL: ");
+        goto binary;
     case NODET_MEMBER:
         printf("MEMBER: ");
         goto binary;
@@ -135,6 +144,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_DELETE: printf("delete "); break;
     case IR_OP_MIN: printf("min "); break;
     case IR_OP_MAX: printf("max "); break;
+    case IR_OP_LESS: printf("less "); break;
+    case IR_OP_GREATER: printf("greater "); break;
+    case IR_OP_EQUAL: printf("equal "); break;
     case IR_OP_SQRT: printf("sqrt "); break;
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_LOAD_PROP: printf("pload "); break;
