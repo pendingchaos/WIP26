@@ -92,6 +92,16 @@ static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
     *dest = _mm256_loadu_ps((float*)di);
 }
 
+static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
+    //__mmask8 mask = _mm256_cmp_epu32_mask(*(__m256i*)&cond, _mm256_set1_epi32(0), /*_MM_CMPINT_NEQ*/4);
+    //*dest = _mm256_mask_blend_ps(mask, a, b);
+    uint32_t* condi = (uint32_t*)&cond;
+    float* af = (float*)&a;
+    float* bf = (float*)&b;
+    float* destf = (float*)&dest;
+    for (uint_fast8_t i = 0; i < 8; i++) destf[i] = condi[i] ? bf[i] : af[i];
+}
+
 static void simd8f_init1(simd8f_t* dest, float v) {
     *dest = _mm256_set1_ps(v);
 }
@@ -162,6 +172,10 @@ static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
     for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = !(uint32_t*)a.v)[i];
 }
 
+static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
+    for (uint_fast8_t i = 0; i < 8; i++) ((uint32_t*)dest->v)[i] = (uint32_t*)cond.v)[i] ? b.v[i] : a.v[i];
+}
+
 static void simd8f_init1(simd8f_t* dest, float v) {
     for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = v;
 }
@@ -192,12 +206,11 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
                                      &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
-                                     &&BC_OP_BOOL_NOT, &&BC_OP_COND_BEGIN,
+                                     &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_END};
     DISPATCH;
     #else
-    const uint8_t* end = bc + program->bc_size;
-    while (bc != end) {
+    while (true) {
         bc_op_t op = *bc++;
         switch (op) {
     #endif
@@ -302,6 +315,13 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t a = *bc++;
             ((uint32_t*)regs)[d] = !((uint32_t*)regs)[a];
         END_CASE
+        BEGIN_CASE(BC_OP_SEL)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            uint8_t cond = *bc++;
+            regs[d] = regs[((uint32_t*)regs)[cond] ? b : a];
+        END_CASE
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
@@ -339,12 +359,11 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
                                      &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
-                                     &&BC_OP_BOOL_NOT, &&BC_OP_COND_BEGIN,
+                                     &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_END};
     DISPATCH;
     #else
-    const uint8_t* end = bc + program->bc_size;
-    while (bc != end) {
+    while (true) {
         bc_op_t op = *bc++;
         switch (op) {
     #endif
@@ -449,6 +468,13 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             simd8f_bool_not(regs+d, regs[a]);
+        END_CASE
+        BEGIN_CASE(BC_OP_SEL)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            uint8_t cond = *bc++;
+            simd8f_sel(regs+d, regs[a], regs[b], regs[cond]);
         END_CASE
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;

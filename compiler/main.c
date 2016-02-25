@@ -163,6 +163,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_LOAD_PROP: printf("pload "); break;
     case IR_OP_STORE_PROP: printf("pstore "); break;
+    case IR_OP_SEL: printf("sel "); break;
     }
     
     for (size_t i = 0; i < inst.operand_count; i++) {
@@ -280,8 +281,8 @@ int main(int argc, char** argv) {
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
-    //for (size_t i = 0; i < ir.inst_count; i++)
-    //    print_inst(&ir, ir.insts[i]);
+    for (size_t i = 0; i < ir.inst_count; i++)
+        print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     

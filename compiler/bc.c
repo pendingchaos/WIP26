@@ -29,7 +29,8 @@ typedef enum {
     BC_OP_EQUAL = 14,
     BC_OP_BOOL_AND = 15,
     BC_OP_BOOL_OR = 16,
-    BC_OP_BOOL_NOT = 17
+    BC_OP_BOOL_NOT = 17,
+    BC_OP_SEL = 18
 } bc_op_t;
 
 static char error[1024];
@@ -260,6 +261,55 @@ static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
+static bool write_sel(gen_bc_state_t* state, ir_inst_t* inst) {
+    bool a_num = inst->operands[1].type == IR_OPERAND_NUM;
+    bool b_num = inst->operands[2].type == IR_OPERAND_NUM;
+    bool cond_num = inst->operands[3].type == IR_OPERAND_NUM;
+    
+    ir_var_t a_var, b_var, cond_var;
+    if (a_num) a_var = gen_tmp_var(state);
+    else a_var = inst->operands[1].var;
+    if (b_num) b_var = gen_tmp_var(state);
+    else b_var = inst->operands[2].var;
+    if (cond_num) b_var = gen_tmp_var(state);
+    else cond_var = inst->operands[3].var;
+    
+    int dest_reg = get_reg(state, inst->operands[0].var);
+    int a_reg = get_reg(state, inst->operands[1].var);
+    int b_reg = get_reg(state, inst->operands[2].var);
+    int cond_reg = get_reg(state, inst->operands[3].var);
+    
+    if (a_num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(a_reg);
+        WRITEF(inst->operands[1].num);
+    }
+    
+    if (b_num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(b_reg);
+        WRITEF(inst->operands[2].num);
+    }
+    
+    if (cond_num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(cond_reg);
+        WRITEF(inst->operands[3].num);
+    }
+    
+    WRITEB(BC_OP_SEL);
+    WRITEB(dest_reg);
+    WRITEB(a_reg);
+    WRITEB(b_reg);
+    WRITEB(cond_reg);
+    
+    if (a_num) drop_var(state, a_var);
+    if (b_num) drop_var(state, b_var);
+    if (cond_num) drop_var(state, cond_var);
+    
+    return true;
+}
+
 static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_indices) {
     gen_bc_state_t state_;
     state_.bc = bc;
@@ -333,6 +383,10 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
             ir_prop_t prop = inst->operands[0].prop;
             WRITEB(prop_indices[prop.index*4+prop.comp]);
             WRITEB(src_reg);
+            break;
+        }
+        case IR_OP_SEL: {
+            if (!write_sel(state, inst)) goto error;
             break;
         }
         }

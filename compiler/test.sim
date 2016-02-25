@@ -11,3 +11,5 @@ accel = accel * vec3(0.8);
 
 var brightness:float = saturate(length(velocity));
 colorrgb = vec3(lerp(0.1, 1.0, brightness));
+
+position = sel(position, velocity, false);

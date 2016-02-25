@@ -27,7 +27,8 @@ typedef enum {
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
     IR_OP_LOAD_PROP,
-    IR_OP_STORE_PROP //IR_OP_FSEL (then use for tests)
+    IR_OP_STORE_PROP,
+    IR_OP_SEL
 } ir_opcode_t;
 
 typedef enum {

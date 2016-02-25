@@ -102,7 +102,7 @@ bool destroy_program(program_t* program) {
     return success;
 }
 
-bool validate_program(const program_t* program) { //TODO: Validate property indices, register indices, conditional bytecode
+bool validate_program(const program_t* program) { //TODO: Validate property indices, register indices and conditional bytecode
     const uint8_t* bc = program->bc;
     const uint8_t* end = bc + program->bc_size;
     bool has_end_inst = false;
@@ -127,6 +127,7 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         case BC_OP_BOOL_NOT:
         case BC_OP_LOAD_PROP:
         case BC_OP_STORE_PROP: required = 2; break;
+        case BC_OP_SEL: required = 4; break;
         case BC_OP_COND_BEGIN: required = 7; break;
         case BC_OP_COND_END:
         case BC_OP_END: required = 0; has_end_inst = true; break;
