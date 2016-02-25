@@ -38,6 +38,46 @@ func vec4(xyzw:float):vec4 {
     return xyzw.xxxx;
 }
 
+func bool(x:bool):float {
+    return x;
+}
+
+func bvec2(x:bool, y:bool):bvec2 {
+    var res:bvec2;
+    res.x = x;
+    res.y = y;
+    return res;
+}
+
+func bvec2(xy:bool):bvec2 {
+    return xy.xx;
+}
+
+func bvec3(x:bool, y:bool, z:bool):bvec3 {
+    var res:bvec3;
+    res.x = x;
+    res.y = y;
+    res.z = z;
+    return res;
+}
+
+func bvec3(xyz:bool):bvec3 {
+    return xyz.xxx;
+}
+
+func bvec4(x:bool, y:bool, z:bool, w:bool):bvec4 {
+    var res:bvec4;
+    res.x = x;
+    res.y = y;
+    res.z = z;
+    res.w = w;
+    return res;
+}
+
+func bvec4(xyzw:bool):bvec4 {
+    return xyzw.xxxx;
+}
+
 func saturate(x:float):float {
     return min(max(x, 0.0), 1.0);
 }
