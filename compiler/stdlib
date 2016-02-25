@@ -253,4 +253,3 @@ func all(v:bvec3):bool {
 func all(v:bvec4):bool {
     return v.x && v.y && v.z && v.w;
 }
-

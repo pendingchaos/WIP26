@@ -172,58 +172,6 @@ static bool write_bin(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     return true;
 }
 
-static bool write_bin_nn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
-    const uint32_t truei = 0xFFFFFFFF;
-    const uint32_t falsei = 0;
-    const float truef = *(const float*)&truei;
-    const float falsef = *(const float*)&falsei;
-    
-    WRITEB(BC_OP_MOVF);
-    WRITEB(dest_reg);
-    switch (inst->op) {
-    case IR_OP_ADD:
-        WRITEF(inst->operands[1].num + inst->operands[2].num);
-        break;
-    case IR_OP_SUB:
-        WRITEF(inst->operands[1].num - inst->operands[2].num);
-        break;
-    case IR_OP_MUL:
-        WRITEF(inst->operands[1].num * inst->operands[2].num);
-        break;
-    case IR_OP_DIV:
-        WRITEF(inst->operands[1].num / inst->operands[2].num);
-        break;
-    case IR_OP_POW:
-        WRITEF(pow(inst->operands[1].num, inst->operands[2].num));
-        break;
-    case IR_OP_MIN:
-        WRITEF(fmin(inst->operands[1].num, inst->operands[2].num));
-        break;
-    case IR_OP_MAX:
-        WRITEF(fmax(inst->operands[1].num, inst->operands[2].num));
-        break;
-    case IR_OP_LESS:
-        WRITEF((inst->operands[1].num<inst->operands[2].num) ? truef : falsef);
-        break;
-    case IR_OP_GREATER:
-        WRITEF((inst->operands[1].num>inst->operands[2].num) ? truef : falsef);
-        break;
-    case IR_OP_EQUAL:
-        WRITEF((inst->operands[1].num==inst->operands[2].num) ? truef : falsef);
-        break;
-    case IR_OP_BOOL_AND:
-        WRITEF((*(uint32_t*)&inst->operands[1].num&&*(uint32_t*)&inst->operands[2].num) ? truef : falsef);
-        break;
-    case IR_OP_BOOL_OR:
-        WRITEF((*(uint32_t*)&inst->operands[1].num||*(uint32_t*)&inst->operands[2].num) ? truef : falsef);
-        break;
-    default:
-        assert(false);
-    }
-    
-    return true;
-}
-
 static bool write_mov(gen_bc_state_t* state, ir_inst_t* inst) {
     int dest_reg = get_reg(state, inst->operands[0].var);
     if (dest_reg < 0) return false;
@@ -361,15 +309,7 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
         case IR_OP_BOOL_OR: {
             int dest_reg = get_reg(state, inst->operands[0].var);
             if (dest_reg < 0) goto error;
-            if (inst->operands[1].type==IR_OPERAND_VAR && inst->operands[2].type==IR_OPERAND_VAR) {
-                if (!write_bin(state, dest_reg, inst)) goto error;
-            } else if (inst->operands[1].type==IR_OPERAND_NUM && inst->operands[2].type==IR_OPERAND_VAR) {
-                if (!write_bin(state, dest_reg, inst)) goto error;
-            } else if (inst->operands[1].type==IR_OPERAND_VAR && inst->operands[2].type==IR_OPERAND_NUM) {
-                if (!write_bin(state, dest_reg, inst)) goto error;
-            } else {
-                if (!write_bin_nn(state, dest_reg, inst)) goto error;
-            }
+            if (!write_bin(state, dest_reg, inst)) goto error;
             break;
         }
         case IR_OP_NEG: {
