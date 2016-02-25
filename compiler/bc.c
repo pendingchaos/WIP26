@@ -202,6 +202,38 @@ static bool write_mov(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
+static bool write_unary(gen_bc_state_t* state, ir_inst_t* inst) {
+    ir_var_t lhs_var;
+    bool num = inst->operands[1].type == IR_OPERAND_NUM;
+    
+    if (num) lhs_var = gen_tmp_var(state);
+    else lhs_var = inst->operands[1].var;
+    
+    int dest_reg = get_reg(state, inst->operands[0].var);
+    int lhs_reg = get_reg(state, lhs_var);
+    
+    if (dest_reg<0 || lhs_reg<0) return false;
+    
+    if (num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(lhs_reg);
+        WRITEF(inst->operands[1].num);
+    }
+    
+    switch (inst->op) {
+    case IR_OP_BOOL_NOT: WRITEB(BC_OP_BOOL_NOT); break;
+    case IR_OP_SQRT: WRITEB(BC_OP_SQRT); break;
+    default: assert(false); break;
+    }
+    
+    WRITEB(dest_reg);
+    WRITEB(lhs_reg);
+    
+    if (num) drop_var(state, lhs_var);
+    
+    return true;
+}
+
 static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
     int dest_reg = get_reg(state, inst->operands[0].var);
     if (dest_reg < 0) return false;
@@ -223,52 +255,6 @@ static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
         WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);
         WRITEF(-inst->operands[1].num);
-    }
-    
-    return true;
-}
-
-static bool write_bool_not(gen_bc_state_t* state, ir_inst_t* inst) {
-    const uint32_t truei = 0xFFFFFFFF;
-    const uint32_t falsei = 0;
-    const float truef = *(const float*)&truei;
-    const float falsef = *(const float*)&falsei;
-    
-    int dest_reg = get_reg(state, inst->operands[0].var);
-    if (dest_reg < 0) return false;
-    
-    if (inst->operands[1].type == IR_OPERAND_VAR) {
-        int reg = get_reg(state, inst->operands[1].var);
-        if (reg < 0) return false;
-        
-        WRITEB(BC_OP_BOOL_NOT);
-        WRITEB(dest_reg);
-        WRITEF(0.0f);
-        WRITEB(reg);
-    } else {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(dest_reg);
-        WRITEF(*(uint32_t*)&inst->operands[1].num ? falsef : truef);
-    }
-    
-    return true;
-}
-
-static bool write_sqrt(gen_bc_state_t* state, ir_inst_t* inst) {
-    int dest_reg = get_reg(state, inst->operands[0].var);
-    if (dest_reg < 0) return false;
-    
-    if (inst->operands[1].type == IR_OPERAND_VAR) {
-        int reg = get_reg(state, inst->operands[1].var);
-        if (reg < 0) return false;
-        
-        WRITEB(BC_OP_SQRT);
-        WRITEB(dest_reg);
-        WRITEB(reg);
-    } else {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(dest_reg);
-        WRITEF(sqrt(inst->operands[1].num));
     }
     
     return true;
@@ -316,12 +302,9 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
             if (!write_neg(state, inst)) goto error;
             break;
         }
-        case IR_OP_BOOL_NOT: {
-            if (!write_bool_not(state, inst)) goto error;
-            break;
-        }
+        case IR_OP_BOOL_NOT:
         case IR_OP_SQRT: {
-            if (!write_sqrt(state, inst)) goto error;
+            if (!write_unary(state, inst)) goto error;
             break;
         }
         case IR_OP_DELETE: {
