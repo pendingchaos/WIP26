@@ -181,3 +181,36 @@ func sqrt(x:vec3):vec3 {
 func sqrt(x:vec4):vec4 {
     return __sqrt(x);
 }
+
+func any(v:bool):bool {
+    return v;
+}
+
+func any(v:bvec2):bool {
+    return v.x || v.y;
+}
+
+func any(v:bvec3):bool {
+    return v.x || v.y || v.z;
+}
+
+func any(v:bvec4):bool {
+    return v.x || v.y || v.z || v.w;
+}
+
+func all(v:bool):bool {
+    return v;
+}
+
+func all(v:bvec2):bool {
+    return v.x && v.y;
+}
+
+func all(v:bvec3):bool {
+    return v.x && v.y && v.z;
+}
+
+func all(v:bvec4):bool {
+    return v.x && v.y && v.z && v.w;
+}
+
