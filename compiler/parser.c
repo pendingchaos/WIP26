@@ -60,6 +60,9 @@ static node_t* parse_primary(tokens_t* toks) {
     case TOKT_SUB: {
         return (node_t*)create_unary_node(toks->ast, NODET_NEG, parse_primary(toks));
     }
+    case TOKT_BOOL_NOT: {
+        return (node_t*)create_unary_node(toks->ast, NODET_BOOL_NOT, parse_primary(toks));
+    }
     case TOKT_LEFT_PAREN: {
         node_t* res = (node_t*)parse_expr(toks, TOKT_RIGHT_PAREN, TOKT_RIGHT_PAREN);
         token_t tok;
@@ -76,15 +79,17 @@ static node_t* parse_primary(tokens_t* toks) {
 static int get_precedence(token_type_t tok) {
     switch (tok) {
     case TOKT_ASSIGN: return 0;
+    case TOKT_BOOL_AND:
+    case TOKT_BOOL_OR: return 1;
     case TOKT_LESS:
     case TOKT_GREATER:
-    case TOKT_EQUAL: return 1;
+    case TOKT_EQUAL: return 2;
     case TOKT_ADD:
-    case TOKT_SUB: return 2;
+    case TOKT_SUB: return 3;
     case TOKT_MUL:
-    case TOKT_DIV: return 3;
-    case TOKT_POW: return 4;
-    case TOKT_DOT: return 5;
+    case TOKT_DIV: return 4;
+    case TOKT_POW: return 5;
+    case TOKT_DOT: return 6;
     default: return -1;
     }
 }
@@ -104,6 +109,8 @@ static bool is_binary_op(token_type_t tok) {
     case TOKT_LESS:
     case TOKT_GREATER:
     case TOKT_EQUAL:
+    case TOKT_BOOL_AND:
+    case TOKT_BOOL_OR:
     case TOKT_DOT: return true;
     default: return false;
     }
@@ -120,6 +127,8 @@ static node_t* create_node(ast_t* ast, token_type_t tok, node_t* lhs, node_t* rh
     case TOKT_LESS: return (node_t*)create_bin_node(ast, NODET_LESS, lhs, rhs);
     case TOKT_GREATER: return (node_t*)create_bin_node(ast, NODET_GREATER, lhs, rhs);
     case TOKT_EQUAL: return (node_t*)create_bin_node(ast, NODET_EQUAL, lhs, rhs);
+    case TOKT_BOOL_AND: return (node_t*)create_bin_node(ast, NODET_BOOL_AND, lhs, rhs);
+    case TOKT_BOOL_OR: return (node_t*)create_bin_node(ast, NODET_BOOL_OR, lhs, rhs);
     case TOKT_DOT: return (node_t*)create_bin_node(ast, NODET_MEMBER, lhs, rhs);
     default: return NULL;
     }

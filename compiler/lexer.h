@@ -27,7 +27,10 @@ typedef enum token_type_t {
     TOKT_IF,
     TOKT_LESS,
     TOKT_GREATER,
-    TOKT_EQUAL
+    TOKT_EQUAL,
+    TOKT_BOOL_AND,
+    TOKT_BOOL_OR,
+    TOKT_BOOL_NOT
 } token_type_t;
 
 typedef struct tokens_t tokens_t;

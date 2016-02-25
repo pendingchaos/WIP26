@@ -36,7 +36,10 @@ typedef enum {
     BC_OP_DELETE = 21,
     BC_OP_LESS = 22,
     BC_OP_GREATER = 23,
-    BC_OP_EQUAL = 24
+    BC_OP_EQUAL = 24,
+    BC_OP_BOOL_AND = 25,
+    BC_OP_BOOL_OR = 26,
+    BC_OP_BOOL_NOT = 27
 } bc_op_t;
 
 static char error[1024];
@@ -131,6 +134,8 @@ static bool write_bin_vv(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     case IR_OP_LESS: WRITEB(BC_OP_LESS); break;
     case IR_OP_GREATER: WRITEB(BC_OP_GREATER); break;
     case IR_OP_EQUAL: WRITEB(BC_OP_EQUAL); break;
+    case IR_OP_BOOL_AND: WRITEB(BC_OP_BOOL_AND); break;
+    case IR_OP_BOOL_OR: WRITEB(BC_OP_BOOL_OR); break;
     default: assert(false);
     }
     WRITEB(dest_reg);
@@ -156,6 +161,8 @@ static bool write_bin_nv(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     case IR_OP_LESS: break; //TODO
     case IR_OP_GREATER: break; //TODO
     case IR_OP_EQUAL: break; //TODO
+    case IR_OP_BOOL_AND: break; //TODO
+    case IR_OP_BOOL_OR: break; //TODO
     default: assert(false);
     }
     
@@ -186,6 +193,8 @@ static bool write_bin_vn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     case IR_OP_LESS: break; //TODO
     case IR_OP_GREATER: break; //TODO
     case IR_OP_EQUAL: break; //TODO
+    case IR_OP_BOOL_AND: break; //TODO
+    case IR_OP_BOOL_OR: break; //TODO
     default: assert(false);
     }
     WRITEB(dest_reg);
@@ -233,6 +242,12 @@ static bool write_bin_nn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
         break;
     case IR_OP_EQUAL:
         WRITEF((inst->operands[1].num==inst->operands[2].num) ? truef : falsef);
+        break;
+    case IR_OP_BOOL_AND:
+        WRITEF((*(uint32_t*)&inst->operands[1].num&&*(uint32_t*)&inst->operands[2].num) ? truef : falsef);
+        break;
+    case IR_OP_BOOL_OR:
+        WRITEF((*(uint32_t*)&inst->operands[1].num||*(uint32_t*)&inst->operands[2].num) ? truef : falsef);
         break;
     default:
         assert(false);
@@ -283,6 +298,32 @@ static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
+static bool write_bool_not(gen_bc_state_t* state, ir_inst_t* inst) {
+    const uint32_t truei = 0xFFFFFFFF;
+    const uint32_t falsei = 0;
+    const float truef = *(const float*)&truei;
+    const float falsef = *(const float*)&falsei;
+    
+    int dest_reg = get_reg(state, inst->operands[0].var);
+    if (dest_reg < 0) return false;
+    
+    if (inst->operands[1].type == IR_OPERAND_VAR) {
+        int reg = get_reg(state, inst->operands[1].var);
+        if (reg < 0) return false;
+        
+        WRITEB(BC_OP_BOOL_NOT);
+        WRITEB(dest_reg);
+        WRITEF(0.0f);
+        WRITEB(reg);
+    } else {
+        WRITEB(BC_OP_MOV_F);
+        WRITEB(dest_reg);
+        WRITEF(*(uint32_t*)&inst->operands[1].num ? falsef : truef);
+    }
+    
+    return true;
+}
+
 static bool write_sqrt(gen_bc_state_t* state, ir_inst_t* inst) {
     int dest_reg = get_reg(state, inst->operands[0].var);
     if (dest_reg < 0) return false;
@@ -328,7 +369,9 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
         case IR_OP_MAX:
         case IR_OP_LESS:
         case IR_OP_GREATER:
-        case IR_OP_EQUAL: {
+        case IR_OP_EQUAL:
+        case IR_OP_BOOL_AND:
+        case IR_OP_BOOL_OR: {
             int dest_reg = get_reg(state, inst->operands[0].var);
             if (dest_reg < 0) goto error;
             if (inst->operands[1].type==IR_OPERAND_VAR && inst->operands[2].type==IR_OPERAND_VAR) {
@@ -344,6 +387,10 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
         }
         case IR_OP_NEG: {
             if (!write_neg(state, inst)) goto error;
+            break;
+        }
+        case IR_OP_BOOL_NOT: {
+            if (!write_bool_not(state, inst)) goto error;
             break;
         }
         case IR_OP_SQRT: {

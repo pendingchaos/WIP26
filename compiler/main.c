@@ -52,6 +52,12 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_EQUAL:
         printf("EQUAL: ");
         goto binary;
+    case NODET_BOOL_AND:
+        printf("BOOL_AND: ");
+        goto binary;
+    case NODET_BOOL_OR:
+        printf("BOOL_OR: ");
+        goto binary;
     case NODET_MEMBER:
         printf("MEMBER: ");
         goto binary;
@@ -75,6 +81,9 @@ static void print_node(node_t* node, unsigned int indent) {
         return;
     case NODET_NEG:
         printf("NEG: ");
+        goto unary;
+    case NODET_BOOL_NOT:
+        printf("BOOL_NOT: ");
         goto unary;
     case NODET_DROP:
         printf("DROP: ");
@@ -147,6 +156,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_LESS: printf("less "); break;
     case IR_OP_GREATER: printf("greater "); break;
     case IR_OP_EQUAL: printf("equal "); break;
+    case IR_OP_BOOL_AND: printf("booland "); break;
+    case IR_OP_BOOL_OR: printf("boolor "); break;
+    case IR_OP_BOOL_NOT: printf("boolnot "); break;
     case IR_OP_SQRT: printf("sqrt "); break;
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_LOAD_PROP: printf("pload "); break;

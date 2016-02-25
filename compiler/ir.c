@@ -301,7 +301,9 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     case NODET_POW:
     case NODET_LESS:
     case NODET_GREATER:
-    case NODET_EQUAL: {
+    case NODET_EQUAL:
+    case NODET_BOOL_AND:
+    case NODET_BOOL_OR: {
         bin_node_t* bin = (bin_node_t*)node;
         
         ir_var_decl_t* lhs = node_to_ir(bin->lhs, ir, returned, func_count, funcs);
@@ -323,6 +325,8 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         case NODET_LESS: inst.op = IR_OP_LESS; break;
         case NODET_GREATER: inst.op = IR_OP_GREATER; break;
         case NODET_EQUAL: inst.op = IR_OP_EQUAL; break;
+        case NODET_BOOL_AND: inst.op = IR_OP_BOOL_AND; break;
+        case NODET_BOOL_OR: inst.op = IR_OP_BOOL_OR; break;
         default: assert(false);
         }
         inst.operand_count = 3;
@@ -395,7 +399,8 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         ir->funcs = append_mem(ir->funcs, ir->func_count++, sizeof(node_t*), &node);
         return gen_temp_var(ir, 0);
     }
-    case NODET_NEG: {
+    case NODET_NEG:
+    case NODET_BOOL_NOT: {
         unary_node_t* unary = (unary_node_t*)node;
         
         ir_var_decl_t* src = node_to_ir(unary->val, ir, returned, func_count, funcs);
@@ -403,7 +408,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         ir_var_decl_t* dest = gen_temp_var(ir, src->comp);
         
         ir_inst_t inst;
-        inst.op = IR_OP_NEG;
+        inst.op = node->type==NODET_NEG ? IR_OP_NEG : IR_OP_BOOL_NOT;
         for (size_t i = 0; i < src->comp; i++) {
             inst.operand_count = 2;
             inst.operands[0] = create_var_operand(get_var_comp(dest, i));

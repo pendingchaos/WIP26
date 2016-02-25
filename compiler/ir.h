@@ -22,6 +22,9 @@ typedef enum {
     IR_OP_LESS,
     IR_OP_GREATER,
     IR_OP_EQUAL,
+    IR_OP_BOOL_AND,
+    IR_OP_BOOL_OR,
+    IR_OP_BOOL_NOT,
     IR_OP_SQRT,
     IR_OP_LOAD_PROP,
     IR_OP_STORE_PROP

@@ -26,7 +26,10 @@ typedef enum node_type_t {
     NODET_IF,
     NODET_LESS,
     NODET_GREATER,
-    NODET_EQUAL
+    NODET_EQUAL,
+    NODET_BOOL_AND,
+    NODET_BOOL_OR,
+    NODET_BOOL_NOT
 } node_type_t;
 
 typedef struct node_t node_t;

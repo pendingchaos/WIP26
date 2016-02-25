@@ -52,6 +52,9 @@ const char* get_tok_type_str(token_type_t type) {
     case TOKT_LESS: return "<";
     case TOKT_GREATER: return ">";
     case TOKT_EQUAL: return "==";
+    case TOKT_BOOL_AND: return "&&";
+    case TOKT_BOOL_OR: return "||";
+    case TOKT_BOOL_NOT: return "!";
     }
     assert(false);
 }
@@ -78,11 +81,13 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
     tok->line = toks->cur_line;
     tok->end = src;
     #define CHAR_TOK(c, t) else if (*tok->begin == c) {tok->type = t; tok->end = src + 1;}
+    #define TWO_CHAR_TOK(c1, c2, t) else if ((*toks->src)==c1 && (*(toks->src+1))==c2) {tok->type = t; tok->end = src + 2;}
     if (false) {
-    } if (*toks->src && *(toks->src+1) && !strncmp(toks->src, "==", 2)) {
-        tok->type = TOKT_EQUAL;
-        tok->end = src + 2;
-    } CHAR_TOK('=', TOKT_ASSIGN)
+    } TWO_CHAR_TOK('=', '=', TOKT_EQUAL)
+    TWO_CHAR_TOK('&', '&', TOKT_BOOL_AND)
+    TWO_CHAR_TOK('|', '|', TOKT_BOOL_OR)
+    CHAR_TOK('!', TOKT_BOOL_NOT)
+    CHAR_TOK('=', TOKT_ASSIGN)
     CHAR_TOK('+', TOKT_ADD)
     CHAR_TOK('-', TOKT_SUB)
     CHAR_TOK('*', TOKT_MUL)
