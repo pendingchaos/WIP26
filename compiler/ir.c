@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 static bool ir_set_error(ir_t* ir, const char* format, ...) {
@@ -18,6 +19,7 @@ static bool ir_set_error(ir_t* ir, const char* format, ...) {
 
 static size_t get_dtype_comp(const char* dtype) {
     if (!strcmp(dtype, "float")) return 1;
+    else if (!strcmp(dtype, "bool")) return 1;
     else if (!strcmp(dtype, "vec2")) return 2;
     else if (!strcmp(dtype, "vec3")) return 3;
     else if (!strcmp(dtype, "vec4")) return 4;
@@ -442,6 +444,28 @@ void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t**
     }
 }
 
+static void add_boolean_vars(ir_t* ir) {
+    const uint64_t truei = 0xFFFFFFFFFFFFFFFF;
+    const uint64_t falsei = 0;
+    const double truef = *(const double*)&truei;
+    const double falsef = *(const double*)&falsei;
+    
+    ir_var_decl_t* true_var = decl_var(ir, "true", 1, 0, NULL);
+    ir_var_decl_t* false_var = decl_var(ir, "false", 1, 0, NULL);
+    
+    ir_inst_t inst;
+    inst.op = IR_OP_MOV;
+    inst.operand_count = 2;
+    
+    inst.operands[0] = create_var_operand(get_var_comp(true_var, 0));
+    inst.operands[1] = create_num_operand(truef);
+    add_inst(ir, &inst);
+    
+    inst.operands[0] = create_var_operand(get_var_comp(false_var, 0));
+    inst.operands[1] = create_num_operand(falsef);
+    add_inst(ir, &inst);
+}
+
 bool create_ir(const ast_t* ast, ir_t* ir) {
     ir->inst_count = 0;
     ir->insts = NULL;
@@ -454,6 +478,8 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
     ir->prop_comp = NULL;
     ir->error[0] = 0;
     ir->next_temp_var = 0;
+    
+    add_boolean_vars(ir);
     
     bool returned = false;
     for (size_t i = 0; i<ast->stmt_count && !returned; i++) {
