@@ -12,34 +12,24 @@
 #include <math.h>
 
 typedef enum {
-    BC_OP_ADD_R_F = 0,
-    BC_OP_ADD_RR = 1,
-    BC_OP_SUB_R_F = 2,
-    BC_OP_SUB_F_R = 3,
-    BC_OP_SUB_RR = 4,
-    BC_OP_MUL_R_F = 5,
-    BC_OP_MUL_RR = 6,
-    BC_OP_DIV_R_F = 7,
-    BC_OP_DIV_F_R = 8,
-    BC_OP_DIV_RR = 9,
-    BC_OP_POW_R_F = 10,
-    BC_OP_POW_F_R = 11,
-    BC_OP_POW_RR = 12,
-    BC_OP_MOV_F = 13,
-    BC_OP_MIN_RR = 14,
-    BC_OP_MIN_R_F = 15,
-    BC_OP_MAX_RR = 16,
-    BC_OP_MAX_R_F = 17,
-    BC_OP_SQRT = 18,
-    BC_OP_LOAD_PROP = 19,
-    BC_OP_STORE_PROP = 20,
-    BC_OP_DELETE = 21,
-    BC_OP_LESS = 22,
-    BC_OP_GREATER = 23,
-    BC_OP_EQUAL = 24,
-    BC_OP_BOOL_AND = 25,
-    BC_OP_BOOL_OR = 26,
-    BC_OP_BOOL_NOT = 27
+    BC_OP_ADD = 0,
+    BC_OP_SUB = 1,
+    BC_OP_MUL = 2,
+    BC_OP_DIV = 3,
+    BC_OP_POW = 4,
+    BC_OP_MOVF = 5,
+    BC_OP_MIN = 6,
+    BC_OP_MAX = 7,
+    BC_OP_SQRT = 8,
+    BC_OP_LOAD_PROP = 9,
+    BC_OP_STORE_PROP = 10,
+    BC_OP_DELETE = 11,
+    BC_OP_LESS = 12,
+    BC_OP_GREATER = 13,
+    BC_OP_EQUAL = 14,
+    BC_OP_BOOL_AND = 15,
+    BC_OP_BOOL_OR = 16,
+    BC_OP_BOOL_NOT = 17
 } bc_op_t;
 
 static char error[1024];
@@ -59,6 +49,8 @@ typedef struct {
     size_t var_count;
     ir_var_t* vars;
     uint8_t* var_regs;
+    
+    ir_var_decl_t temp_var;
 } gen_bc_state_t;
 
 static int find_reg(gen_bc_state_t* state) {
@@ -114,23 +106,54 @@ static void drop_var(gen_bc_state_t* state, ir_var_t var) {
     state->var_regs = realloc_mem(state->var_regs, state->var_count);
 }
 
+static ir_var_t gen_tmp_var(gen_bc_state_t* state) {
+    unsigned int ver = state->temp_var.current_ver[0]++;
+    ir_var_t var;
+    var.decl = &state->temp_var;
+    var.ver = ver;
+    var.comp_idx = 0;
+    return var;
+}
+
 #define WRITEB(b_) do {uint8_t b = b_;*(state->bc) = append_mem(*(state->bc), *(state->bc_size), 1, &b);(*(state->bc_size))++;} while (0);
 #define WRITEF(f) do {*(state->bc) = realloc_mem(*(state->bc), *(state->bc_size)+4);*(float*)(*(state->bc)+*(state->bc_size))=f;(*(state->bc_size))+=4;} while (0);
 
-static bool write_bin_vv(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
-    int lhs_reg = get_reg(state, inst->operands[1].var);
-    int rhs_reg = get_reg(state, inst->operands[2].var);
-    if (lhs_reg < 0) return false;
-    if (rhs_reg < 0) return false;
+static bool write_bin(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
+    ir_var_t lhs, rhs;
+    
+    bool lhs_num = inst->operands[1].type == IR_OPERAND_NUM;
+    bool rhs_num = inst->operands[2].type == IR_OPERAND_NUM;
+    
+    if (lhs_num) lhs = gen_tmp_var(state);
+    else lhs = inst->operands[1].var;
+    
+    if (rhs_num) rhs = gen_tmp_var(state);
+    else rhs = inst->operands[2].var;
+    
+    int lhs_reg = get_reg(state, lhs);
+    int rhs_reg = get_reg(state, rhs);
+    if (lhs_reg<0 || rhs_reg<0) return false;
+    
+    if (lhs_num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(lhs_reg);
+        WRITEF(inst->operands[1].num);
+    }
+    
+    if (rhs_num) {
+        WRITEB(BC_OP_MOVF);
+        WRITEB(rhs_reg);
+        WRITEF(inst->operands[2].num);
+    }
     
     switch (inst->op) {
-    case IR_OP_ADD: WRITEB(BC_OP_ADD_RR); break;
-    case IR_OP_SUB: WRITEB(BC_OP_SUB_RR); break;
-    case IR_OP_MUL: WRITEB(BC_OP_MUL_RR); break;
-    case IR_OP_DIV: WRITEB(BC_OP_DIV_RR); break;
-    case IR_OP_POW: WRITEB(BC_OP_POW_RR); break;
-    case IR_OP_MIN: WRITEB(BC_OP_MIN_RR); break;
-    case IR_OP_MAX: WRITEB(BC_OP_MAX_RR); break;
+    case IR_OP_ADD: WRITEB(BC_OP_ADD); break;
+    case IR_OP_SUB: WRITEB(BC_OP_SUB); break;
+    case IR_OP_MUL: WRITEB(BC_OP_MUL); break;
+    case IR_OP_DIV: WRITEB(BC_OP_DIV); break;
+    case IR_OP_POW: WRITEB(BC_OP_POW); break;
+    case IR_OP_MIN: WRITEB(BC_OP_MIN); break;
+    case IR_OP_MAX: WRITEB(BC_OP_MAX); break;
     case IR_OP_LESS: WRITEB(BC_OP_LESS); break;
     case IR_OP_GREATER: WRITEB(BC_OP_GREATER); break;
     case IR_OP_EQUAL: WRITEB(BC_OP_EQUAL); break;
@@ -138,68 +161,13 @@ static bool write_bin_vv(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     case IR_OP_BOOL_OR: WRITEB(BC_OP_BOOL_OR); break;
     default: assert(false);
     }
+    
     WRITEB(dest_reg);
     WRITEB(lhs_reg);
     WRITEB(rhs_reg);
     
-    return true;
-}
-
-static bool write_bin_nv(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
-    int rhs_reg = get_reg(state, inst->operands[2].var);
-    if (rhs_reg < 0) return false;
-    
-    bool swap = false;
-    switch (inst->op) {
-    case IR_OP_ADD: WRITEB(BC_OP_ADD_R_F); break;
-    case IR_OP_MUL: WRITEB(BC_OP_MUL_R_F); break;
-    case IR_OP_MIN: WRITEB(BC_OP_MIN_R_F); break;
-    case IR_OP_MAX: WRITEB(BC_OP_MAX_R_F); break;
-    case IR_OP_SUB: WRITEB(BC_OP_SUB_F_R); swap = true; break;
-    case IR_OP_DIV: WRITEB(BC_OP_DIV_F_R); swap = true; break;
-    case IR_OP_POW: WRITEB(BC_OP_POW_F_R); swap = true; break;
-    case IR_OP_LESS: break; //TODO
-    case IR_OP_GREATER: break; //TODO
-    case IR_OP_EQUAL: break; //TODO
-    case IR_OP_BOOL_AND: break; //TODO
-    case IR_OP_BOOL_OR: break; //TODO
-    default: assert(false);
-    }
-    
-    WRITEB(dest_reg);
-    if (swap) {
-        WRITEF(inst->operands[1].num);
-        WRITEB(rhs_reg);
-    } else {
-        WRITEB(rhs_reg);
-        WRITEF(inst->operands[1].num);
-    }
-    
-    return true;
-}
-
-static bool write_bin_vn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
-    int lhs_reg = get_reg(state, inst->operands[1].var);
-    if (lhs_reg < 0) return false;
-    
-    switch (inst->op) {
-    case IR_OP_ADD: WRITEB(BC_OP_ADD_R_F); break;
-    case IR_OP_SUB: WRITEB(BC_OP_SUB_R_F); break;
-    case IR_OP_MUL: WRITEB(BC_OP_MUL_R_F); break;
-    case IR_OP_DIV: WRITEB(BC_OP_DIV_R_F); break;
-    case IR_OP_POW: WRITEB(BC_OP_POW_R_F); break;
-    case IR_OP_MIN: WRITEB(BC_OP_MIN_R_F); break;
-    case IR_OP_MAX: WRITEB(BC_OP_MAX_R_F); break;
-    case IR_OP_LESS: break; //TODO
-    case IR_OP_GREATER: break; //TODO
-    case IR_OP_EQUAL: break; //TODO
-    case IR_OP_BOOL_AND: break; //TODO
-    case IR_OP_BOOL_OR: break; //TODO
-    default: assert(false);
-    }
-    WRITEB(dest_reg);
-    WRITEB(lhs_reg);
-    WRITEF(inst->operands[2].num);
+    if (lhs_num) drop_var(state, lhs);
+    if (rhs_num) drop_var(state, rhs);
     
     return true;
 }
@@ -210,7 +178,7 @@ static bool write_bin_nn(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     const float truef = *(const float*)&truei;
     const float falsef = *(const float*)&falsei;
     
-    WRITEB(BC_OP_MOV_F);
+    WRITEB(BC_OP_MOVF);
     WRITEB(dest_reg);
     switch (inst->op) {
     case IR_OP_ADD:
@@ -261,15 +229,24 @@ static bool write_mov(gen_bc_state_t* state, ir_inst_t* inst) {
     if (dest_reg < 0) return false;
     
     if (inst->operands[1].type == IR_OPERAND_VAR) {
-        int reg = get_reg(state, inst->operands[1].var);
-        if (reg < 0) return false;
+        ir_var_t lhs_var = gen_tmp_var(state);
         
-        WRITEB(BC_OP_ADD_R_F);
-        WRITEB(dest_reg);
-        WRITEB(reg);
+        int lhs = get_reg(state, lhs_var);
+        int rhs = get_reg(state, inst->operands[1].var);
+        if (lhs<0 || rhs<0) return false;
+        
+        WRITEB(BC_OP_MOVF);
+        WRITEB(lhs);
         WRITEF(0.0f);
+        
+        WRITEB(BC_OP_ADD);
+        WRITEB(dest_reg)
+        WRITEB(lhs);
+        WRITEB(rhs);
+        
+        drop_var(state, lhs_var);
     } else {
-        WRITEB(BC_OP_MOV_F);
+        WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);
         WRITEF(inst->operands[1].num);
     }
@@ -282,15 +259,20 @@ static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
     if (dest_reg < 0) return false;
     
     if (inst->operands[1].type == IR_OPERAND_VAR) {
-        int reg = get_reg(state, inst->operands[1].var);
-        if (reg < 0) return false;
+        ir_var_t lhs = gen_tmp_var(state);
         
-        WRITEB(BC_OP_SUB_F_R);
+        int lhs_reg = get_reg(state, lhs);
+        int rhs_reg = get_reg(state, inst->operands[1].var);
+        if (rhs_reg < 0) return false;
+        
+        WRITEB(BC_OP_SUB);
         WRITEB(dest_reg);
-        WRITEF(0.0f);
-        WRITEB(reg);
+        WRITEB(lhs_reg);
+        WRITEB(rhs_reg);
+        
+        drop_var(state, lhs);
     } else {
-        WRITEB(BC_OP_MOV_F);
+        WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);
         WRITEF(-inst->operands[1].num);
     }
@@ -316,7 +298,7 @@ static bool write_bool_not(gen_bc_state_t* state, ir_inst_t* inst) {
         WRITEF(0.0f);
         WRITEB(reg);
     } else {
-        WRITEB(BC_OP_MOV_F);
+        WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);
         WRITEF(*(uint32_t*)&inst->operands[1].num ? falsef : truef);
     }
@@ -336,7 +318,7 @@ static bool write_sqrt(gen_bc_state_t* state, ir_inst_t* inst) {
         WRITEB(dest_reg);
         WRITEB(reg);
     } else {
-        WRITEB(BC_OP_MOV_F);
+        WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);
         WRITEF(sqrt(inst->operands[1].num));
     }
@@ -351,6 +333,11 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
     state_.var_count = 0;
     state_.vars = NULL;
     state_.var_regs = NULL;
+    state_.temp_var.name.func_count = 0;
+    state_.temp_var.name.funcs = NULL;
+    state_.temp_var.name.name = "~bctmp";
+    state_.temp_var.comp = 1;
+    state_.temp_var.current_ver[0] = 0;
     gen_bc_state_t* state = &state_;
     
     for (size_t i = 0; i < ir->inst_count; i++) {
@@ -375,11 +362,11 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
             int dest_reg = get_reg(state, inst->operands[0].var);
             if (dest_reg < 0) goto error;
             if (inst->operands[1].type==IR_OPERAND_VAR && inst->operands[2].type==IR_OPERAND_VAR) {
-                if (!write_bin_vv(state, dest_reg, inst)) goto error;
+                if (!write_bin(state, dest_reg, inst)) goto error;
             } else if (inst->operands[1].type==IR_OPERAND_NUM && inst->operands[2].type==IR_OPERAND_VAR) {
-                if (!write_bin_nv(state, dest_reg, inst)) goto error;
+                if (!write_bin(state, dest_reg, inst)) goto error;
             } else if (inst->operands[1].type==IR_OPERAND_VAR && inst->operands[2].type==IR_OPERAND_NUM) {
-                if (!write_bin_vn(state, dest_reg, inst)) goto error;
+                if (!write_bin(state, dest_reg, inst)) goto error;
             } else {
                 if (!write_bin_nn(state, dest_reg, inst)) goto error;
             }

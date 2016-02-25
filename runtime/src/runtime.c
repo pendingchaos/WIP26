@@ -110,29 +110,19 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         bc_op_t op = *bc++;
         size_t required = 0;
         switch (op) {
-        case BC_OP_ADD_R_F:
-        case BC_OP_SUB_R_F:
-        case BC_OP_SUB_F_R:
-        case BC_OP_MUL_R_F:
-        case BC_OP_DIV_R_F:
-        case BC_OP_DIV_F_R:
-        case BC_OP_POW_R_F:
-        case BC_OP_POW_F_R:
-        case BC_OP_MIN_R_F:
-        case BC_OP_MAX_R_F: required = 6; break;
-        case BC_OP_MOV_F: required = 5; break;
-        case BC_OP_ADD_RR:
-        case BC_OP_SUB_RR:
-        case BC_OP_MUL_RR:
-        case BC_OP_DIV_RR:
-        case BC_OP_POW_RR:
-        case BC_OP_MIN_RR:
+        case BC_OP_MOVF: required = 5; break;
+        case BC_OP_ADD:
+        case BC_OP_SUB:
+        case BC_OP_MUL:
+        case BC_OP_DIV:
+        case BC_OP_POW:
+        case BC_OP_MIN:
+        case BC_OP_MAX:
         case BC_OP_LESS:
         case BC_OP_GREATER:
         case BC_OP_EQUAL:
         case BC_OP_BOOL_AND:
-        case BC_OP_BOOL_OR:
-        case BC_OP_MAX_RR: required = 3; break;
+        case BC_OP_BOOL_OR: required = 3; break;
         case BC_OP_SQRT:
         case BC_OP_BOOL_NOT:
         case BC_OP_LOAD_PROP:

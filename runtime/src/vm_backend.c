@@ -186,21 +186,14 @@ static void simd8f_get(simd8f_t v, float* dest) {
 
 static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags, float** properties, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
-    static void* dispatch_table[] = {&&BC_OP_ADD_R_F, &&BC_OP_ADD_RR,
-                                     &&BC_OP_SUB_R_F, &&BC_OP_SUB_F_R,
-                                     &&BC_OP_SUB_RR, &&BC_OP_MUL_R_F,
-                                     &&BC_OP_MUL_RR, &&BC_OP_DIV_R_F,
-                                     &&BC_OP_DIV_F_R, &&BC_OP_DIV_RR,
-                                     &&BC_OP_POW_R_F, &&BC_OP_POW_F_R,
-                                     &&BC_OP_POW_RR, &&BC_OP_MOV_F,
-                                     &&BC_OP_MIN_RR, &&BC_OP_MIN_R_F,
-                                     &&BC_OP_MAX_RR, &&BC_OP_MAX_R_F,
-                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP,
-                                     &&BC_OP_STORE_PROP, &&BC_OP_DELETE,
-                                     &&BC_OP_LESS, &&BC_OP_GREATER, &&BC_OP_EQUAL,
-                                     &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR, &&BC_OP_BOOL_NOT,
-                                     &&BC_OP_COND_BEGIN, &&BC_OP_COND_END,
-                                     &&BC_OP_END};
+    static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
+                                     &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
+                                     &&BC_OP_MIN, &&BC_OP_MAX, &&BC_OP_SQRT,
+                                     &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
+                                     &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
+                                     &&BC_OP_BOOL_NOT, &&BC_OP_COND_BEGIN,
+                                     &&BC_OP_COND_END, &&BC_OP_END};
     DISPATCH;
     #else
     const uint8_t* end = bc + program->bc_size;
@@ -208,119 +201,49 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
         bc_op_t op = *bc++;
         switch (op) {
     #endif
-        BEGIN_CASE(BC_OP_ADD_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = regs[r] + f;
-        END_CASE
-        BEGIN_CASE(BC_OP_ADD_RR)
+        BEGIN_CASE(BC_OP_ADD)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = regs[a] + regs[b];
         END_CASE
-        BEGIN_CASE(BC_OP_SUB_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = regs[r] - f;
-        END_CASE
-        BEGIN_CASE(BC_OP_SUB_F_R)
-            uint8_t d = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            uint8_t r = *bc++;
-            regs[d] = f - regs[r];
-        END_CASE
-        BEGIN_CASE(BC_OP_SUB_RR)
+        BEGIN_CASE(BC_OP_SUB)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = regs[a] - regs[b];
         END_CASE
-        BEGIN_CASE(BC_OP_MUL_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = regs[r] * f;
-        END_CASE
-        BEGIN_CASE(BC_OP_MUL_RR)
+        BEGIN_CASE(BC_OP_MUL)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = regs[a] * regs[b];
         END_CASE
-        BEGIN_CASE(BC_OP_DIV_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = regs[r] / f;
-        END_CASE
-        BEGIN_CASE(BC_OP_DIV_F_R)
-            uint8_t d = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            uint8_t r = *bc++;
-            regs[d] = f / regs[r];
-        END_CASE
-        BEGIN_CASE(BC_OP_DIV_RR)
+        BEGIN_CASE(BC_OP_DIV)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = regs[a] / regs[b];
         END_CASE
-        BEGIN_CASE(BC_OP_POW_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = powf(regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_POW_F_R)
-            uint8_t d = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            uint8_t r = *bc++;
-            regs[d] = powf(f, regs[r]);
-        END_CASE
-        BEGIN_CASE(BC_OP_POW_RR)
+        BEGIN_CASE(BC_OP_POW)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = powf(regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_MOV_F)
+        BEGIN_CASE(BC_OP_MOVF)
             uint8_t d = *bc++;
             float f = *(const float*)bc;
             bc += 4;
             regs[d] = f;
         END_CASE
-        BEGIN_CASE(BC_OP_MIN_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = fmin(regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_MIN_RR)
+        BEGIN_CASE(BC_OP_MIN)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             regs[d] = fmin(regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_MAX_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            float f = *(const float*)bc;
-            bc += 4;
-            regs[d] = fmax(f, regs[r]);
-        END_CASE
-        BEGIN_CASE(BC_OP_MAX_RR)
+        BEGIN_CASE(BC_OP_MAX)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
@@ -410,21 +333,14 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
     const uint8_t* bc = program->bc;
     simd8f_t regs[256];
     #ifdef VM_COMPUTED_GOTO
-    static void* dispatch_table[] = {&&BC_OP_ADD_R_F, &&BC_OP_ADD_RR,
-                                     &&BC_OP_SUB_R_F, &&BC_OP_SUB_F_R,
-                                     &&BC_OP_SUB_RR, &&BC_OP_MUL_R_F,
-                                     &&BC_OP_MUL_RR, &&BC_OP_DIV_R_F,
-                                     &&BC_OP_DIV_F_R, &&BC_OP_DIV_RR,
-                                     &&BC_OP_POW_R_F, &&BC_OP_POW_F_R,
-                                     &&BC_OP_POW_RR, &&BC_OP_MOV_F,
-                                     &&BC_OP_MIN_RR, &&BC_OP_MIN_R_F,
-                                     &&BC_OP_MAX_RR, &&BC_OP_MAX_R_F,
-                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP,
-                                     &&BC_OP_STORE_PROP, &&BC_OP_DELETE,
-                                     &&BC_OP_LESS, &&BC_OP_GREATER, &&BC_OP_EQUAL,
-                                     &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR, &&BC_OP_BOOL_NOT,
-                                     &&BC_OP_COND_BEGIN, &&BC_OP_COND_END,
-                                     &&BC_OP_END};
+    static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
+                                     &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
+                                     &&BC_OP_MIN, &&BC_OP_MAX, &&BC_OP_SQRT,
+                                     &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
+                                     &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
+                                     &&BC_OP_BOOL_NOT, &&BC_OP_COND_BEGIN,
+                                     &&BC_OP_COND_END, &&BC_OP_END};
     DISPATCH;
     #else
     const uint8_t* end = bc + program->bc_size;
@@ -432,129 +348,49 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
         bc_op_t op = *bc++;
         switch (op) {
     #endif
-        BEGIN_CASE(BC_OP_ADD_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_add(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_ADD_RR)
+        BEGIN_CASE(BC_OP_ADD)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_add(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_SUB_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_sub(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_SUB_F_R)
-            uint8_t d = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            uint8_t r = *bc++;
-            simd8f_sub(regs+d, f, regs[r]);
-        END_CASE
-        BEGIN_CASE(BC_OP_SUB_RR)
+        BEGIN_CASE(BC_OP_SUB)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_sub(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_MUL_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_mul(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_MUL_RR)
+        BEGIN_CASE(BC_OP_MUL)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_mul(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_DIV_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_div(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_DIV_F_R)
-            uint8_t d = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            uint8_t r = *bc++;
-            simd8f_div(regs+d, f, regs[r]);
-        END_CASE
-        BEGIN_CASE(BC_OP_DIV_RR)
+        BEGIN_CASE(BC_OP_DIV)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_div(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_POW_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_pow(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_POW_F_R)
-            uint8_t d = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            uint8_t r = *bc++;
-            simd8f_pow(regs+d, f, regs[r]);
-        END_CASE
-        BEGIN_CASE(BC_OP_POW_RR)
+        BEGIN_CASE(BC_OP_POW)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_pow(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_MOV_F)
+        BEGIN_CASE(BC_OP_MOVF)
             uint8_t d = *bc++;
             float f = *(const float*)bc;
             bc += 4;
             simd8f_init1(regs+d, f);
         END_CASE
-        BEGIN_CASE(BC_OP_MIN_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_min(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_MIN_RR)
+        BEGIN_CASE(BC_OP_MIN)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             simd8f_min(regs+d, regs[a], regs[b]);
         END_CASE
-        BEGIN_CASE(BC_OP_MAX_R_F)
-            uint8_t d = *bc++;
-            uint8_t r = *bc++;
-            simd8f_t f;
-            simd8f_init1(&f, *(const float*)bc);
-            bc += 4;
-            simd8f_max(regs+d, regs[r], f);
-        END_CASE
-        BEGIN_CASE(BC_OP_MAX_RR)
+        BEGIN_CASE(BC_OP_MAX)
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
