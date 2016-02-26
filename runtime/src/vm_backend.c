@@ -1,6 +1,10 @@
 #define VM_COMPUTED_GOTO
 #define VM_AVX
 
+#if !defined(__AVX__) && defined(VM_AVX)
+#undef VM_AVX
+#endif
+
 #include "runtime.h"
 
 #include <string.h>
@@ -544,10 +548,9 @@ static bool vm_simulate_system(system_t* system) {
     uint8_t* del_flags = system->deleted_flags;
     float** properties = system->properties;
     
-    for (size_t i = 0; i < system->pool_size; i += 8) {
+    for (size_t i = 0; i < system->pool_size; i += 8)
         if (!vm_execute8(p, i, del_flags, properties))
             return false;
-    }
     
     return true;
 }
