@@ -111,7 +111,7 @@ static void simd8f_init1(simd8f_t* dest, float v) {
     *dest = _mm256_set1_ps(v);
 }
 
-static void simd8f_init(simd8f_t* dest, float* v) {
+static void simd8f_init(simd8f_t* dest, const float* v) {
     *dest = _mm256_loadu_ps(v);
 }
 
@@ -185,7 +185,7 @@ static void simd8f_init1(simd8f_t* dest, float v) {
     for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = v;
 }
 
-static void simd8f_init(simd8f_t* dest, float* v) {
+static void simd8f_init(simd8f_t* dest, const float* v) {
     memcpy(dest, v, sizeof(float)*8);
 }
 
@@ -203,6 +203,7 @@ static void simd8f_get(simd8f_t v, float* dest) {
 #define END_CASE break;}
 #endif
 
+//TODO: Slow
 void load_prop(float* val, void* property, prop_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case PROP_UINT8:
@@ -239,6 +240,7 @@ void load_prop(float* val, void* property, prop_dtype_t dtype, size_t offset) {
     }
 }
 
+//TODO: Slow
 void store_prop(const float* val, void* property, prop_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case PROP_UINT8:
