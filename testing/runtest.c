@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     system.runtime = &runtime;
     system.pool_size = count;
     system.sim_program = &program;
+    for (size_t i = 0; i < 256; i++) system.property_dtypes[i] = PROP_FLOAT32;
     create_system(&system);
     for (size_t i = 0; i < count; i++)
         if (spawn_particle(&system) < 0) {
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
             return 1;
         }
         
-        system.properties[index][particle_index] = atof(input);
+        ((float*)system.properties[index])[particle_index] = atof(input);
     }
     
     if (!simulate_system(&system)) {
@@ -95,9 +96,10 @@ int main(int argc, char** argv) {
             return 1;
         }
         
-        if (!float_equal(system.properties[index][particle_index], atof(expected))) {
+        float val = ((float*)system.properties[index])[particle_index];
+        if (!float_equal(val, atof(expected))) {
             fprintf(stderr, "Incorrect value for property \"%s\" for particle %d. Expected %f. Got %f\n",
-                    name, particle_index, atof(expected), system.properties[index][particle_index]);
+                    name, particle_index, atof(expected), val);
             return 1;
         }
     }

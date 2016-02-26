@@ -34,6 +34,17 @@ typedef enum program_type_t {
     PROGRAM_TYPE_EMITTER = 1
 } program_type_t;
 
+typedef enum prop_dtype_t {
+    PROP_UINT8 = 0,
+    PROP_INT8 = 1,
+    PROP_UINT16 = 2,
+    PROP_INT16 = 3,
+    PROP_UINT32 = 4,
+    PROP_INT32 = 5,
+    PROP_FLOAT32 = 6,
+    PROP_FLOAT64 = 7
+} prop_dtype_t;
+
 typedef struct runtime_t runtime_t;
 typedef struct backend_t backend_t;
 typedef struct program_t program_t;
@@ -73,7 +84,8 @@ struct system_t {
     int* nexts;
     int next_particle;
     
-    float* properties[256];
+    void* properties[256];
+    prop_dtype_t property_dtypes[256];
     uint8_t* deleted_flags;
 };
 

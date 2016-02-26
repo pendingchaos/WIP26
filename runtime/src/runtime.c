@@ -153,6 +153,20 @@ size_t get_property_padding(const runtime_t* runtime) {
     return runtime->backend.get_property_padding(runtime);
 }
 
+static size_t get_prop_dtype_size(prop_dtype_t dtype) {
+    switch (dtype) {
+    case PROP_UINT8:
+    case PROP_INT8: return 1;
+    case PROP_UINT16:
+    case PROP_INT16: return 2;
+    case PROP_UINT32:
+    case PROP_INT32:
+    case PROP_FLOAT32: return 4;
+    case PROP_FLOAT64: return 8;
+    }
+    return 0;
+}
+
 bool create_system(system_t* system) {
     if (system->sim_program->type != PROGRAM_TYPE_SIMULATION)
         return set_error(system->runtime, "Simulation program is not a simulation program");
@@ -177,7 +191,8 @@ bool create_system(system_t* system) {
     
     for (size_t i = 0; i < system->sim_program->property_count; i++) {
         int index = system->sim_program->property_indices[i];
-        system->properties[index] = calloc(1, system->pool_size*sizeof(float));
+        size_t size = get_prop_dtype_size(system->property_dtypes[i]);
+        system->properties[index] = calloc(1, system->pool_size*size);
         if (!system->properties[index]) {
             destroy_system(system);
             return set_error(system->runtime, "Unable to allocate property");

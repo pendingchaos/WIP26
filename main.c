@@ -29,6 +29,7 @@ int main() {
     system.runtime = &runtime;
     system.pool_size = 1000000;
     system.sim_program = &program;
+    for (size_t i = 0; i < 256; i++) system.property_dtypes[i] = PROP_FLOAT32;
     create_system(&system);
     
     uint64_t start = get_time();

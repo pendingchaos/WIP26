@@ -203,7 +203,79 @@ static void simd8f_get(simd8f_t v, float* dest) {
 #define END_CASE break;}
 #endif
 
-static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags, float** properties, float* regs, bool cond) {
+void load_prop(float* val, void* property, prop_dtype_t dtype, size_t offset) {
+    switch (dtype) {
+    case PROP_UINT8:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((uint8_t*)property)[i+offset] / 255.0f;
+        break;
+    case PROP_INT8:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((int8_t*)property)[i+offset] / 127.0f;
+        break;
+    case PROP_UINT16:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((uint16_t*)property)[i+offset] / 65535.0f;
+        break;
+    case PROP_INT16:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((int16_t*)property)[i+offset] / 32767.0f;
+        break;
+    case PROP_UINT32:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((uint32_t*)property)[i+offset] / 4294967295.0;
+        break;
+    case PROP_INT32:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((int32_t*)property)[i+offset] / 2147483647.0;
+        break;
+    case PROP_FLOAT32:
+        memcpy(val, ((float*)property)+offset, sizeof(float)*8);
+        break;
+    case PROP_FLOAT64:
+        for (size_t i = 0; i < 8; i++)
+            val[i] = ((double*)property)[i+offset];
+        break;
+    }
+}
+
+void store_prop(const float* val, void* property, prop_dtype_t dtype, size_t offset) {
+    switch (dtype) {
+    case PROP_UINT8:
+        for (size_t i = 0; i < 8; i++)
+            ((uint8_t*)property)[i+offset] = val[i] * 255.0f;
+        break;
+    case PROP_INT8:
+        for (size_t i = 0; i < 8; i++)
+            ((int8_t*)property)[i+offset] = val[i] * 127.0f;
+        break;
+    case PROP_UINT16:
+        for (size_t i = 0; i < 8; i++)
+            ((uint16_t*)property)[i+offset] = val[i] * 65535.0f;
+        break;
+    case PROP_INT16:
+        for (size_t i = 0; i < 8; i++)
+            ((int16_t*)property)[i+offset] = val[i] * 32767.0f;
+        break;
+    case PROP_UINT32:
+        for (size_t i = 0; i < 8; i++)
+            ((uint32_t*)property)[i+offset] = val[i] * 4294967295.0;
+        break;
+    case PROP_INT32:
+        for (size_t i = 0; i < 8; i++)
+            ((int32_t*)property)[i+offset] = val[i] * 2147483647.0;
+        break;
+    case PROP_FLOAT32:
+        memcpy(((float*)property)+offset, val, sizeof(float)*8);
+        break;
+    case PROP_FLOAT64:
+        for (size_t i = 0; i < 8; i++)
+            ((double*)property)[i+offset] = val[i];
+        break;
+    }
+}
+
+static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags, void** properties, prop_dtype_t* prop_dtypes, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
@@ -275,12 +347,16 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
         BEGIN_CASE(BC_OP_LOAD_PROP)
             uint8_t d = *bc++;
             uint8_t s = *bc++;
-            regs[d] = properties[s][index];
+            float val[8];
+            load_prop(val, properties[s], prop_dtypes[s], index);
+            regs[d] = val[0];
         END_CASE
         BEGIN_CASE(BC_OP_STORE_PROP)
             uint8_t d = *bc++;
             uint8_t s = *bc++;
-            properties[d][index] = regs[s];
+            float val[8];
+            val[0] = regs[s];
+            store_prop(val, properties[d], prop_dtypes[d], index);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             deleted_flags[index] = 1;
@@ -331,7 +407,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
             bc += 6;
-            if (regs[c] >= 0.5f) vm_execute1(bc, index, deleted_flags, properties, regs, cond);
+            if (regs[c] >= 0.5f) vm_execute1(bc, index, deleted_flags, properties, prop_dtypes, regs, cond);
             else bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
@@ -349,7 +425,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
     return true;
 }
 
-static bool vm_execute8(const program_t* program, size_t offset, uint8_t* deleted_flags, float** properties) {
+static bool vm_execute8(const program_t* program, size_t offset, uint8_t* deleted_flags, void** properties, prop_dtype_t* prop_dtypes) {
     bool deleted = true;
     for (uint_fast8_t i = 0; i < 8; i++)
         deleted = deleted && deleted_flags[offset+i];
@@ -428,12 +504,14 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
         BEGIN_CASE(BC_OP_LOAD_PROP)
             uint8_t d = *bc++;
             uint8_t s = *bc++;
-            simd8f_init(regs+d, properties[s]+offset);
+            float val[8];
+            load_prop(val, properties[s], prop_dtypes[s], offset);
+            simd8f_init(regs+d, val);
         END_CASE
         BEGIN_CASE(BC_OP_STORE_PROP)
             uint8_t d = *bc++;
             uint8_t s = *bc++;
-            simd8f_get(regs[s], properties[d]+offset);
+            store_prop((const float*)(regs+s), properties[d], prop_dtypes[d], offset);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
@@ -496,7 +574,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     fregs[j] = ((float*)(regs+j))[i];
                 
-                vm_execute1(bc, offset+i, deleted_flags, properties, fregs, true);
+                vm_execute1(bc, offset+i, deleted_flags, properties, prop_dtypes, fregs, true);
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
@@ -546,10 +624,11 @@ static bool vm_destroy_program(program_t* program) {
 static bool vm_simulate_system(system_t* system) {
     const program_t* p = system->sim_program;
     uint8_t* del_flags = system->deleted_flags;
-    float** properties = system->properties;
+    void** properties = system->properties;
+    prop_dtype_t* prop_dtypes = system->property_dtypes;
     
     for (size_t i = 0; i < system->pool_size; i += 8)
-        if (!vm_execute8(p, i, del_flags, properties))
+        if (!vm_execute8(p, i, del_flags, properties, prop_dtypes))
             return false;
     
     return true;
