@@ -9,6 +9,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
+static bool is_valid_comp(char c, size_t comp) {
+    if (c=='x' && comp>=1) return true;
+    else if (c=='y' && comp>=2) return true;
+    else if (c=='z' && comp>=3) return true;
+    else if (c=='w' && comp>=4) return true;
+    else return false;
+}
+
+static size_t get_comp_from_c(char c) {
+    if (c=='x') return 0;
+    else if (c=='y') return 1;
+    else if (c=='z') return 2;
+    else if (c=='w') return 3;
+    else return 0;
+}
+
 static bool ir_set_error(ir_t* ir, const char* format, ...) {
     va_list list;
     va_start(list, format);
@@ -288,8 +304,8 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
             if (strlen(swizzle) > dest_comp)
                 return ir_set_error(ir, "Invalid swizzle."), NULL;
             dest_comp = strlen(swizzle);
-            for (size_t i = 0; i < strlen(swizzle); i++)
-                dest_swizzle[i] = swizzle[i]-'x';
+            for (size_t i = 0; i < dest_comp; i++)
+                dest_swizzle[i] = get_comp_from_c(swizzle[i]);
             lhs = ((bin_node_t*)lhs)->lhs;
         }
         
@@ -375,10 +391,10 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         inst.operand_count = 2;
         for (size_t i = 0; i < dest->comp; i++) {
             char mem = swizzle[i];
-            if (mem<'x' || mem>('x'+src->comp-1))
+            if (!is_valid_comp(mem, src->comp))
                 return ir_set_error(ir, "Invalid swizzle."), NULL;
             inst.operands[0] = create_var_operand(get_var_comp(dest, i));
-            inst.operands[1] = create_var_operand(get_var_comp(src, mem-'x'));
+            inst.operands[1] = create_var_operand(get_var_comp(src, get_comp_from_c(mem)));
             add_inst(ir, &inst);
         }
         return dest;

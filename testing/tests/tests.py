@@ -265,4 +265,142 @@
         'v.y': [2.0, 13.0],
         'v.z': [7.0, 33.0]
     }
+},
+{
+    'name': 'test select',
+    'source':
+    '''include stdlib;
+    property v:vec2;
+    v.x = sel(0.0, 1.0, false);
+    v.y = sel(0.0, 1.0, true);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0]
+    },
+    'expected': {
+        'v.x': [0.0],
+        'v.y': [1.0]
+    }
+},
+{
+    'name': 'test &&',
+    'source':
+    '''include stdlib;
+    property v:vec4;
+    v.x = sel(0.0, 1.0, false && false);
+    v.y = sel(0.0, 1.0, false && true);
+    v.z = sel(0.0, 1.0, true && false);
+    v.w = sel(0.0, 1.0, true && true);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0],
+        'v.z': [5.0],
+        'v.w': [5.0]
+    },
+    'expected': {
+        'v.x': [0.0],
+        'v.y': [0.0],
+        'v.z': [0.0],
+        'v.w': [1.0]
+    }
+},
+{
+    'name': 'test ||',
+    'source':
+    '''include stdlib;
+    property v:vec4;
+    v.x = sel(0.0, 1.0, false || false);
+    v.y = sel(0.0, 1.0, false || true);
+    v.z = sel(0.0, 1.0, true || false);
+    v.w = sel(0.0, 1.0, true || true);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0],
+        'v.z': [5.0],
+        'v.w': [5.0]
+    },
+    'expected': {
+        'v.x': [0.0],
+        'v.y': [1.0],
+        'v.z': [1.0],
+        'v.w': [1.0]
+    }
+},
+{
+    'name': 'test !',
+    'source':
+    '''include stdlib;
+    property v:vec2;
+    v.x = sel(0.0, 1.0, !false);
+    v.y = sel(0.0, 1.0, !true);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0]
+    },
+    'expected': {
+        'v.x': [1.0],
+        'v.y': [0.0]
+    }
+},
+{
+    'name': 'test <',
+    'source':
+    '''include stdlib;
+    property v:vec2;
+    v.x = sel(0.0, 1.0, 2 < 3);
+    v.y = sel(0.0, 1.0, 3 < 2);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0]
+    },
+    'expected': {
+        'v.x': [1.0],
+        'v.y': [0.0]
+    }
+},
+{
+    'name': 'test >',
+    'source':
+    '''include stdlib;
+    property v:vec2;
+    v.x = sel(0.0, 1.0, 3 > 2);
+    v.y = sel(0.0, 1.0, 2 > 3);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0]
+    },
+    'expected': {
+        'v.x': [1.0],
+        'v.y': [0.0]
+    }
+},
+{
+    'name': 'test ==',
+    'source':
+    '''include stdlib;
+    property v:vec2;
+    v.x = sel(0.0, 1.0, 2 == 2);
+    v.y = sel(0.0, 1.0, 2 == 3);
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [5.0],
+        'v.y': [5.0]
+    },
+    'expected': {
+        'v.x': [1.0],
+        'v.y': [0.0]
+    }
 }
