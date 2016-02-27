@@ -73,6 +73,7 @@ static int get_reg(gen_bc_state_t* state, ir_var_t var) {
     int reg = _get_reg(state, var);
     if (reg!=-1 && reg<state->min_reg) state->min_reg = reg;
     if (reg!=-1 && reg>state->max_reg) state->max_reg = reg;
+    //printf("%s_%u: %d %zu\n", var.decl->name.name, var.comp_idx, reg, state->var_count);
     return reg;
 }
 
@@ -392,9 +393,12 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
                 free(inner_state.var_regs);
                 return false;
             }
-            
-            free(inner_state.vars);
-            free(inner_state.var_regs);
+            free(state->vars);
+            free(state->var_regs);
+            state->vars = inner_state.vars;
+            state->var_regs = inner_state.var_regs;
+            state->var_count = inner_state.var_count;
+            state->temp_var = inner_state.temp_var;
             
             WRITEB(BC_OP_COND_BEGIN);
             WRITEB(cond_reg);

@@ -140,7 +140,7 @@ static void print_node(node_t* node, unsigned int indent) {
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst) {
-    if (inst.op == IR_OP_DROP) return;
+    //if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
     
@@ -268,17 +268,19 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
         case BC_OP_DELETE: {printf("delete\n"); break;}
         case BC_OP_SEL: {
             uint8_t d = *bc++;
-            uint8_t c = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
-            printf("sel r%u r%u r%u r%u\n", d, c, a, b);
+            uint8_t c = *bc++;
+            printf("sel r%u r%u r%u r%u\n", d, a, b, c);
             break;
         }
         case BC_OP_COND_BEGIN: {
 			uint8_t c = *bc++;
             uint32_t count = le32toh(*(uint32_t*)bc);
             bc += 4;
-            printf("beginif r%u (endif at %u)\n", c, (unsigned int)(bc-begin) + count);
+            uint8_t regmin = *bc++;
+            uint8_t regmax = *bc++;
+            printf("beginif r%u (endif at %u) (registers %u-%u)\n", c, (unsigned int)(bc-begin) + count, regmin, regmax);
             break;
         }
         case BC_OP_COND_END: {
@@ -379,11 +381,11 @@ int main(int argc, char** argv) {
     }
     
     remove_redundant_moves(&ir);
-    add_drop_insts(&ir);
     eval_phi_insts(&ir);
+    //add_drop_insts(&ir);
     
-    for (size_t i = 0; i < ir.inst_count; i++)
-        print_inst(&ir, ir.insts[i]);
+    //for (size_t i = 0; i < ir.inst_count; i++)
+    //    print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     
@@ -396,7 +398,7 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    print_bc(bc.bc, bc.bc+bc.bc_size);
+    //print_bc(bc.bc, bc.bc+bc.bc_size);
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {

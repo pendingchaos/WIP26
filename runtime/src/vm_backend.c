@@ -103,7 +103,7 @@ static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
     float* af = (float*)&a;
     float* bf = (float*)&b;
     float destf[8];
-    for (uint_fast8_t i = 0; i < 8; i++) destf[i] = condi[i] ? bf[i] : af[i];
+    for (uint_fast8_t i = 0; i < 8; i++) destf[i] = condi[i] ? af[i] : bf[i];
     *dest = _mm256_loadu_ps(destf);
 }
 

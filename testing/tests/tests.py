@@ -271,8 +271,8 @@
     'source':
     '''include stdlib;
     property v:vec2;
-    v.x = sel(0.0, 1.0, false);
-    v.y = sel(0.0, 1.0, true);
+    v.x = sel(1.0, 0.0, false);
+    v.y = sel(1.0, 0.0, true);
     ''',
     'count': 1,
     'properties': {
@@ -289,10 +289,10 @@
     'source':
     '''include stdlib;
     property v:vec4;
-    v.x = sel(0.0, 1.0, false && false);
-    v.y = sel(0.0, 1.0, false && true);
-    v.z = sel(0.0, 1.0, true && false);
-    v.w = sel(0.0, 1.0, true && true);
+    v.x = sel(1.0, 0.0, false && false);
+    v.y = sel(1.0, 0.0, false && true);
+    v.z = sel(1.0, 0.0, true && false);
+    v.w = sel(1.0, 0.0, true && true);
     ''',
     'count': 1,
     'properties': {
@@ -313,10 +313,10 @@
     'source':
     '''include stdlib;
     property v:vec4;
-    v.x = sel(0.0, 1.0, false || false);
-    v.y = sel(0.0, 1.0, false || true);
-    v.z = sel(0.0, 1.0, true || false);
-    v.w = sel(0.0, 1.0, true || true);
+    v.x = sel(1.0, 0.0, false || false);
+    v.y = sel(1.0, 0.0, false || true);
+    v.z = sel(1.0, 0.0, true || false);
+    v.w = sel(1.0, 0.0, true || true);
     ''',
     'count': 1,
     'properties': {
@@ -337,8 +337,8 @@
     'source':
     '''include stdlib;
     property v:vec2;
-    v.x = sel(0.0, 1.0, !false);
-    v.y = sel(0.0, 1.0, !true);
+    v.x = sel(1.0, 0.0, !false);
+    v.y = sel(1.0, 0.0, !true);
     ''',
     'count': 1,
     'properties': {
@@ -355,8 +355,8 @@
     'source':
     '''include stdlib;
     property v:vec2;
-    v.x = sel(0.0, 1.0, 2 < 3);
-    v.y = sel(0.0, 1.0, 3 < 2);
+    v.x = sel(1.0, 0.0, 2 < 3);
+    v.y = sel(1.0, 0.0, 3 < 2);
     ''',
     'count': 1,
     'properties': {
@@ -373,8 +373,8 @@
     'source':
     '''include stdlib;
     property v:vec2;
-    v.x = sel(0.0, 1.0, 3 > 2);
-    v.y = sel(0.0, 1.0, 2 > 3);
+    v.x = sel(1.0, 0.0, 3 > 2);
+    v.y = sel(1.0, 0.0, 2 > 3);
     ''',
     'count': 1,
     'properties': {
@@ -391,8 +391,8 @@
     'source':
     '''include stdlib;
     property v:vec2;
-    v.x = sel(0.0, 1.0, 2 == 2);
-    v.y = sel(0.0, 1.0, 2 == 3);
+    v.x = sel(1.0, 0.0, 2 == 2);
+    v.y = sel(1.0, 0.0, 2 == 3);
     ''',
     'count': 1,
     'properties': {
@@ -410,7 +410,7 @@
     '''
     property v:vec2;
     if false {v.x = 7.0;}
-    #if true {v.y = 9.0;}
+    if true {v.y = 9.0;}
     ''',
     'count': 1,
     'properties': {

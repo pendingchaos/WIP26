@@ -759,9 +759,9 @@ void eval_phi_insts(ir_t* ir) {
             res.op = IR_OP_SEL;
             res.operand_count = 4;
             res.operands[0] = inst->operands[0];
-            res.operands[1] = begin_if->operands[0];
-            res.operands[2] = inst->operands[1];
-            res.operands[3] = inst->operands[2];
+            res.operands[1] = inst->operands[1];
+            res.operands[2] = inst->operands[2];
+            res.operands[3] = begin_if->operands[0];
             add_inst(ir, &res);
         } else add_inst(ir, inst)->id = inst->id;
     }
