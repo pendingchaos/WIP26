@@ -443,9 +443,10 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             
             break;
         }
-        case IR_OP_END_IF: {
-            break;
-        }
+        case IR_OP_END_IF:
+        case IR_OP_PHI: {
+			break;
+		}
         }
     }
     

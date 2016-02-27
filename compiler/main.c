@@ -77,7 +77,7 @@ static void print_node(node_t* node, unsigned int indent) {
         printf("FUNC_DECL: ");
         goto func_decl;
     case NODET_NOP:
-        printf("NOP: ");
+        printf("NOP\n");
         return;
     case NODET_NEG:
         printf("NEG: ");
@@ -288,9 +288,10 @@ int main(int argc, char** argv) {
     
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
+    eval_phi_insts(&ir);
     
-    //for (size_t i = 0; i < ir.inst_count; i++)
-    //    print_inst(&ir, ir.insts[i]);
+    for (size_t i = 0; i < ir.inst_count; i++)
+        print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     

@@ -80,7 +80,10 @@ struct ir_inst_t {
     ir_opcode_t op;
     size_t operand_count;
     ir_operand_t operands[IR_OPERAND_MAX];
-    size_t end_if; //Only with IR_OP_BEGIN_IF
+    union {
+        size_t end_if; //Only with IR_OP_BEGIN_IF and IR_OP_PHI
+        size_t begin_if; //Only with IR_OP_END_IF
+    };
 };
 
 typedef struct {
@@ -106,4 +109,5 @@ bool create_ir(const ast_t* ast, ir_t* ir);
 void free_ir(ir_t* ir);
 void remove_redundant_moves(ir_t* ir);
 void add_drop_insts(ir_t* ir);
+void eval_phi_insts(ir_t* ir);
 #endif

@@ -403,4 +403,22 @@
         'v.x': [1.0],
         'v.y': [0.0]
     }
+},
+{
+    'name': 'test if',
+    'source':
+    '''
+    property v:vec2;
+    if false {v.x = 7.0;}
+    #if true {v.y = 9.0;}
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [3.0],
+        'v.y': [6.0]
+    },
+    'expected': {
+        'v.x': [3.0],
+        'v.y': [9.0]
+    }
 }
