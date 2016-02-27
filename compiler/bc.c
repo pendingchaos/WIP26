@@ -36,17 +36,17 @@ typedef enum {
     BC_OP_END = 21
 } bc_op_t;
 
-static char error[1024];
-
-static bool bc_set_error(const char* format, ...) {
+static bool bc_set_error(bc_t* bc, const char* format, ...) {
     va_list list;
     va_start(list, format);
-    vsnprintf(error, sizeof(error), format, list);
+    vsnprintf(bc->error, sizeof(bc->error), format, list);
     va_end(list);
     return false;
 }
 
 typedef struct {
+    bc_t* res_bc;
+    
     size_t bc_size;
     uint8_t* bc;
     
@@ -70,7 +70,7 @@ static int find_reg(gen_bc_state_t* state) {
         break;
     }
     
-    if (reg < 0) bc_set_error("Unable to allocate register");
+    if (reg < 0) bc_set_error(state->res_bc, "Unable to allocate register");
     
     return reg;
 }
@@ -324,7 +324,7 @@ static bool write_sel(gen_bc_state_t* state, const ir_inst_t* inst) {
     return true;
 }
 
-static bool gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_count, uint8_t* prop_indices, size_t* end_id) {
+static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_count, uint8_t* prop_indices, size_t* end_id) {
     for (size_t i = 0; i < inst_count; i++) {
         const ir_inst_t* inst = insts + i;
         if (end_id && inst->id==*end_id) {
@@ -410,7 +410,8 @@ static bool gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_co
             inner_state.temp_var = state->temp_var;
             inner_state.min_reg = 255;
             inner_state.max_reg = 0;
-            if (!gen_bc(&inner_state, insts+i+1, inst_count-i-1, prop_indices, &end)) {
+            inner_state.res_bc = state->res_bc;
+            if (!_gen_bc(&inner_state, insts+i+1, inst_count-i-1, prop_indices, &end)) {
                 free(inner_state.bc);
                 free(inner_state.vars);
                 free(inner_state.var_regs);
@@ -457,24 +458,19 @@ static bool gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_co
         return false;
 }
 
-bool write_bc(FILE* dest, const ir_t* ir, bool simulation) {
-    error[0] = 0;
+bool gen_bc(bc_t* bc, bool simulation) {
+    bc->error[0] = 0;
     
-    if (simulation)
-        fwrite("SIMv0.0 ", 8, 1, dest);
-    else
-        fwrite("EMTv0.0 ", 8, 1, dest);
+    bc->simulation = simulation;
+    bc->prop_count = 0;
+    for (size_t i = 0; i < bc->ir->prop_count; i++)
+        bc->prop_count += bc->ir->prop_comp[i];
     
-    uint8_t prop_count = 0;
-    for (size_t i = 0; i < ir->prop_count; i++)
-        prop_count += ir->prop_comp[i];
-    fwrite(&prop_count, 1, 1, dest);
-    
-    uint8_t* prop_indices = alloc_mem(ir->prop_count*4);
+    bc->prop_indices = alloc_mem(bc->ir->prop_count*4);
     size_t idx = 0;
-    for (size_t i = 0; i < ir->prop_count; i++)
-        for (size_t j = 0; j < ir->prop_comp[i]; j++) {
-            prop_indices[i*4+j] = idx;
+    for (size_t i = 0; i < bc->ir->prop_count; i++)
+        for (size_t j = 0; j < bc->ir->prop_comp[i]; j++) {
+            bc->prop_indices[i*4+j] = idx;
             idx++;
         }
     
@@ -491,30 +487,41 @@ bool write_bc(FILE* dest, const ir_t* ir, bool simulation) {
     state.temp_var.current_ver[0] = 0;
     state.min_reg = 255;
     state.max_reg = 0;
-    if (!gen_bc(&state, ir->insts, ir->inst_count, prop_indices, NULL)) return false;
+    state.res_bc = bc;
+    if (!_gen_bc(&state, bc->ir->insts, bc->ir->inst_count, bc->prop_indices, NULL)) return false;
     
-    uint32_t bc_size32 = htole32(state.bc_size);
-    fwrite(&bc_size32, 4, 1, dest);
-    
-    for (size_t i = 0; i < ir->prop_count; i++) {
-        for (size_t j = 0; j < ir->prop_comp[i]; j++) {
-            uint8_t name_len = strlen(ir->properties[i])+2;
-            fwrite(&name_len, 1, 1, dest);
-            fwrite(ir->properties[i], name_len-2, 1, dest);
-            fwrite(".", 1, 1, dest);
-            fwrite("xyzw"+j, 1, 1, dest);
-            fwrite(prop_indices+i*4+j, 1, 1, dest);
-        }
-    }
-    free(prop_indices);
-    
-    fwrite(state.bc, state.bc_size, 1, dest);
-    
-    free(state.bc);
+    bc->bc_size = state.bc_size;
+    bc->bc = state.bc;
     
     return true;
 }
 
-char* bc_get_error() {
-    return error;
+bool write_bc(FILE* dest, const bc_t* bc) {
+    if (bc->simulation) fwrite("SIMv0.0 ", 8, 1, dest);
+    else fwrite("EMTv0.0 ", 8, 1, dest);
+    
+    fwrite(&bc->prop_count, 1, 1, dest);
+    
+    uint32_t bc_size32 = htole32(bc->bc_size);
+    fwrite(&bc_size32, 4, 1, dest);
+    
+    for (size_t i = 0; i < bc->ir->prop_count; i++) {
+        for (size_t j = 0; j < bc->ir->prop_comp[i]; j++) {
+            uint8_t name_len = strlen(bc->ir->properties[i])+2;
+            fwrite(&name_len, 1, 1, dest);
+            fwrite(bc->ir->properties[i], name_len-2, 1, dest);
+            fwrite(".", 1, 1, dest);
+            fwrite("xyzw"+j, 1, 1, dest);
+            fwrite(bc->prop_indices+i*4+j, 1, 1, dest);
+        }
+    }
+    
+    fwrite(bc->bc, bc->bc_size, 1, dest);
+    
+    return true;
+}
+
+void free_bc(bc_t* bc) {
+    free(bc->bc);
+    free(bc->prop_indices);
 }

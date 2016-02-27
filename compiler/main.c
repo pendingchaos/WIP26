@@ -294,19 +294,30 @@ int main(int argc, char** argv) {
     
     free_ast(&ast);
     
+    bc_t bc;
+    bc.ir = &ir;
+    if (!gen_bc(&bc, !strcmp(type, "sim"))) {
+        fprintf(stderr, "Error: %s\n", bc.error);
+        free_bc(&bc);
+        free_ir(&ir);
+        goto error;
+    }
+    
     FILE* dest = fopen(output, "wb");
     if (!dest) {
         fprintf(stderr, "Error: Unable to fopen %s\n", output);
         free_ir(&ir);
         goto error;
     }
-    if (!write_bc(dest, &ir, strcmp(type, "sim")==0)) {
-        fprintf(stderr, "Error: %s\n", bc_get_error());
+    if (!write_bc(dest, &bc)) {
+        fprintf(stderr, "Error: %s\n", bc.error);
+        free_bc(&bc);
         free_ir(&ir);
         goto error;
     }
     fclose(dest);
     
+    free_bc(&bc);
     free_ir(&ir);
     for (size_t i = 0; i < inc_dir_count; i++) free(inc_dirs[i]);
     free(inc_dirs);
