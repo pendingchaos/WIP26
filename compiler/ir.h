@@ -28,13 +28,16 @@ typedef enum {
     IR_OP_SQRT,
     IR_OP_LOAD_PROP,
     IR_OP_STORE_PROP,
-    IR_OP_SEL
+    IR_OP_SEL,
+    IR_OP_BEGIN_IF,
+    IR_OP_END_IF,
+    IR_OP_PHI
 } ir_opcode_t;
 
 typedef enum {
     IR_OPERAND_NUM,
     IR_OPERAND_VAR,
-    IR_OPERAND_PROP
+    IR_OPERAND_PROP //Only valid with IR_OP_LOAD_PROP and IR_OP_STORE_PROP
 } ir_operand_type_t;
 
 typedef struct ast_t ast_t;

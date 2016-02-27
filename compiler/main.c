@@ -164,6 +164,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_LOAD_PROP: printf("pload "); break;
     case IR_OP_STORE_PROP: printf("pstore "); break;
     case IR_OP_SEL: printf("sel "); break;
+    case IR_OP_BEGIN_IF: printf("beginif "); break;
+    case IR_OP_END_IF: printf("endif "); break;
+    case IR_OP_PHI: printf("phi "); break;
     }
     
     for (size_t i = 0; i < inst.operand_count; i++) {
@@ -175,7 +178,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
         case IR_OPERAND_VAR:
             for (size_t j = 0; j < op.var.decl->name.func_count; j++)
                 printf("%s::", op.var.decl->name.funcs[j]);
-            printf("%s", op.var.decl->name.name);
+            printf("%s_%u", op.var.decl->name.name, op.var.ver);
             switch (op.var.comp_idx) {
             case 0: printf(".x "); break;
             case 1: printf(".y "); break;

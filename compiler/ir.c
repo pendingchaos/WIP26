@@ -454,6 +454,55 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         return gen_temp_var(ir, 0);
     }
     case NODET_NOP: {return gen_temp_var(ir, 0);}
+    case NODET_IF: {
+        if_node_t* if_ = (if_node_t*)node;
+        
+        ir_var_decl_t* cond = node_to_ir(if_->condition, ir, returned, func_count, funcs);
+        if (cond->comp != 1)
+            return ir_set_error(ir, "Result type of condition must a boolean"), NULL;
+        
+        ir_inst_t inst;
+        inst.op = IR_OP_BEGIN_IF;
+        inst.operand_count = 1;
+        inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
+        add_inst(ir, &inst);
+        
+        size_t last_var_count = ir->var_count;
+        unsigned int* last_vers = alloc_mem(sizeof(unsigned int)*ir->var_count*4);
+        for (size_t i = 0; i < ir->var_count; i++)
+            memcpy(last_vers+i*4, ir->vars[i]->current_ver, 4*sizeof(unsigned int));
+        
+        for (size_t i = 0; i < if_->stmt_count; i++) {
+            if (!node_to_ir(if_->stmts[i], ir, returned, func_count, funcs)) {
+                free(last_vers);
+                return NULL;
+            }
+            if (*returned) break;
+        }
+        
+        inst.op = IR_OP_END_IF;
+        inst.operand_count = 0;
+        add_inst(ir, &inst);
+        
+        //This assumes new variables are added to the end of the list
+        //and that it is never reordered
+        for (size_t i = 0; i < last_var_count; i++)
+            for (size_t j = 0; j < 4; j++)
+                if (last_vers[i*4+j] != ir->vars[i]->current_ver[j]) {
+                    inst.op = IR_OP_PHI;
+                    inst.operand_count = 3;
+                    inst.operands[0] = create_var_operand(get_var_comp(ir->vars[i], j));
+                    inst.operands[1] = inst.operands[0];
+                    inst.operands[2] = inst.operands[0];
+                    inst.operands[2].var.ver = last_vers[i*4+j];
+                    ir->vars[i]->current_ver[j]++;
+                    inst.operands[0].var.ver++;
+                    add_inst(ir, &inst);
+                }
+        free(last_vers);
+        
+        return gen_temp_var(ir, 0);
+    }
     }
     
     assert(false);
