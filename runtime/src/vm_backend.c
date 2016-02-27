@@ -408,7 +408,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
-            bc += 6;
+            bc += 4;
             if (regs[c] >= 0.5f) vm_execute1(bc, index, deleted_flags, properties, prop_dtypes, regs, cond);
             else bc += le32toh(count);
         END_CASE

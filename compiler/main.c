@@ -200,6 +200,98 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     putchar('\n');
 }
 
+static void print_bc(uint8_t* begin, uint8_t* end) {
+    uint8_t* bc = begin;
+    while (bc != end) {
+    printf("%zu ", bc-begin);
+    uint8_t op = *bc++;
+        switch (op) {
+        case BC_OP_ADD:
+        case BC_OP_SUB:
+        case BC_OP_MUL:
+        case BC_OP_DIV:
+        case BC_OP_POW:
+        case BC_OP_MIN:
+        case BC_OP_MAX:
+        case BC_OP_LESS:
+        case BC_OP_GREATER:
+        case BC_OP_EQUAL:
+        case BC_OP_BOOL_AND:
+        case BC_OP_BOOL_OR:
+        case BC_OP_BOOL_NOT: {
+            switch (op) {
+            case BC_OP_ADD: printf("add "); break;
+            case BC_OP_SUB: printf("sub "); break;
+            case BC_OP_MUL: printf("mul "); break;
+            case BC_OP_DIV: printf("div "); break;
+            case BC_OP_POW: printf("pow "); break;
+            case BC_OP_MIN: printf("min "); break;
+            case BC_OP_MAX: printf("max "); break;
+		    case BC_OP_LESS: printf("less "); break;
+		    case BC_OP_GREATER: printf("greater "); break;
+		    case BC_OP_EQUAL: printf("equal "); break;
+		    case BC_OP_BOOL_AND: printf("booland "); break;
+		    case BC_OP_BOOL_OR: printf("boolor "); break;
+		    case BC_OP_BOOL_NOT: printf("boolnot "); break;
+            }
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            printf("r%u r%u r%u\n", d, a, b);
+            break;
+        }
+        case BC_OP_MOVF: {
+            uint8_t d = *bc++;
+            float v = *(float*)bc;
+            bc += 4;
+            printf("movf r%u %f\n", d, v);
+            break;
+        }
+        case BC_OP_SQRT: {
+            uint8_t d = *bc++;
+            uint8_t v = *bc++;
+            printf("sqrt r%u r%u\n", d, v);
+            break;
+        }
+        case BC_OP_LOAD_PROP: {
+            uint8_t d = *bc++;
+            uint8_t p = *bc++;
+            printf("pload r%u p%u\n", d, p);
+            break;
+        }
+        case BC_OP_STORE_PROP: {
+            uint8_t p = *bc++;
+            uint8_t v = *bc++;
+            printf("pstore p%u r%u\n", p, v);
+            break;
+        }
+        case BC_OP_DELETE: {printf("delete\n"); break;}
+        case BC_OP_SEL: {
+            uint8_t d = *bc++;
+            uint8_t c = *bc++;
+            uint8_t a = *bc++;
+            uint8_t b = *bc++;
+            printf("sel r%u r%u r%u r%u\n", d, c, a, b);
+            break;
+        }
+        case BC_OP_COND_BEGIN: {
+			uint8_t c = *bc++;
+            uint32_t count = le32toh(*(uint32_t*)bc);
+            bc += 4;
+            printf("beginif r%u (endif at %u)\n", c, (unsigned int)(bc-begin) + count);
+            break;
+        }
+        case BC_OP_COND_END: {
+            printf("endif\n");
+            break;
+        }
+        case BC_OP_END:
+            printf("end\n");
+            break;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     char* input = NULL;
     char* output = NULL;
@@ -303,6 +395,8 @@ int main(int argc, char** argv) {
         free_ir(&ir);
         goto error;
     }
+    
+    print_bc(bc.bc, bc.bc+bc.bc_size);
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {
