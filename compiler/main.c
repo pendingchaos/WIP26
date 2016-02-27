@@ -381,8 +381,7 @@ int main(int argc, char** argv) {
     }
     
     remove_redundant_moves(&ir);
-    eval_phi_insts(&ir);
-    //add_drop_insts(&ir);
+    add_drop_insts(&ir);
     
     //for (size_t i = 0; i < ir.inst_count; i++)
     //    print_inst(&ir, ir.insts[i]);

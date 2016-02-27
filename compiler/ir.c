@@ -732,38 +732,3 @@ void add_drop_insts(ir_t* ir) {
     free(insts);
     free(vars);
 }
-
-static ir_inst_t* find_by_id(ir_inst_t* insts, size_t inst_count, size_t id) {
-    for (size_t i = 0; i < inst_count; i++)
-        if (insts[i].id == id) return insts + i;
-	return NULL;
-}
-
-//TODO: This could produce faster code
-void eval_phi_insts(ir_t* ir) {
-    size_t inst_count = ir->inst_count;
-    ir_inst_t* insts = ir->insts;
-    ir->inst_count = 0;
-    ir->insts = NULL;
-    for (size_t i = 0; i < inst_count; i++) {
-        ir_inst_t* inst = insts + i;
-        if (inst->op == IR_OP_PHI) {
-            ir_inst_t* end_if = find_by_id(insts, inst_count, inst->end_if);
-            ir_inst_t* begin_if = find_by_id(insts, inst_count, end_if->begin_if);
-            if (!end_if || !begin_if) {
-                free(insts);
-                return;
-            }
-            
-            ir_inst_t res;
-            res.op = IR_OP_SEL;
-            res.operand_count = 4;
-            res.operands[0] = inst->operands[0];
-            res.operands[1] = inst->operands[1];
-            res.operands[2] = inst->operands[2];
-            res.operands[3] = begin_if->operands[0];
-            add_inst(ir, &res);
-        } else add_inst(ir, inst)->id = inst->id;
-    }
-    free(insts);
-}

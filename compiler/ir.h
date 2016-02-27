@@ -109,5 +109,4 @@ bool create_ir(const ast_t* ast, ir_t* ir);
 void free_ir(ir_t* ir);
 void remove_redundant_moves(ir_t* ir);
 void add_drop_insts(ir_t* ir);
-void eval_phi_insts(ir_t* ir);
 #endif
