@@ -142,6 +142,8 @@ static void print_node(node_t* node, unsigned int indent) {
 static void print_inst(ir_t* ir, ir_inst_t inst) {
     if (inst.op == IR_OP_DROP) return;
     
+    printf("%zu\t", inst.id);
+    
     switch (inst.op) {
     case IR_OP_MOV: printf("mov "); break;
     case IR_OP_ADD: printf("add "); break;
@@ -191,6 +193,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
             break;
         }
     }
+    
+    if (inst.op == IR_OP_BEGIN_IF)
+        printf("until instruction %zu", inst.end_if);
     
     putchar('\n');
 }

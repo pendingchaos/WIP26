@@ -30,7 +30,10 @@ typedef enum {
     BC_OP_BOOL_AND = 15,
     BC_OP_BOOL_OR = 16,
     BC_OP_BOOL_NOT = 17,
-    BC_OP_SEL = 18
+    BC_OP_SEL = 18,
+    BC_OP_COND_BEGIN = 19,
+    BC_OP_COND_END = 20,
+    BC_OP_END = 21
 } bc_op_t;
 
 static char error[1024];
@@ -44,14 +47,16 @@ static bool bc_set_error(const char* format, ...) {
 }
 
 typedef struct {
-    size_t* bc_size;
-    uint8_t** bc;
+    size_t bc_size;
+    uint8_t* bc;
     
     size_t var_count;
     ir_var_t* vars;
     uint8_t* var_regs;
     
     ir_var_decl_t temp_var;
+    uint8_t min_reg;
+    uint8_t max_reg;
 } gen_bc_state_t;
 
 static int find_reg(gen_bc_state_t* state) {
@@ -66,10 +71,11 @@ static int find_reg(gen_bc_state_t* state) {
     }
     
     if (reg < 0) bc_set_error("Unable to allocate register");
+    
     return reg;
 }
 
-static int get_reg(gen_bc_state_t* state, ir_var_t var) {
+static int _get_reg(gen_bc_state_t* state, ir_var_t var) {
     for (size_t i = 0; i < state->var_count; i++) {
         ir_var_t var2 = state->vars[i];
         if (var2.decl==var.decl && var2.ver==var.ver && var2.comp_idx==var.comp_idx)
@@ -85,6 +91,13 @@ static int get_reg(gen_bc_state_t* state, ir_var_t var) {
         state->var_count++;
     }
     
+    return reg;
+}
+
+static int get_reg(gen_bc_state_t* state, ir_var_t var) {
+    int reg = _get_reg(state, var);
+    if (reg!=-1 && reg<state->min_reg) state->min_reg = reg;
+    if (reg!=-1 && reg>state->max_reg) state->max_reg = reg;
     return reg;
 }
 
@@ -116,10 +129,11 @@ static ir_var_t gen_tmp_var(gen_bc_state_t* state) {
     return var;
 }
 
-#define WRITEB(b_) do {uint8_t b = b_;*(state->bc) = append_mem(*(state->bc), *(state->bc_size), 1, &b);(*(state->bc_size))++;} while (0);
-#define WRITEF(f) do {*(state->bc) = realloc_mem(*(state->bc), *(state->bc_size)+4);*(float*)(*(state->bc)+*(state->bc_size))=f;(*(state->bc_size))+=4;} while (0);
+#define WRITEB(b_) do {uint8_t b = b_;state->bc = append_mem(state->bc, state->bc_size, 1, &b);state->bc_size++;} while (0);
+#define WRITEF(f) do {state->bc = realloc_mem(state->bc, state->bc_size+4);*(float*)(state->bc+state->bc_size)=f;state->bc_size+=4;} while (0);
+#define WRITEU32(i) do {state->bc = realloc_mem(state->bc, state->bc_size+4);*(uint32_t*)(state->bc+state->bc_size)=i;state->bc_size+=4;} while (0);
 
-static bool write_bin(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
+static bool write_bin(gen_bc_state_t* state, int dest_reg, const ir_inst_t* inst) {
     ir_var_t lhs, rhs;
     
     bool lhs_num = inst->operands[1].type == IR_OPERAND_NUM;
@@ -173,7 +187,7 @@ static bool write_bin(gen_bc_state_t* state, int dest_reg, ir_inst_t* inst) {
     return true;
 }
 
-static bool write_mov(gen_bc_state_t* state, ir_inst_t* inst) {
+static bool write_mov(gen_bc_state_t* state, const ir_inst_t* inst) {
     int dest_reg = get_reg(state, inst->operands[0].var);
     if (dest_reg < 0) return false;
     
@@ -203,7 +217,7 @@ static bool write_mov(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
-static bool write_unary(gen_bc_state_t* state, ir_inst_t* inst) {
+static bool write_unary(gen_bc_state_t* state, const ir_inst_t* inst) {
     ir_var_t lhs_var;
     bool num = inst->operands[1].type == IR_OPERAND_NUM;
     
@@ -235,7 +249,7 @@ static bool write_unary(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
-static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
+static bool write_neg(gen_bc_state_t* state, const ir_inst_t* inst) {
     int dest_reg = get_reg(state, inst->operands[0].var);
     if (dest_reg < 0) return false;
     
@@ -261,7 +275,7 @@ static bool write_neg(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
-static bool write_sel(gen_bc_state_t* state, ir_inst_t* inst) {
+static bool write_sel(gen_bc_state_t* state, const ir_inst_t* inst) {
     bool a_num = inst->operands[1].type == IR_OPERAND_NUM;
     bool b_num = inst->operands[2].type == IR_OPERAND_NUM;
     bool cond_num = inst->operands[3].type == IR_OPERAND_NUM;
@@ -310,22 +324,13 @@ static bool write_sel(gen_bc_state_t* state, ir_inst_t* inst) {
     return true;
 }
 
-static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_indices) {
-    gen_bc_state_t state_;
-    state_.bc = bc;
-    state_.bc_size = bc_size;
-    state_.var_count = 0;
-    state_.vars = NULL;
-    state_.var_regs = NULL;
-    state_.temp_var.name.func_count = 0;
-    state_.temp_var.name.funcs = NULL;
-    state_.temp_var.name.name = "~bctmp";
-    state_.temp_var.comp = 1;
-    state_.temp_var.current_ver[0] = 0;
-    gen_bc_state_t* state = &state_;
-    
-    for (size_t i = 0; i < ir->inst_count; i++) {
-        ir_inst_t* inst = ir->insts + i;
+static bool gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_count, uint8_t* prop_indices, size_t* end_id) {
+    for (size_t i = 0; i < inst_count; i++) {
+        const ir_inst_t* inst = insts + i;
+        if (end_id && inst->id==*end_id) {
+            *end_id = i;
+            return true;
+        }
         switch (inst->op) {
         case IR_OP_MOV: {
             if (!write_mov(state, inst)) goto error;
@@ -389,6 +394,57 @@ static bool gen_bc(const ir_t* ir, uint8_t** bc, size_t* bc_size, uint8_t* prop_
             if (!write_sel(state, inst)) goto error;
             break;
         }
+        case IR_OP_BEGIN_IF: {
+            int cond_reg = get_reg(state, inst->operands[0].var);
+            if (cond_reg < 0) goto error;
+            
+            size_t end = inst->end_if;
+            gen_bc_state_t inner_state;
+            inner_state.bc = NULL;
+            inner_state.bc_size = 0;
+            inner_state.var_count = state->var_count;
+            inner_state.vars = alloc_mem(state->var_count*sizeof(ir_var_t));
+            memcpy(inner_state.vars, state->vars, state->var_count*sizeof(ir_var_t));
+            inner_state.var_regs = alloc_mem(state->var_count);
+            memcpy(inner_state.var_regs, state->var_regs, state->var_count);
+            inner_state.temp_var = state->temp_var;
+            inner_state.min_reg = 255;
+            inner_state.max_reg = 0;
+            if (!gen_bc(&inner_state, insts+i+1, inst_count-i-1, prop_indices, &end)) {
+                free(inner_state.bc);
+                free(inner_state.vars);
+                free(inner_state.var_regs);
+                return false;
+            }
+            
+            free(inner_state.vars);
+            free(inner_state.var_regs);
+            
+            WRITEB(BC_OP_COND_BEGIN);
+            WRITEB(cond_reg);
+            WRITEU32(inner_state.bc_size);
+            if (inner_state.max_reg < inner_state.min_reg) {
+                WRITEB(0)
+                WRITEB(0)
+            } else {
+                WRITEB(inner_state.min_reg);
+                WRITEB(inner_state.max_reg);
+            }
+            
+            state->bc = realloc_mem(state->bc, state->bc_size+inner_state.bc_size);
+            memcpy(state->bc+state->bc_size, inner_state.bc, inner_state.bc_size);
+            state->bc_size += inner_state.bc_size;
+            free(inner_state.bc);
+            
+            WRITEB(BC_OP_COND_END);
+            
+            i += end+1; //Skip instructions and endif
+            
+            break;
+        }
+        case IR_OP_END_IF: {
+            break;
+        }
         }
     }
     
@@ -414,8 +470,6 @@ bool write_bc(FILE* dest, const ir_t* ir, bool simulation) {
         prop_count += ir->prop_comp[i];
     fwrite(&prop_count, 1, 1, dest);
     
-    size_t bc_size = 0;
-    uint8_t* bc = NULL;
     uint8_t* prop_indices = alloc_mem(ir->prop_count*4);
     size_t idx = 0;
     for (size_t i = 0; i < ir->prop_count; i++)
@@ -424,9 +478,22 @@ bool write_bc(FILE* dest, const ir_t* ir, bool simulation) {
             idx++;
         }
     
-    if (!gen_bc(ir, &bc, &bc_size, prop_indices)) return false;
+    gen_bc_state_t state;
+    state.bc = NULL;
+    state.bc_size = 0;
+    state.var_count = 0;
+    state.vars = NULL;
+    state.var_regs = NULL;
+    state.temp_var.name.func_count = 0;
+    state.temp_var.name.funcs = NULL;
+    state.temp_var.name.name = "~bctmp";
+    state.temp_var.comp = 1;
+    state.temp_var.current_ver[0] = 0;
+    state.min_reg = 255;
+    state.max_reg = 0;
+    if (!gen_bc(&state, ir->insts, ir->inst_count, prop_indices, NULL)) return false;
     
-    uint32_t bc_size32 = htole32(bc_size);
+    uint32_t bc_size32 = htole32(state.bc_size);
     fwrite(&bc_size32, 4, 1, dest);
     
     for (size_t i = 0; i < ir->prop_count; i++) {
@@ -441,9 +508,9 @@ bool write_bc(FILE* dest, const ir_t* ir, bool simulation) {
     }
     free(prop_indices);
     
-    fwrite(bc, bc_size, 1, dest);
+    fwrite(state.bc, state.bc_size, 1, dest);
     
-    free(bc);
+    free(state.bc);
     
     return true;
 }

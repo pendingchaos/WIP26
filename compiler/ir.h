@@ -74,11 +74,14 @@ typedef struct {
     };
 } ir_operand_t;
 
-typedef struct {
+typedef struct ir_inst_t ir_inst_t;
+struct ir_inst_t {
+    size_t id;
     ir_opcode_t op;
     size_t operand_count;
     ir_operand_t operands[IR_OPERAND_MAX];
-} ir_inst_t;
+    size_t end_if; //Only with IR_OP_BEGIN_IF
+};
 
 typedef struct {
     size_t inst_count;
@@ -95,6 +98,8 @@ typedef struct {
     size_t prop_count;
     char** properties;
     size_t* prop_comp;
+    
+    size_t next_inst_id;
 } ir_t;
 
 bool create_ir(const ast_t* ast, ir_t* ir);

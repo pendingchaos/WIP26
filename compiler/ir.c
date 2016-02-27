@@ -48,7 +48,9 @@ static size_t get_dtype_comp(const char* dtype) {
 
 static ir_inst_t* add_inst(ir_t* ir, ir_inst_t* inst) {
     ir->insts = append_mem(ir->insts, ir->inst_count, sizeof(ir_inst_t), inst);
-    return ir->insts-(ir->inst_count++);
+    ir_inst_t* res = ir->insts+(ir->inst_count++);
+    res->id = ir->next_inst_id++;
+    return res;
 }
 
 static ir_operand_t create_num_operand(double num) {
@@ -106,7 +108,7 @@ static ir_var_decl_t* decl_var(ir_t* ir, char* name, size_t comp, size_t func_co
 
 static ir_var_decl_t* gen_temp_var(ir_t* ir, size_t comp) {
     char name[16];
-    snprintf(name, sizeof(name), "~tmp%u", ir->next_temp_var++);
+    snprintf(name, sizeof(name), "~irtmp%u", ir->next_temp_var++);
     
     return decl_var(ir, name, comp, 0, NULL);
 }
@@ -465,7 +467,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         inst.op = IR_OP_BEGIN_IF;
         inst.operand_count = 1;
         inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
-        add_inst(ir, &inst);
+        size_t begin = add_inst(ir, &inst)->id;
         
         size_t last_var_count = ir->var_count;
         unsigned int* last_vers = alloc_mem(sizeof(unsigned int)*ir->var_count*4);
@@ -482,7 +484,8 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         
         inst.op = IR_OP_END_IF;
         inst.operand_count = 0;
-        add_inst(ir, &inst);
+        size_t end = add_inst(ir, &inst)->id;
+        ir->insts[begin].end_if = end;
         
         //This assumes new variables are added to the end of the list
         //and that it is never reordered
@@ -565,6 +568,7 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
     ir->prop_comp = NULL;
     ir->error[0] = 0;
     ir->next_temp_var = 0;
+    ir->next_inst_id = 0;
     
     add_boolean_vars(ir);
     
@@ -582,6 +586,7 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
             ir->properties = NULL;
             ir->prop_comp = NULL;
             ir->next_temp_var = 0;
+            ir->next_inst_id = 0;
             return false;
         }
     }
@@ -671,7 +676,7 @@ void remove_redundant_moves(ir_t* ir) {
                 if (idx != -1)
                     inst.operands[j].var = replace_vals[idx];
             }
-            add_inst(ir, &inst);
+            add_inst(ir, &inst)->id = inst.id;
         }
     }
     free(insts);
@@ -687,7 +692,7 @@ void add_drop_insts(ir_t* ir) {
     ir->inst_count = 0;
     ir->insts = NULL;
     for (size_t i = 0; i < inst_count; i++) {
-        add_inst(ir, insts+i);
+        add_inst(ir, insts+i)->id = insts[i].id;
         
         get_vars(insts+i, 1, &var_count, &vars);
         
