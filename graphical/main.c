@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <assert.h>
 #include <math.h>
+#include <string.h>
 
 #include "runtime.h"
 
@@ -11,12 +13,26 @@
 #define WARN(...) (fputs("Warning: ", stderr), fprintf(stderr, __VA_ARGS__), fputc('\n', stderr))
 #define INFO(...) (fputs("Info: ", stdout), printf(__VA_ARGS__), putchar('\n'))
 
+typedef struct {
+    union {float vals[4];struct {float x, y, z, w;};};
+} vec4_t;
+
+typedef struct {
+    union {float vals[3];struct {float x, y, z;};};
+} vec3_t;
+
+typedef struct {
+    vec4_t column[4];
+} mat4_t;
+
 static const char* vertex_source = "#version 120\n"
 "attribute float posx;\n"
 "attribute float posy;\n"
 "attribute float posz;\n"
 "attribute float deleted;\n"
-"void main() {gl_Position = vec4(posx, posy, posz, deleted>127.0 ? 0.0 : 1.0);}\n";
+"uniform mat4 uView;\n"
+"uniform mat4 uProj;\n"
+"void main() {gl_Position = uProj * uView * vec4(posx, posy, posz, deleted>127.0 ? 0.0 : 1.0);}\n";
 static const char* fragment_source = "#version 120\n"
 "void main() {gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);}\n";
 
@@ -37,6 +53,107 @@ static int velx_index;
 static int vely_index;
 static int velz_index;
 static GLuint gl_program;
+static float anglea = 0.0f;
+static float angleb = 0.0f;
+static float zoom = 3.0f;
+static float frametime = 1.0 / 60.0;
+
+static vec3_t create_vec3(float x, float y, float z) {
+    vec3_t v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    return v;
+}
+
+static vec3_t sub_vec3(vec3_t a, vec3_t b) {
+    return create_vec3(a.x-b.x, a.y-b.y, a.z-b.z);
+}
+
+static vec3_t cross_vec3(vec3_t a, vec3_t b) {
+    return create_vec3(a.y*b.z - a.z*b.y,
+                       a.z*b.x - a.x*b.z,
+                       a.x*b.y - a.y*b.x);
+}
+
+static float dot_vec3(vec3_t a, vec3_t b) {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
+
+static vec3_t normalize_vec3(vec3_t v) {
+    float len = sqrt(dot_vec3(v, v));
+    return create_vec3(v.x/len, v.y/len, v.z/len);
+}
+
+static mat4_t create_mat(vec3_t x, vec3_t y, vec3_t z, vec3_t t) {
+    mat4_t res;
+    res.column[0].vals[0] = x.x;
+    res.column[1].vals[0] = x.y;
+    res.column[2].vals[0] = x.z;
+    res.column[3].vals[0] = t.x;
+    
+    res.column[0].vals[1] = y.x;
+    res.column[1].vals[1] = y.y;
+    res.column[2].vals[1] = y.z;
+    res.column[3].vals[1] = t.y;
+    
+    res.column[0].vals[2] = z.x;
+    res.column[1].vals[2] = z.y;
+    res.column[2].vals[2] = z.z;
+    res.column[3].vals[2] = t.z;
+    
+    res.column[0].vals[3] = 0.0f;
+    res.column[1].vals[3] = 0.0f;
+    res.column[2].vals[3] = 0.0f;
+    res.column[3].vals[3] = 1.0f;
+    return res;
+}
+
+static mat4_t lookat(vec3_t up, vec3_t at, vec3_t eye) {
+    vec3_t f = normalize_vec3(sub_vec3(at, eye));
+    vec3_t s = normalize_vec3(cross_vec3(f, normalize_vec3(up)));
+    vec3_t u = normalize_vec3(cross_vec3(s, f));
+    mat4_t res;
+    memset(&res, 0, 64);
+    res.column[0].vals[0] = s.x;
+    res.column[1].vals[0] = s.y;
+    res.column[2].vals[0] = s.z;
+    res.column[0].vals[1] = u.x;
+    res.column[1].vals[1] = u.y;
+    res.column[2].vals[1] = u.z;
+    res.column[0].vals[2] = -f.x;
+    res.column[1].vals[2] = -f.y;
+    res.column[2].vals[2] = -f.z;
+    res.column[3].vals[0] = -dot_vec3(s, eye);
+    res.column[3].vals[1] = -dot_vec3(u, eye);
+    res.column[3].vals[2] = dot_vec3(f, eye);
+    res.column[3].vals[3] = 1.0f;
+    return res;
+    vec3_t t = create_vec3(-dot_vec3(s, eye), -dot_vec3(u, eye), dot_vec3(f, eye));
+    return create_mat(s, u, sub_vec3(create_vec3(0.0f, 0.0f, 0.0f), f), t);
+}
+
+static float radians(float deg) {
+    return deg / 180.0f * M_PI;
+}
+
+static mat4_t perspective(float fov, float width, float height, float near, float far) {
+    float h = cos(fov / 2.0f) / sin(fov / 2.0f);
+    float w = h * height / width;
+    mat4_t res;
+    memset(&res, 0, 64);
+    res.column[0].vals[0] = w;
+    res.column[1].vals[1] = h;
+    res.column[2].vals[2] = -(far+near) / (far-near);
+    res.column[2].vals[3] = -1.0f;
+    res.column[3].vals[2] = -(far*near*2.0f) / (far-near);
+    res.column[3].vals[3] = 1.0f;
+    return res;
+}
+
+static void on_scroll(GLFWwindow* window, double x, double y) {
+    zoom -= y * 0.1f;
+}
 
 static void deinit() {
     if (gl_program_init) glDeleteProgram(gl_program);
@@ -102,6 +219,8 @@ static void debug_callback(GLenum _1, GLenum _2, GLuint _3, GLenum severity,
 }
 
 int main() {
+    assert(sizeof(mat4_t) == 64);
+    
     if (!glfwInit())
         FAIL("glfwInit() failed");
     glfw_init = true;
@@ -113,7 +232,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     
-    window = glfwCreateWindow(800, 800, "Graphical WIP26 App", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "", NULL, NULL);
     if (!window) FAIL("Failed to create window");
     
     int xpos, ypos;
@@ -122,6 +241,8 @@ int main() {
     
     glfwMakeContextCurrent(window);
     if (glewInit() != GLEW_OK) FAIL("Failed to initialize GLEW");
+    
+    glfwSetScrollCallback(window, on_scroll);
     
     if (GLEW_ARB_framebuffer_sRGB) glEnable(GL_FRAMEBUFFER_SRGB);
     else WARN("sRGB framebuffers not supported");
@@ -192,13 +313,41 @@ int main() {
     glVertexAttribPointer(posz_loc, 1, GL_FLOAT, GL_FALSE, 0, posz);
     glVertexAttribPointer(deleted_loc, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, deleted);
     
+    anglea = -0.652613f;
+    angleb = -0.69614f;
+    
+    getchar();
+    
     while (!glfwWindowShouldClose(window)) {
         double begin = glfwGetTime();
+        
+        if (glfwGetKey(window, GLFW_KEY_LEFT))
+            anglea -= radians(30.0f) * frametime;
+        if (glfwGetKey(window, GLFW_KEY_RIGHT))
+            anglea += radians(30.0f) * frametime;
+        if (glfwGetKey(window, GLFW_KEY_UP))
+            angleb -= radians(30.0f) * frametime;
+        if (glfwGetKey(window, GLFW_KEY_DOWN))
+            angleb += radians(30.0f) * frametime;
         
         if (!simulate_system(&particle_system))
             FAIL("Failed to simulate particle system: %s\n", runtime.error);
         
+        vec3_t eye = create_vec3(zoom*sin(anglea)*cos(angleb),
+                                 zoom*sin(anglea)*sin(angleb),
+                                 zoom*cos(anglea));
+        
+        mat4_t view = lookat(create_vec3(0.0f, 1.0f, 0.0f),
+                             create_vec3(0.0f, 0.0f, 0.0f),
+                             eye);
+        mat4_t proj = perspective(radians(45.0f), 1.0f, 1.0f, 0.1f, 100.0f);
+        
         glClear(GL_COLOR_BUFFER_BIT);
+        
+        GLint loc = glGetUniformLocation(gl_program, "uView");
+        glUniformMatrix4fv(loc, 1, GL_FALSE, (const GLfloat*)&view);
+        loc = glGetUniformLocation(gl_program, "uProj");
+        glUniformMatrix4fv(loc, 1, GL_FALSE, (const GLfloat*)&proj);
         
         glDrawArrays(GL_POINTS, 0, particle_system.pool_size);
         
@@ -208,10 +357,10 @@ int main() {
         double end = glfwGetTime();
         
         char title[256];
-        float fps = 1.0f / (end-begin);
+        frametime = end - begin;
         float usage = (double)particle_system.pool_usage/particle_system.pool_size;
-        static const char* format = "Graphical WIP26 App - FPS: %.0f - Pool usage: %.0f%c";
-        snprintf(title, 256, format, fps, usage*100.0, '%');
+        static const char* format = "FPS: %.0f - Pool usage: %.0f%c";
+        snprintf(title, 256, format, 1.0f/frametime, usage*100.0, '%');
         glfwSetWindowTitle(window, title);
     }
     
