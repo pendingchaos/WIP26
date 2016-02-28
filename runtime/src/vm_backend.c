@@ -535,7 +535,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
                     fregs[j] = ((float*)(regs+j))[i];
                 
                 vm_execute1(bc, offset+i, deleted_flags, properties, prop_dtypes, fregs, true);
-                for (uint_fast16_t j = rmin; j < rmax+1; j++)
+                for (uint_fast16_t j = 0; j < 256; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
             bc += le32toh(count);
