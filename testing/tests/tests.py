@@ -407,18 +407,46 @@
 {
     'name': 'test if',
     'source':
-    '''
-    property v:vec2;
+    '''include stdlib;
+    property v:vec4;
     if false {v.x = 7.0;}
     if true {v.y = 9.0;}
+    v.z = 2.0;
+    if true {v.z = 4.0;}
+    if length(v) > 11.0 {v.w = 1.0;}
     ''',
     'count': 1,
     'properties': {
         'v.x': [3.0],
-        'v.y': [6.0]
+        'v.y': [6.0],
+        'v.z': [9.0],
+        'v.w': [12.0]
     },
     'expected': {
         'v.x': [3.0],
-        'v.y': [9.0]
+        'v.y': [9.0],
+        'v.z': [4.0],
+        'v.w': [1.0]
+    }
+},
+{
+    'name': 'test if2',
+    'source':
+    '''property v:vec4;
+    if true {v.x = 7.0;v.y = 2.0;}
+    if false {v.z = 9.0;v.w = 3.0;}
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [3.0],
+        'v.y': [6.0],
+        'v.z': [7.0],
+        'v.w': [8.0]
+    },
+    'expected': {
+        'v.x': [7.0],
+        'v.y': [2.0],
+        'v.z': [7.0],
+        'v.w': [8.0]
     }
 }

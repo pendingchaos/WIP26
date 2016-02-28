@@ -171,6 +171,7 @@ bool create_system(system_t* system) {
     
     size_t padding = get_property_padding(system->runtime);
     system->pool_size = ceil(system->pool_size/(double)padding) * padding;
+    system->pool_usage = 0;
     
     system->nexts = NULL;
     system->deleted_flags = NULL;
@@ -221,6 +222,7 @@ int spawn_particle(system_t* system) {
     
     system->next_particle = system->nexts[index];
     system->deleted_flags[index] = 0;
+    system->pool_usage++;
     
     return index;
 }
@@ -232,6 +234,7 @@ bool delete_particle(system_t* system, int index) {
     system->deleted_flags[index] = 1;
     system->nexts[index] = system->next_particle;
     system->next_particle = index;
+    system->pool_usage++;
     
     return true;
 }

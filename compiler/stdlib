@@ -126,8 +126,24 @@ func lerp(a:vec4, b:vec4, f:vec4):vec4 {
     return a*(vec4(1)-f) + b*f;
 }
 
+func abs(v:float):float {
+    return sel(-v, v, v<0.0);
+}
+
+func abs(v:vec2):vec2 {
+    return sel(-v, v, v<vec2(0.0));
+}
+
+func abs(v:vec3):vec3 {
+    return sel(-v, v, v<vec3(0.0));
+}
+
+func abs(v:vec4):vec4 {
+    return sel(-v, v, v<vec4(0.0));
+}
+
 func length(v:float):float {
-    return v;
+    return abs(v);
 }
 
 func length(v:vec2):float {
@@ -140,6 +156,22 @@ func length(v:vec3):float {
 
 func length(v:vec4):float {
     return sqrt(dot(v, v));
+}
+
+func normalize(v:float):float {
+    return v / length(v);
+}
+
+func normalize(v:vec2):float {
+    return v / vec2(length(v));
+}
+
+func normalize(v:vec3):float {
+    return v / vec3(length(v));
+}
+
+func normalize(v:vec4):float {
+    return v / vec4(length(v));
 }
 
 func min(v:float):float {

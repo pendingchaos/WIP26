@@ -228,7 +228,11 @@ static bool write_neg(gen_bc_state_t* state, const ir_inst_t* inst) {
         
         int lhs_reg = get_reg(state, lhs);
         int rhs_reg = get_reg(state, inst->operands[1].var);
-        if (rhs_reg < 0) return false;
+        if (lhs_reg<0 || rhs_reg<0) return false;
+        
+        WRITEB(BC_OP_MOVF);
+        WRITEB(lhs_reg);
+        WRITEF(0.0f);
         
         WRITEB(BC_OP_SUB);
         WRITEB(dest_reg);

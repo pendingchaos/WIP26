@@ -194,6 +194,10 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     
     if (inst.op == IR_OP_BEGIN_IF)
         printf("until instruction %zu", inst.end_if);
+    else if (inst.op == IR_OP_END_IF)
+        printf("starting at instruction %zu", inst.begin_if);
+    else if (inst.op == IR_OP_PHI)
+        printf("endif at instruction %zu", inst.end_if);
     
     putchar('\n');
 }
@@ -375,10 +379,10 @@ int main(int argc, char** argv) {
     }
     
     remove_redundant_moves(&ir);
-    add_drop_insts(&ir);
+    //add_drop_insts(&ir);
     
-    //for (size_t i = 0; i < ir.inst_count; i++)
-    //    print_inst(&ir, ir.insts[i]);
+    for (size_t i = 0; i < ir.inst_count; i++)
+        print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     
@@ -391,7 +395,7 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    //print_bc(bc.bc, bc.bc+bc.bc_size);
+    print_bc(bc.bc, bc.bc+bc.bc_size);
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {

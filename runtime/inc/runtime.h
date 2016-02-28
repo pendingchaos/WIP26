@@ -79,6 +79,7 @@ struct system_t {
     runtime_t* runtime;
     program_t* sim_program;
     size_t pool_size;
+    size_t pool_usage;
     int* nexts;
     int next_particle;
     

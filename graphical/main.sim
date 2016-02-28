@@ -1,0 +1,16 @@
+include stdlib;
+
+property pos:vec3;
+property vel:vec3;
+
+pos = pos + vel;
+
+#if length(pos) > 0.99 {vel = -vel;}
+#vel = sel(-vel, vel, length(pos) > 0.99);
+
+if pos.x > 1.0 {vel.x = -vel.x;}
+if pos.y > 1.0 {vel.y = -vel.y;}
+if pos.z > 1.0 {vel.z = -vel.z;}
+if pos.x < -1.0 {vel.x = -vel.x;}
+if pos.y < -1.0 {vel.y = -vel.y;}
+if pos.z < -1.0 {vel.z = -vel.z;}

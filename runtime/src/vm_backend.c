@@ -332,7 +332,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             store_prop(val, properties[d], prop_dtypes[d], index);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
-            deleted_flags[index] = 1;
+            deleted_flags[index] = 1; //TODO: Make this a proper deletion
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -384,7 +384,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             else bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
-            return cond;
+            if (cond) return true;
         END_CASE
         BEGIN_CASE(BC_OP_END)
             return true;
@@ -475,7 +475,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
-                deleted_flags[offset+i] = 1;
+                deleted_flags[offset+i] = 1; //TODO: Make this a proper deletion
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -530,11 +530,12 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
             simd8f_get(regs[c], v);
             for (uint_fast8_t i = 0; i < 8; i++) {
                 if (v[i] < 0.5f) continue;
-                float fregs[rmax+1];
-                for (uint_fast16_t j = rmin; j < rmax+1; j++)
+                float fregs[256];
+                for (uint_fast16_t j = 0; j < 256; j++) //TODO: Using rmin and rmax does not work
                     fregs[j] = ((float*)(regs+j))[i];
                 
-                vm_execute1(bc, offset+i, deleted_flags, properties, prop_dtypes, fregs, true);
+                if (!vm_execute1(bc, offset+i, deleted_flags, properties, prop_dtypes, fregs, true))
+                    return false;
                 for (uint_fast16_t j = 0; j < 256; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
