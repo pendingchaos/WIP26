@@ -140,7 +140,7 @@ static void print_node(node_t* node, unsigned int indent) {
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst) {
-    //if (inst.op == IR_OP_DROP) return;
+    if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
     
@@ -153,8 +153,6 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_POW: printf("pow "); break;
     case IR_OP_NEG: printf("neg "); break;
     case IR_OP_DELETE: printf("delete "); break;
-    case IR_OP_MIN: printf("min "); break;
-    case IR_OP_MAX: printf("max "); break;
     case IR_OP_LESS: printf("less "); break;
     case IR_OP_GREATER: printf("greater "); break;
     case IR_OP_EQUAL: printf("equal "); break;
@@ -211,8 +209,6 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
         case BC_OP_MUL:
         case BC_OP_DIV:
         case BC_OP_POW:
-        case BC_OP_MIN:
-        case BC_OP_MAX:
         case BC_OP_LESS:
         case BC_OP_GREATER:
         case BC_OP_EQUAL:
@@ -225,8 +221,6 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             case BC_OP_MUL: printf("mul "); break;
             case BC_OP_DIV: printf("div "); break;
             case BC_OP_POW: printf("pow "); break;
-            case BC_OP_MIN: printf("min "); break;
-            case BC_OP_MAX: printf("max "); break;
 		    case BC_OP_LESS: printf("less "); break;
 		    case BC_OP_GREATER: printf("greater "); break;
 		    case BC_OP_EQUAL: printf("equal "); break;

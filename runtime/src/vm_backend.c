@@ -44,14 +44,6 @@ static void simd8f_pow(simd8f_t* dest, simd8f_t a, simd8f_t b) {
     *dest = _mm256_loadu_ps(df);
 }
 
-static void simd8f_min(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    *dest = _mm256_min_ps(a, b);
-}
-
-static void simd8f_max(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    *dest = _mm256_max_ps(a, b);
-}
-
 static void simd8f_less(simd8f_t* dest, simd8f_t a, simd8f_t b) {
     *dest = _mm256_cmp_ps(a, b, _CMP_LT_OQ);
 }
@@ -139,14 +131,6 @@ static void simd8f_div(simd8f_t* dest, simd8f_t a, simd8f_t b) {
 
 static void simd8f_pow(simd8f_t* dest, simd8f_t a, simd8f_t b) {
     for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = powf(a.v[i], b.v[i]);
-}
-
-static void simd8f_min(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = fmin(a.v[i], b.v[i]);
-}
-
-static void simd8f_max(simd8f_t* dest, simd8f_t a, simd8f_t b) {
-    for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = fmax(a.v[i], b.v[i]);
 }
 
 static void simd8f_sqrt(simd8f_t* dest, simd8f_t a) {
@@ -281,8 +265,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_MIN, &&BC_OP_MAX, &&BC_OP_SQRT,
-                                     &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
@@ -328,18 +311,6 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             float f = *(const float*)bc;
             bc += 4;
             regs[d] = f;
-        END_CASE
-        BEGIN_CASE(BC_OP_MIN)
-            uint8_t d = *bc++;
-            uint8_t a = *bc++;
-            uint8_t b = *bc++;
-            regs[d] = fmin(regs[a], regs[b]);
-        END_CASE
-        BEGIN_CASE(BC_OP_MAX)
-            uint8_t d = *bc++;
-            uint8_t a = *bc++;
-            uint8_t b = *bc++;
-            regs[d] = fmax(regs[a], regs[b]);
         END_CASE
         BEGIN_CASE(BC_OP_SQRT)
             uint8_t d = *bc++;
@@ -438,8 +409,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_MIN, &&BC_OP_MAX, &&BC_OP_SQRT,
-                                     &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
@@ -485,18 +455,6 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
             float f = *(const float*)bc;
             bc += 4;
             simd8f_init1(regs+d, f);
-        END_CASE
-        BEGIN_CASE(BC_OP_MIN)
-            uint8_t d = *bc++;
-            uint8_t a = *bc++;
-            uint8_t b = *bc++;
-            simd8f_min(regs+d, regs[a], regs[b]);
-        END_CASE
-        BEGIN_CASE(BC_OP_MAX)
-            uint8_t d = *bc++;
-            uint8_t a = *bc++;
-            uint8_t b = *bc++;
-            simd8f_max(regs+d, regs[a], regs[b]);
         END_CASE
         BEGIN_CASE(BC_OP_SQRT)
             uint8_t d = *bc++;

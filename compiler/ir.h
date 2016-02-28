@@ -17,8 +17,6 @@ typedef enum {
     IR_OP_NEG,
     IR_OP_DELETE,
     IR_OP_DROP,
-    IR_OP_MIN,
-    IR_OP_MAX,
     IR_OP_LESS,
     IR_OP_GREATER,
     IR_OP_EQUAL,

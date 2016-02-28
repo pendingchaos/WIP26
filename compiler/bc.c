@@ -153,8 +153,6 @@ static bool write_bin(gen_bc_state_t* state, int dest_reg, const ir_inst_t* inst
     case IR_OP_MUL: WRITEB(BC_OP_MUL); break;
     case IR_OP_DIV: WRITEB(BC_OP_DIV); break;
     case IR_OP_POW: WRITEB(BC_OP_POW); break;
-    case IR_OP_MIN: WRITEB(BC_OP_MIN); break;
-    case IR_OP_MAX: WRITEB(BC_OP_MAX); break;
     case IR_OP_LESS: WRITEB(BC_OP_LESS); break;
     case IR_OP_GREATER: WRITEB(BC_OP_GREATER); break;
     case IR_OP_EQUAL: WRITEB(BC_OP_EQUAL); break;
@@ -319,8 +317,6 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
         case IR_OP_MUL:
         case IR_OP_DIV:
         case IR_OP_POW:
-        case IR_OP_MIN:
-        case IR_OP_MAX:
         case IR_OP_LESS:
         case IR_OP_GREATER:
         case IR_OP_EQUAL:

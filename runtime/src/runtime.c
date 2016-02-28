@@ -116,8 +116,6 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         case BC_OP_MUL:
         case BC_OP_DIV:
         case BC_OP_POW:
-        case BC_OP_MIN:
-        case BC_OP_MAX:
         case BC_OP_LESS:
         case BC_OP_GREATER:
         case BC_OP_EQUAL:

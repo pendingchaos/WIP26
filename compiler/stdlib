@@ -175,35 +175,35 @@ func max(v:vec4):float {
 }
 
 func min(a:float, b:float):float {
-    return __min(a, b);
+    return sel(a, b, a<b);
 }
 
 func min(a:vec2, b:vec2):vec2 {
-    return __min(a, b);
+    return sel(a, b, a<b);
 }
 
 func min(a:vec3, b:vec3):vec3 {
-    return __min(a, b);
+    return sel(a, b, a<b);
 }
 
 func min(a:vec4, b:vec4):vec4 {
-    return __min(a, b);
+    return sel(a, b, a<b);
 }
 
 func max(a:float, b:float):float {
-    return __max(a, b);
+    return sel(a, b, a>b);
 }
 
 func max(a:vec2, b:vec2):vec2 {
-    return __max(a, b);
+    return sel(a, b, a>b);
 }
 
 func max(a:vec3, b:vec3):vec3 {
-    return __max(a, b);
+    return sel(a, b, a>b);
 }
 
 func max(a:vec4, b:vec4):vec4 {
-    return __max(a, b);
+    return sel(a, b, a>b);
 }
 
 func sqrt(x:float):float {

@@ -139,29 +139,13 @@ static ir_var_t get_var_comp(ir_var_decl_t* decl, size_t comp_idx) {
 }
 
 static bool is_builtin_func(call_node_t* call, ir_var_decl_t** args) {
-    if (!strcmp(call->func, "__min") && call->arg_count==2 &&
-        args[0]->comp==args[1]->comp) return true;
-    else if (!strcmp(call->func, "__max") && call->arg_count==2 &&
-             args[0]->comp==args[1]->comp) return true;
-    else if (!strcmp(call->func, "__sqrt") && call->arg_count==1) return true;
+    if (!strcmp(call->func, "__sqrt") && call->arg_count==1) return true;
     else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0]->comp==args[1]->comp && args[2]->comp==args[0]->comp) return true;
     return false;
 }
 
 static ir_var_decl_t* gen_builtin_func(ir_t* ir, call_node_t* call, ir_var_decl_t** args) {
-    if (!strcmp(call->func, "__min") || !strcmp(call->func, "__max")) {
-        ir_var_decl_t* dest = gen_temp_var(ir, args[0]->comp);
-        ir_inst_t inst;
-        inst.op = strcmp(call->func, "__min") ? IR_OP_MAX : IR_OP_MIN;
-        inst.operand_count = 3;
-        for (size_t i = 0; i < args[0]->comp; i++) {
-            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
-            inst.operands[1] = create_var_operand(get_var_comp(args[0], i));
-            inst.operands[2] = create_var_operand(get_var_comp(args[1], i));
-            add_inst(ir, &inst);
-        }
-        return dest;
-    } else if (!strcmp(call->func, "__sqrt")) {
+    if (!strcmp(call->func, "__sqrt")) {
         ir_var_decl_t* dest = gen_temp_var(ir, args[0]->comp);
         ir_inst_t inst;
         inst.op = IR_OP_SQRT;
