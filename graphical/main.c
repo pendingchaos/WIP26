@@ -113,7 +113,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     
-    window = glfwCreateWindow(640, 640, "Graphical WIP26 App", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "Graphical WIP26 App", NULL, NULL);
     if (!window) FAIL("Failed to create window");
     
     int xpos, ypos;
@@ -152,7 +152,7 @@ int main() {
     if (velz_index < 0) FAIL("Failed to find property \"vel.z\".");
     
     particle_system.runtime = &runtime;
-    particle_system.pool_size = 50000;
+    particle_system.pool_size = 1000000;
     particle_system.sim_program = &program;
     particle_system.property_dtypes[posx_index] = PROP_FLOAT32;
     particle_system.property_dtypes[posy_index] = PROP_FLOAT32;
@@ -164,7 +164,7 @@ int main() {
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
     
-    for (size_t i = 0; i < 50000; i++) {
+    for (size_t i = 0; i < 100000; i++) {
         int index = spawn_particle(&particle_system);
         if (index < 0)
             FAIL("Failed to spawn particle: %s\n", runtime.error);
@@ -212,6 +212,7 @@ int main() {
         float usage = (double)particle_system.pool_usage/particle_system.pool_size;
         static const char* format = "Graphical WIP26 App - FPS: %.0f - Pool usage: %.0f%c";
         snprintf(title, 256, format, fps, usage*100.0, '%');
+        glfwSetWindowTitle(window, title);
     }
     
     deinit();
