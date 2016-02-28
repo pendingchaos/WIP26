@@ -73,7 +73,6 @@ static int get_reg(gen_bc_state_t* state, ir_var_t var) {
     int reg = _get_reg(state, var);
     if (reg!=-1 && reg<state->min_reg) state->min_reg = reg;
     if (reg!=-1 && reg>state->max_reg) state->max_reg = reg;
-    //printf("%s_%u: %d %zu\n", var.decl->name.name, var.comp_idx, reg, state->var_count);
     return reg;
 }
 
@@ -381,6 +380,7 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
                         return false;
                     if (!redef(state, phi->operands[2].var, phi->operands[1].var)) //true -> false
                         return false;
+                } else if (phi->op == IR_OP_DROP) {
                 } else break;
             }
             

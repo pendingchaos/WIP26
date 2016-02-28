@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <assert.h>
 
 static const struct option options[] = {
     {"input", required_argument, NULL, 'i'},
@@ -140,7 +141,7 @@ static void print_node(node_t* node, unsigned int indent) {
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst) {
-    if (inst.op == IR_OP_DROP) return;
+    //if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
     
@@ -204,9 +205,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
 
 static void print_bc(uint8_t* begin, uint8_t* end) {
     uint8_t* bc = begin;
-    while (bc != end) {
-    printf("%zu ", bc-begin);
-    uint8_t op = *bc++;
+    while (bc < end) {
+        printf("%zu ", bc-begin);
+        uint8_t op = *bc++;
         switch (op) {
         case BC_OP_ADD:
         case BC_OP_SUB:
@@ -290,6 +291,7 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             break;
         }
     }
+    assert(bc == end);
 }
 
 int main(int argc, char** argv) {
@@ -379,10 +381,10 @@ int main(int argc, char** argv) {
     }
     
     remove_redundant_moves(&ir);
-    //add_drop_insts(&ir);
+    add_drop_insts(&ir);
     
-    for (size_t i = 0; i < ir.inst_count; i++)
-        print_inst(&ir, ir.insts[i]);
+    //for (size_t i = 0; i < ir.inst_count; i++)
+    //    print_inst(&ir, ir.insts[i]);
     
     free_ast(&ast);
     
