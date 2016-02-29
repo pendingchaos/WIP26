@@ -189,11 +189,16 @@ static void init_particle(unsigned int index) {
     float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posy = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posz = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    float velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    float vely = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    float velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
+    
+    float velx, vely, velz, vlen=-1.0f;
+    while (vlen <= 0.0f) {
+        velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        vely = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        vlen = sqrt(velx*velx + vely*vely + velz*velz);
+    }
+    
     float plen = sqrt(posx*posx + posy*posy + posz*posz);
-    float vlen = sqrt(velx*velx + vely*vely + velz*velz);
     float dist = 0.0f; //rand() / (double)RAND_MAX;
     ((float*)particle_system.properties[posx_index])[index] = posx/plen*dist;
     ((float*)particle_system.properties[posy_index])[index] = posy/plen*dist;
@@ -270,6 +275,8 @@ int main() {
     if (GLEW_ARB_debug_output)
         glDebugMessageCallbackARB((GLDEBUGPROCARB)debug_callback, NULL);
     
+    glEnable(GL_DEPTH_TEST);
+    
     if (!create_runtime(&runtime, "auto"))
         FAIL("Failed to create runtime: %s", runtime.error);
     runtime_init = true;
@@ -316,9 +323,8 @@ int main() {
     
     for (size_t i = 0; i < 100000; i++) {
         int index = spawn_particle(&particle_system);
-        if (index < 0)
-            FAIL("Failed to spawn particle: %s\n", runtime.error);
-        init_particle(index);
+        if (index >= 0) init_particle(index);
+        else FAIL("Failed to spawn particle: %s", runtime.error);
     }
     
     create_gl_program();
@@ -368,10 +374,20 @@ int main() {
             angleb -= radians(30.0f) * frametime;
         if (glfwGetKey(window, GLFW_KEY_DOWN))
             angleb += radians(30.0f) * frametime;
+        if (glfwGetKey(window, GLFW_KEY_S)) {
+            for (size_t i = 0; i < 10000*frametime; i++) {
+                int index = spawn_particle(&particle_system);
+                if (index >= 0) init_particle(index);
+                else {
+                    WARN("Failed to spawn particle: %s", runtime.error);
+                    break;
+                }
+            }
+        }
         
         double sim_begin = glfwGetTime();
         if (!simulate_system(&particle_system))
-            FAIL("Failed to simulate particle system: %s\n", runtime.error);
+            FAIL("Failed to simulate particle system: %s", runtime.error);
         double sim_end = glfwGetTime();
         
         vec3_t eye = create_vec3(zoom*sin(anglea)*cos(angleb),
@@ -383,7 +399,7 @@ int main() {
                              eye);
         mat4_t proj = perspective(radians(45.0f), 1.0f, 1.0f, 0.1f, 100.0f);
         
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         GLint loc = glGetUniformLocation(gl_program, "uView");
         glUniformMatrix4fv(loc, 1, GL_FALSE, (const GLfloat*)&view);
@@ -400,8 +416,10 @@ int main() {
         char title[256];
         frametime = end - begin;
         float usage = (double)particle_system.pool_usage/particle_system.pool_size;
-        static const char* format = "Frametime: %.0f mspf - Pool usage: %.0f%c - Simulated in %.0f ms";
-        snprintf(title, 256, format, frametime*1000.0f, usage*100.0, '%', (sim_end-sim_begin)*1000.0f);
+        float nspp = (sim_end-sim_begin)*1000000000.0/particle_system.pool_usage;
+        float ppms = particle_system.pool_usage / ((sim_end-sim_begin)*1000.0);
+        static const char* format = "Frametime: %.0f mspf - Pool usage: %.0f%c - Simulated in %.0f ms (%.0f nspp %.0f ppms)";
+        snprintf(title, 256, format, frametime*1000.0f, usage*100.0, '%', (sim_end-sim_begin)*1000.0f, nspp, ppms);
         glfwSetWindowTitle(window, title);
     }
     

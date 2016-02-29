@@ -333,6 +333,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             delete_particle(system, index);
+            return true;
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -475,7 +476,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
-                delete_particle(system, offset+i);
+                if (!system->deleted_flags[i])
+                    delete_particle(system, offset+i);
+            return true;
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -529,6 +532,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             float v[8];
             simd8f_get(regs[c], v);
             for (uint_fast8_t i = 0; i < 8; i++) {
+                if (system->deleted_flags[offset+i]) continue;
+                
                 if (v[i] < 0.5f) continue;
                 float fregs[256];
                 for (uint_fast16_t j = 0; j < 256; j++) //TODO: Using rmin and rmax does not work
@@ -536,6 +541,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                 
                 if (!vm_execute1(bc, offset+i, system, fregs, true))
                     return false;
+                
                 for (uint_fast16_t j = 0; j < 256; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
