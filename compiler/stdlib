@@ -313,3 +313,7 @@ func sel(a:vec3, b:vec3, cond:bool):vec3 {
 func sel(a:vec4, b:vec4, cond:bool):vec4 {
     return __sel(a, b, bvec4(cond));
 }
+
+func del():void {
+    __del();
+}

@@ -261,7 +261,7 @@ void store_prop(const float* val, void* property, prop_dtype_t dtype, size_t off
     }
 }
 
-static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags, void** properties, prop_dtype_t* prop_dtypes, float* regs, bool cond) {
+static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
@@ -321,7 +321,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t d = *bc++;
             uint8_t s = *bc++;
             float val[8];
-            load_prop(val, properties[s], prop_dtypes[s], index);
+            load_prop(val, system->properties[s], system->property_dtypes[s], index);
             regs[d] = val[0];
         END_CASE
         BEGIN_CASE(BC_OP_STORE_PROP)
@@ -329,10 +329,10 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t s = *bc++;
             float val[8];
             val[0] = regs[s];
-            store_prop(val, properties[d], prop_dtypes[d], index);
+            store_prop(val, system->properties[d], system->property_dtypes[d], index);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
-            deleted_flags[index] = 1; //TODO: Make this a proper deletion
+            delete_particle(system, index);
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -380,7 +380,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
             bc += 4;
-            if (regs[c] >= 0.5f) vm_execute1(bc, index, deleted_flags, properties, prop_dtypes, regs, cond);
+            if (regs[c] >= 0.5f) vm_execute1(bc, index, system, regs, cond);
             else bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
@@ -398,10 +398,10 @@ static bool vm_execute1(const uint8_t* bc, size_t index, uint8_t* deleted_flags,
     return true;
 }
 
-static bool vm_execute8(const program_t* program, size_t offset, uint8_t* deleted_flags, void** properties, prop_dtype_t* prop_dtypes) {
+static bool vm_execute8(const program_t* program, size_t offset, system_t* system) {
     bool deleted = true;
     for (uint_fast8_t i = 0; i < 8; i++)
-        deleted = deleted && deleted_flags[offset+i];
+        deleted = deleted && system->deleted_flags[offset+i];
     if (deleted) return true;
     
     const uint8_t* bc = program->bc;
@@ -465,17 +465,17 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
             uint8_t d = *bc++;
             uint8_t s = *bc++;
             float val[8];
-            load_prop(val, properties[s], prop_dtypes[s], offset);
+            load_prop(val, system->properties[s], system->property_dtypes[s], offset);
             simd8f_init(regs+d, val);
         END_CASE
         BEGIN_CASE(BC_OP_STORE_PROP)
             uint8_t d = *bc++;
             uint8_t s = *bc++;
-            store_prop((const float*)(regs+s), properties[d], prop_dtypes[d], offset);
+            store_prop((const float*)(regs+s), system->properties[d], system->property_dtypes[d], offset);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
-                deleted_flags[offset+i] = 1; //TODO: Make this a proper deletion
+                delete_particle(system, offset+i);
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -534,7 +534,7 @@ static bool vm_execute8(const program_t* program, size_t offset, uint8_t* delete
                 for (uint_fast16_t j = 0; j < 256; j++) //TODO: Using rmin and rmax does not work
                     fregs[j] = ((float*)(regs+j))[i];
                 
-                if (!vm_execute1(bc, offset+i, deleted_flags, properties, prop_dtypes, fregs, true))
+                if (!vm_execute1(bc, offset+i, system, fregs, true))
                     return false;
                 for (uint_fast16_t j = 0; j < 256; j++)
                     ((float*)(regs+j))[i] = fregs[j];
@@ -584,12 +584,8 @@ static bool vm_destroy_program(program_t* program) {
 
 static bool vm_simulate_system(system_t* system) {
     const program_t* p = system->sim_program;
-    uint8_t* del_flags = system->deleted_flags;
-    void** properties = system->properties;
-    prop_dtype_t* prop_dtypes = system->property_dtypes;
-    
     for (size_t i = 0; i < system->pool_size; i += 8)
-        if (!vm_execute8(p, i, del_flags, properties, prop_dtypes))
+        if (!vm_execute8(p, i, system))
             return false;
     
     return true;

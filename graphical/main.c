@@ -36,10 +36,19 @@ static const char* vertex_source = "#version 120\n"
 "uniform mat4 uView;\n"
 "uniform mat4 uProj;\n"
 "varying vec3 color;\n"
-"void main() {gl_Position = uProj * uView * vec4(posx, posy, posz, deleted>127.0 ? 0.0 : 1.0);color = vec3(colr, colg, colb);}\n";
+"void main() {\n"
+"    gl_Position = uProj * uView * vec4(posx, posy, posz, 1.0);\n"
+"    if (deleted > 0.9) {\n"
+"        gl_Position.x = 2.0;\n"
+"        gl_Position.w = 1.0;\n"
+"    }"
+"    color = vec3(colr, colg, colb);\n"
+"}\n";
 static const char* fragment_source = "#version 120\n"
 "varying vec3 color;\n"
-"void main() {gl_FragColor = vec4(color, 1.0);}\n";
+"void main() {\n"
+"    gl_FragColor = vec4(color, 1.0);"
+"}\n";
 
 static bool glfw_init = false;
 static bool runtime_init = false;
@@ -343,7 +352,7 @@ int main() {
     glVertexAttribPointer(colr_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colr);
     glVertexAttribPointer(colg_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colg);
     glVertexAttribPointer(colb_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colb);
-    glVertexAttribPointer(deleted_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, deleted);
+    glVertexAttribPointer(deleted_loc, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, deleted);
     
     anglea = -0.652613f;
     angleb = -0.69614f;

@@ -128,6 +128,7 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         case BC_OP_SEL: required = 4; break;
         case BC_OP_COND_BEGIN: required = 7; break;
         case BC_OP_COND_END:
+        case BC_OP_DELETE: required = 0; break;
         case BC_OP_END: required = 0; has_end_inst = true; break;
         default: return set_error(program->runtime, "Unsupported or invalid instruction.");
         }
@@ -234,7 +235,7 @@ bool delete_particle(system_t* system, int index) {
     system->deleted_flags[index] = 1;
     system->nexts[index] = system->next_particle;
     system->next_particle = index;
-    system->pool_usage++;
+    system->pool_usage--;
     
     return true;
 }

@@ -141,6 +141,7 @@ static ir_var_t get_var_comp(ir_var_decl_t* decl, size_t comp_idx) {
 static bool is_builtin_func(call_node_t* call, ir_var_decl_t** args) {
     if (!strcmp(call->func, "__sqrt") && call->arg_count==1) return true;
     else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0]->comp==args[1]->comp && args[2]->comp==args[0]->comp) return true;
+    else if (!strcmp(call->func, "__del") && call->arg_count==0) return true;
     return false;
 }
 
@@ -169,6 +170,12 @@ static ir_var_decl_t* gen_builtin_func(ir_t* ir, call_node_t* call, ir_var_decl_
             add_inst(ir, &inst);
         }
         return dest;
+    } else if (!strcmp(call->func, "__del")) {
+        ir_inst_t inst;
+        inst.op = IR_OP_DELETE;
+        inst.operand_count = 0;
+        add_inst(ir, &inst);
+        return gen_temp_var(ir, 0);
     }
     
     assert(false);
