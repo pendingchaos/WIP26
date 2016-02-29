@@ -397,7 +397,7 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    print_bc(bc.bc, bc.bc+bc.bc_size);
+    //print_bc(bc.bc, bc.bc+bc.bc_size);
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {

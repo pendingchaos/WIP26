@@ -29,12 +29,17 @@ static const char* vertex_source = "#version 120\n"
 "attribute float posx;\n"
 "attribute float posy;\n"
 "attribute float posz;\n"
+"attribute float colr;\n"
+"attribute float colg;\n"
+"attribute float colb;\n"
 "attribute float deleted;\n"
 "uniform mat4 uView;\n"
 "uniform mat4 uProj;\n"
-"void main() {gl_Position = uProj * uView * vec4(posx, posy, posz, deleted>127.0 ? 0.0 : 1.0);}\n";
+"varying vec3 color;\n"
+"void main() {gl_Position = uProj * uView * vec4(posx, posy, posz, deleted>127.0 ? 0.0 : 1.0);color = vec3(colr, colg, colb);}\n";
 static const char* fragment_source = "#version 120\n"
-"void main() {gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);}\n";
+"varying vec3 color;\n"
+"void main() {gl_FragColor = vec4(color, 1.0);}\n";
 
 static bool glfw_init = false;
 static bool runtime_init = false;
@@ -52,6 +57,9 @@ static int posz_index;
 static int velx_index;
 static int vely_index;
 static int velz_index;
+static int colr_index;
+static int colg_index;
+static int colb_index;
 static GLuint gl_program;
 static float anglea = 0.0f;
 static float angleb = 0.0f;
@@ -184,6 +192,9 @@ static void init_particle(unsigned int index) {
     ((float*)particle_system.properties[velx_index])[index] = velx/vlen*0.005f;
     ((float*)particle_system.properties[vely_index])[index] = vely/vlen*0.005f;
     ((float*)particle_system.properties[velz_index])[index] = velz/vlen*0.005f;
+    ((uint8_t*)particle_system.properties[colr_index])[index] = 0;
+    ((uint8_t*)particle_system.properties[colg_index])[index] = 0;
+    ((uint8_t*)particle_system.properties[colb_index])[index] = 0;
 }
 
 static void create_gl_program() {
@@ -271,6 +282,12 @@ int main() {
     if (vely_index < 0) FAIL("Failed to find property \"vel.y\".");
     velz_index = get_property_index(&program, "vel.z");
     if (velz_index < 0) FAIL("Failed to find property \"vel.z\".");
+    colr_index = get_property_index(&program, "col.x");
+    if (colr_index < 0) FAIL("Failed to find property \"col.x\".");
+    colg_index = get_property_index(&program, "col.y");
+    if (colg_index < 0) FAIL("Failed to find property \"col.y\".");
+    colb_index = get_property_index(&program, "col.z");
+    if (colb_index < 0) FAIL("Failed to find property \"col.z\".");
     
     particle_system.runtime = &runtime;
     particle_system.pool_size = 1000000;
@@ -281,6 +298,9 @@ int main() {
     particle_system.property_dtypes[velx_index] = PROP_FLOAT32;
     particle_system.property_dtypes[vely_index] = PROP_FLOAT32;
     particle_system.property_dtypes[velz_index] = PROP_FLOAT32;
+    particle_system.property_dtypes[colr_index] = PROP_UINT8;
+    particle_system.property_dtypes[colg_index] = PROP_UINT8;
+    particle_system.property_dtypes[colb_index] = PROP_UINT8;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
@@ -299,24 +319,34 @@ int main() {
     GLint posx_loc = glGetAttribLocation(gl_program, "posx");
     GLint posy_loc = glGetAttribLocation(gl_program, "posy");
     GLint posz_loc = glGetAttribLocation(gl_program, "posz");
+    GLint colr_loc = glGetAttribLocation(gl_program, "colr");
+    GLint colg_loc = glGetAttribLocation(gl_program, "colg");
+    GLint colb_loc = glGetAttribLocation(gl_program, "colb");
     GLint deleted_loc = glGetAttribLocation(gl_program, "deleted");
     glEnableVertexAttribArray(posx_loc);
     glEnableVertexAttribArray(posy_loc);
     glEnableVertexAttribArray(posz_loc);
+    glEnableVertexAttribArray(colr_loc);
+    glEnableVertexAttribArray(colg_loc);
+    glEnableVertexAttribArray(colb_loc);
     glEnableVertexAttribArray(deleted_loc);
     float* posx = particle_system.properties[posx_index];
     float* posy = particle_system.properties[posy_index];
     float* posz = particle_system.properties[posz_index];
+    uint8_t* colr = particle_system.properties[colr_index];
+    uint8_t* colg = particle_system.properties[colg_index];
+    uint8_t* colb = particle_system.properties[colb_index];
     uint8_t* deleted = particle_system.deleted_flags;
     glVertexAttribPointer(posx_loc, 1, GL_FLOAT, GL_FALSE, 0, posx);
     glVertexAttribPointer(posy_loc, 1, GL_FLOAT, GL_FALSE, 0, posy);
     glVertexAttribPointer(posz_loc, 1, GL_FLOAT, GL_FALSE, 0, posz);
-    glVertexAttribPointer(deleted_loc, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, deleted);
+    glVertexAttribPointer(colr_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colr);
+    glVertexAttribPointer(colg_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colg);
+    glVertexAttribPointer(colb_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, colb);
+    glVertexAttribPointer(deleted_loc, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, deleted);
     
     anglea = -0.652613f;
     angleb = -0.69614f;
-    
-    getchar();
     
     while (!glfwWindowShouldClose(window)) {
         double begin = glfwGetTime();
@@ -330,8 +360,10 @@ int main() {
         if (glfwGetKey(window, GLFW_KEY_DOWN))
             angleb += radians(30.0f) * frametime;
         
+        double sim_begin = glfwGetTime();
         if (!simulate_system(&particle_system))
             FAIL("Failed to simulate particle system: %s\n", runtime.error);
+        double sim_end = glfwGetTime();
         
         vec3_t eye = create_vec3(zoom*sin(anglea)*cos(angleb),
                                  zoom*sin(anglea)*sin(angleb),
@@ -359,8 +391,8 @@ int main() {
         char title[256];
         frametime = end - begin;
         float usage = (double)particle_system.pool_usage/particle_system.pool_size;
-        static const char* format = "FPS: %.0f - Pool usage: %.0f%c";
-        snprintf(title, 256, format, 1.0f/frametime, usage*100.0, '%');
+        static const char* format = "Frametime: %.0f mspf - Pool usage: %.0f%c - Simulated in %.0f ms";
+        snprintf(title, 256, format, frametime*1000.0f, usage*100.0, '%', (sim_end-sim_begin)*1000.0f);
         glfwSetWindowTitle(window, title);
     }
     
