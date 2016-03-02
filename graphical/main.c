@@ -306,7 +306,7 @@ int main() {
     if (colb_index < 0) FAIL("Failed to find property \"col.z\".");
     
     particle_system.runtime = &runtime;
-    particle_system.pool_size = 1000000;
+    particle_system.pool_size = 300000;
     particle_system.sim_program = &program;
     particle_system.property_dtypes[posx_index] = PROP_FLOAT32;
     particle_system.property_dtypes[posy_index] = PROP_FLOAT32;
@@ -375,7 +375,7 @@ int main() {
         if (glfwGetKey(window, GLFW_KEY_DOWN))
             angleb += radians(30.0f) * frametime;
         if (glfwGetKey(window, GLFW_KEY_S)) {
-            for (size_t i = 0; i < 10000*frametime; i++) {
+            for (size_t i = 0; i < 50000*frametime; i++) {
                 int index = spawn_particle(&particle_system);
                 if (index >= 0) init_particle(index);
                 else {

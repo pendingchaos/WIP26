@@ -14,19 +14,17 @@ typedef enum {
     BC_OP_POW = 4,
     BC_OP_MOVF = 5,
     BC_OP_SQRT = 6,
-    BC_OP_LOAD_PROP = 7,
-    BC_OP_STORE_PROP = 8,
-    BC_OP_DELETE = 9,
-    BC_OP_LESS = 10,
-    BC_OP_GREATER = 11,
-    BC_OP_EQUAL = 12,
-    BC_OP_BOOL_AND = 13,
-    BC_OP_BOOL_OR = 14,
-    BC_OP_BOOL_NOT = 15,
-    BC_OP_SEL = 16,
-    BC_OP_COND_BEGIN = 17,
-    BC_OP_COND_END = 18,
-    BC_OP_END = 19
+    BC_OP_DELETE = 7,
+    BC_OP_LESS = 8,
+    BC_OP_GREATER = 9,
+    BC_OP_EQUAL = 10,
+    BC_OP_BOOL_AND = 11,
+    BC_OP_BOOL_OR = 12,
+    BC_OP_BOOL_NOT = 13,
+    BC_OP_SEL = 14,
+    BC_OP_COND_BEGIN = 15,
+    BC_OP_COND_END = 16,
+    BC_OP_END = 17
 } bc_op_t;
 
 typedef struct {
@@ -35,8 +33,8 @@ typedef struct {
     bool simulation;
     size_t bc_size;
     uint8_t* bc;
-    size_t prop_count;
-    uint8_t* prop_indices;
+    uint8_t* prop_load_regs;
+    uint8_t* prop_store_regs;
     char error[1024];
 } bc_t;
 

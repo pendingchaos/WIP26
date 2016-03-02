@@ -265,7 +265,7 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_SQRT,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
@@ -316,20 +316,6 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             regs[d] = sqrt(regs[a]);
-        END_CASE
-        BEGIN_CASE(BC_OP_LOAD_PROP)
-            uint8_t d = *bc++;
-            uint8_t s = *bc++;
-            float val[8];
-            load_prop(val, system->properties[s], system->property_dtypes[s], index);
-            regs[d] = val[0];
-        END_CASE
-        BEGIN_CASE(BC_OP_STORE_PROP)
-            uint8_t d = *bc++;
-            uint8_t s = *bc++;
-            float val[8];
-            val[0] = regs[s];
-            store_prop(val, system->properties[d], system->property_dtypes[d], index);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             delete_particle(system, index);
@@ -407,10 +393,17 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     
     const uint8_t* bc = program->bc;
     simd8f_t regs[256];
+    
+    for (size_t i = 0; i < program->property_count; i++) {
+        float val[8];
+        load_prop(val, system->properties[i], system->property_dtypes[i], offset);
+        simd8f_init(regs+program->property_load_regs[i], val);
+    }
+    
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_SQRT, &&BC_OP_LOAD_PROP, &&BC_OP_STORE_PROP,
+                                     &&BC_OP_SQRT,
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
@@ -462,23 +455,11 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             uint8_t a = *bc++;
             simd8f_sqrt(regs+d, regs[a]);
         END_CASE
-        BEGIN_CASE(BC_OP_LOAD_PROP)
-            uint8_t d = *bc++;
-            uint8_t s = *bc++;
-            float val[8];
-            load_prop(val, system->properties[s], system->property_dtypes[s], offset);
-            simd8f_init(regs+d, val);
-        END_CASE
-        BEGIN_CASE(BC_OP_STORE_PROP)
-            uint8_t d = *bc++;
-            uint8_t s = *bc++;
-            store_prop((const float*)(regs+s), system->properties[d], system->property_dtypes[d], offset);
-        END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
                 if (!system->deleted_flags[i])
                     delete_particle(system, offset+i);
-            return true;
+            goto end;
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
             uint8_t d = *bc++;
@@ -551,7 +532,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             //Nothing
         END_CASE
         BEGIN_CASE(BC_OP_END)
-            return true;
+            goto end;
         END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
@@ -559,6 +540,11 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     }
     #endif
     
+    end:
+    for (size_t i = 0; i < program->property_count; i++) {
+        store_prop((const float*)(regs+program->property_store_regs[i]),
+                   system->properties[i], system->property_dtypes[i], offset);
+    }
     return true;
 }
 

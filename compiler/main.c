@@ -162,12 +162,12 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_BOOL_NOT: printf("boolnot "); break;
     case IR_OP_SQRT: printf("sqrt "); break;
     case IR_OP_DROP: printf("drop "); break;
-    case IR_OP_LOAD_PROP: printf("pload "); break;
-    case IR_OP_STORE_PROP: printf("pstore "); break;
     case IR_OP_SEL: printf("sel "); break;
     case IR_OP_BEGIN_IF: printf("beginif "); break;
     case IR_OP_END_IF: printf("endif "); break;
     case IR_OP_PHI: printf("phi "); break;
+    case IR_OP_LOAD_PROP: printf("loadp "); break;
+    case IR_OP_STORE_PROP: printf("storep "); break;
     }
     
     for (size_t i = 0; i < inst.operand_count; i++) {
@@ -250,18 +250,6 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             uint8_t d = *bc++;
             uint8_t v = *bc++;
             printf("sqrt r%u r%u\n", d, v);
-            break;
-        }
-        case BC_OP_LOAD_PROP: {
-            uint8_t d = *bc++;
-            uint8_t p = *bc++;
-            printf("pload r%u p%u\n", d, p);
-            break;
-        }
-        case BC_OP_STORE_PROP: {
-            uint8_t p = *bc++;
-            uint8_t v = *bc++;
-            printf("pstore p%u r%u\n", p, v);
             break;
         }
         case BC_OP_DELETE: {printf("delete\n"); break;}
@@ -383,8 +371,9 @@ int main(int argc, char** argv) {
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
-    //for (size_t i = 0; i < ir.inst_count; i++)
-    //    print_inst(&ir, ir.insts[i]);
+    /*printf("--------IR--------\n");
+    for (size_t i = 0; i < ir.inst_count; i++)
+        print_inst(&ir, ir.insts[i]);*/
     
     free_ast(&ast);
     
@@ -397,7 +386,15 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    //print_bc(bc.bc, bc.bc+bc.bc_size);
+    /*printf("---BC properties--\n");
+    for (size_t i = 0; i < ir.prop_count; i++)
+        for (size_t j = 0; j < ir.prop_comp[i]; j++)
+            printf("%s.%c: load:r%u store:r%u\n",
+                   ir.properties[i], "xyzw"[j],
+                   bc.prop_load_regs[i*4+j], bc.prop_store_regs[i*4+j]);
+    
+    printf("-----Bytecode-----\n");
+    print_bc(bc.bc, bc.bc+bc.bc_size);*/
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {

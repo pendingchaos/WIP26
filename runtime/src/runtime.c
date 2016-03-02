@@ -68,9 +68,14 @@ bool open_program(const char* filename, program_t* program) {
             return set_error(program->runtime, "Unable to read property name");
         }
         
-        if (!fread(&program->property_indices[i], 1, 1, f)) {
+        if (!fread(&program->property_load_regs[i], 1, 1, f)) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to read property index");
+            return set_error(program->runtime, "Unable to read property load register");
+        }
+        
+        if (!fread(&program->property_store_regs[i], 1, 1, f)) {
+            destroy_program(program);
+            return set_error(program->runtime, "Unable to read property store register");
         }
     }
     
@@ -122,9 +127,7 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
         case BC_OP_BOOL_AND:
         case BC_OP_BOOL_OR: required = 3; break;
         case BC_OP_SQRT:
-        case BC_OP_BOOL_NOT:
-        case BC_OP_LOAD_PROP:
-        case BC_OP_STORE_PROP: required = 2; break;
+        case BC_OP_BOOL_NOT: required = 2; break;
         case BC_OP_SEL: required = 4; break;
         case BC_OP_COND_BEGIN: required = 7; break;
         case BC_OP_COND_END:
@@ -144,7 +147,7 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
 int get_property_index(const program_t* program, const char* name) {
     for (uint8_t i = 0; i < program->property_count; i++)
         if (strcmp(program->property_names[i], name) == 0)
-            return program->property_indices[i];
+            return /*program->property_indices[*/i/*]*/;
     return -1;
 }
 
@@ -190,7 +193,7 @@ bool create_system(system_t* system) {
     memset(system->deleted_flags, 1, system->pool_size);
     
     for (size_t i = 0; i < system->sim_program->property_count; i++) {
-        int index = system->sim_program->property_indices[i];
+        int index = /*system->sim_program->property_indices[*/i/*]*/;
         size_t size = get_prop_dtype_size(system->property_dtypes[i]);
         system->properties[index] = calloc(1, system->pool_size*size);
         if (!system->properties[index]) {
@@ -206,7 +209,7 @@ bool destroy_system(system_t* system) {
     free(system->deleted_flags);
     free(system->nexts);
     for (size_t i = 0; i < system->sim_program->property_count; i++)
-        free(system->properties[system->sim_program->property_indices[i]]);
+        free(system->properties[/*system->sim_program->property_indices[*/i/*]*/]);
     return true;
 }
 

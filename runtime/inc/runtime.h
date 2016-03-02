@@ -12,19 +12,17 @@ typedef enum bc_op_t {
     BC_OP_POW = 4,
     BC_OP_MOVF = 5,
     BC_OP_SQRT = 6,
-    BC_OP_LOAD_PROP = 7,
-    BC_OP_STORE_PROP = 8,
-    BC_OP_DELETE = 9,
-    BC_OP_LESS = 10,
-    BC_OP_GREATER = 11,
-    BC_OP_EQUAL = 12,
-    BC_OP_BOOL_AND = 13,
-    BC_OP_BOOL_OR = 14,
-    BC_OP_BOOL_NOT = 15,
-    BC_OP_SEL = 16,
-    BC_OP_COND_BEGIN = 17,
-    BC_OP_COND_END = 18,
-    BC_OP_END = 19
+    BC_OP_DELETE = 7,
+    BC_OP_LESS = 8,
+    BC_OP_GREATER = 9,
+    BC_OP_EQUAL = 10,
+    BC_OP_BOOL_AND = 11,
+    BC_OP_BOOL_OR = 12,
+    BC_OP_BOOL_NOT = 13,
+    BC_OP_SEL = 14,
+    BC_OP_COND_BEGIN = 15,
+    BC_OP_COND_END = 16,
+    BC_OP_END = 17
 } bc_op_t;
 
 typedef enum program_type_t {
@@ -68,7 +66,8 @@ struct program_t {
     program_type_t type;
     uint8_t property_count;
     char* property_names[256];
-    uint8_t property_indices[256];
+    uint8_t property_load_regs[256];
+    uint8_t property_store_regs[256];
     uint32_t bc_size;
     uint8_t* bc;
     

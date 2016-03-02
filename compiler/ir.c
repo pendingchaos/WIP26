@@ -269,10 +269,34 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     }
     case NODET_ID: {
         id_node_t* id = (id_node_t*)node;
-        ir_var_decl_t* var = get_id_var_decl(ir, id, func_count, funcs);
-        if (!var)
-            return ir_set_error(ir, "Unknown variable \"%s\".", id->name), NULL;
-        return var;
+        if (!strcmp(id->name, "true")) {
+            const uint64_t truei = 0xFFFFFFFFFFFFFFFF;
+            const double truef = *(const double*)&truei;
+            ir_inst_t inst;
+            inst.op = IR_OP_MOV;
+            inst.operand_count = 2;
+            ir_var_decl_t* dest = gen_temp_var(ir, 1);
+            inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
+            inst.operands[1] = create_num_operand(truef);
+            add_inst(ir, &inst);
+            return dest;
+        } else if (!strcmp(id->name, "false")) {
+            const uint64_t falsei = 0;
+            const double falsef = *(const double*)&falsei;
+            ir_inst_t inst;
+            inst.op = IR_OP_MOV;
+            inst.operand_count = 2;
+            ir_var_decl_t* dest = gen_temp_var(ir, 1);
+            inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
+            inst.operands[1] = create_num_operand(falsef);
+            add_inst(ir, &inst);
+            return dest;
+        } else {
+            ir_var_decl_t* var = get_id_var_decl(ir, id, func_count, funcs);
+            if (!var)
+                return ir_set_error(ir, "Unknown variable \"%s\".", id->name), NULL;
+            return var;
+        }
     }
     case NODET_ASSIGN: {
         bin_node_t* bin = (bin_node_t*)node;
@@ -527,28 +551,6 @@ void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t**
     }
 }
 
-static void add_boolean_vars(ir_t* ir) {
-    const uint64_t truei = 0xFFFFFFFFFFFFFFFF;
-    const uint64_t falsei = 0;
-    const double truef = *(const double*)&truei;
-    const double falsef = *(const double*)&falsei;
-    
-    ir_var_decl_t* true_var = decl_var(ir, "true", 1, 0, NULL);
-    ir_var_decl_t* false_var = decl_var(ir, "false", 1, 0, NULL);
-    
-    ir_inst_t inst;
-    inst.op = IR_OP_MOV;
-    inst.operand_count = 2;
-    
-    inst.operands[0] = create_var_operand(get_var_comp(true_var, 0));
-    inst.operands[1] = create_num_operand(truef);
-    add_inst(ir, &inst);
-    
-    inst.operands[0] = create_var_operand(get_var_comp(false_var, 0));
-    inst.operands[1] = create_num_operand(falsef);
-    add_inst(ir, &inst);
-}
-
 bool create_ir(const ast_t* ast, ir_t* ir) {
     ir->inst_count = 0;
     ir->insts = NULL;
@@ -562,8 +564,6 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
     ir->error[0] = 0;
     ir->next_temp_var = 0;
     ir->next_inst_id = 0;
-    
-    add_boolean_vars(ir);
     
     bool returned = false;
     for (size_t i = 0; i<ast->stmt_count && !returned; i++) {

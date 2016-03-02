@@ -24,8 +24,8 @@ typedef enum {
     IR_OP_BOOL_OR,
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
-    IR_OP_LOAD_PROP,
-    IR_OP_STORE_PROP,
+    IR_OP_LOAD_PROP, //Must be at the beginning
+    IR_OP_STORE_PROP, //Must be at the end
     IR_OP_SEL,
     IR_OP_BEGIN_IF,
     IR_OP_END_IF,
