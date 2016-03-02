@@ -24,7 +24,6 @@ typedef enum {
     IR_OP_BOOL_OR,
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
-    IR_OP_LOAD_PROP, //Must be at the beginning
     IR_OP_STORE_PROP, //Must be at the end
     IR_OP_SEL,
     IR_OP_BEGIN_IF,
@@ -97,8 +96,10 @@ typedef struct {
     func_decl_node_t** funcs;
     
     size_t prop_count;
-    char** properties;
-    size_t* prop_comp;
+    ir_var_decl_t** props;
+    
+    size_t uni_count;
+    ir_var_decl_t** unis;
     
     size_t next_inst_id;
 } ir_t;

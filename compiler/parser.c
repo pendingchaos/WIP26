@@ -215,6 +215,10 @@ static node_t* parse_prop_decl(tokens_t* toks) {
     return parse_decl(toks, TOKT_PROP, NODET_PROP_DECL);
 }
 
+static node_t* parse_uni_decl(tokens_t* toks) {
+    return parse_decl(toks, TOKT_UNI, NODET_UNI_DECL);
+}
+
 static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_count, node_t*** stmts, size_t inc_dir_count, char** inc_dirs);
 static bool parse_stmts(tokens_t* toks, size_t* count_, node_t*** stmts_, bool in_braces, size_t inc_dir_count, char** inc_dirs) {
     size_t count = 0;
@@ -446,6 +450,7 @@ static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_coun
     case TOKT_EOF: return (node_t*)create_nop_node(toks->ast);
     case TOKT_VAR: return parse_var_decl(toks);
     case TOKT_PROP: return parse_prop_decl(toks);
+    case TOKT_UNI: return parse_uni_decl(toks);
     case TOKT_FUNC: return *semicolon_req=false, parse_func_decl(toks, inc_dir_count, inc_dirs);
     case TOKT_RETURN: return parse_return(toks);
     case TOKT_IF: return *semicolon_req=false, parse_if(toks, inc_dir_count, inc_dirs);

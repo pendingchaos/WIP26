@@ -5,6 +5,8 @@ property velocity:vec3;
 property accel:vec3;
 property colorrgb:vec3;
 
+uniform uni:float;
+
 position = position + velocity;
 velocity = velocity*vec3(0.9) + accel;
 accel = accel * vec3(0.8);

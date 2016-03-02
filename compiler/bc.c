@@ -419,13 +419,6 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
         case IR_OP_PHI: {
 			break;
 		}
-        case IR_OP_LOAD_PROP: {
-            ir_prop_t prop = inst->operands[1].prop;
-            int reg = get_reg(state, inst->operands[0].var);
-            if (reg < 0) return false;
-            state->res_bc->prop_load_regs[prop.index*4+prop.comp] = reg;
-            break;
-        }
         case IR_OP_STORE_PROP: {
             ir_prop_t prop = inst->operands[0].prop;
             int reg = get_reg(state, inst->operands[1].var);
@@ -452,6 +445,7 @@ bool gen_bc(bc_t* bc, bool simulation) {
     
     bc->prop_load_regs = alloc_mem(bc->ir->prop_count*4);
     bc->prop_store_regs = alloc_mem(bc->ir->prop_count*4);
+    bc->uni_regs = alloc_mem(bc->ir->uni_count*4);
     
     gen_bc_state_t state;
     state.bc = NULL;
@@ -468,6 +462,30 @@ bool gen_bc(bc_t* bc, bool simulation) {
     state.max_reg = 0;
     state.res_bc = bc;
     
+    for (size_t i = 0; i < bc->ir->uni_count; i++) {
+        ir_var_t var;
+        var.decl = bc->ir->unis[i];
+        for (size_t j = 0; j < var.decl->comp; j++) {
+            var.ver = 0;
+            var.comp_idx = j;
+            int reg = get_reg(&state, var);
+            if (reg < 0) return false;
+            bc->uni_regs[i*4+j] = reg;
+        }
+    }
+    
+    for (size_t i = 0; i < bc->ir->prop_count; i++) {
+        ir_var_t var;
+        var.decl = bc->ir->props[i];
+        for (size_t j = 0; j < var.decl->comp; j++) {
+            var.ver = 0;
+            var.comp_idx = j;
+            int reg = get_reg(&state, var);
+            if (reg < 0) return false;
+            bc->prop_load_regs[i*4+j] = reg;
+        }
+    }
+    
     if (!_gen_bc(&state, bc->ir->insts, bc->ir->inst_count, NULL)) return false;
     
     bc->bc_size = state.bc_size;
@@ -482,23 +500,40 @@ bool write_bc(FILE* dest, const bc_t* bc) {
     
     uint8_t prop_count = 0;
     for (size_t i = 0; i < bc->ir->prop_count; i++)
-        prop_count += bc->ir->prop_comp[i];
+        prop_count += bc->ir->props[i]->comp;
     fwrite(&prop_count, 1, 1, dest);
+    
+    uint8_t uni_count = 0;
+    for (size_t i = 0; i < bc->ir->uni_count; i++)
+        uni_count += bc->ir->unis[i]->comp;
+    fwrite(&uni_count, 1, 1, dest);
     
     uint32_t bc_size32 = htole32(bc->bc_size);
     fwrite(&bc_size32, 4, 1, dest);
     
     for (size_t i = 0; i < bc->ir->prop_count; i++) {
-        for (size_t j = 0; j < bc->ir->prop_comp[i]; j++) {
-            uint8_t name_len = strlen(bc->ir->properties[i])+2;
+        for (size_t j = 0; j < bc->ir->props[i]->comp; j++) {
+            uint8_t name_len = strlen(bc->ir->props[i]->name.name)+2;
             fwrite(&name_len, 1, 1, dest);
-            fwrite(bc->ir->properties[i], name_len-2, 1, dest);
+            fwrite(bc->ir->props[i]->name.name, name_len-2, 1, dest);
             fwrite(".", 1, 1, dest);
             fwrite("xyzw"+j, 1, 1, dest);
             uint8_t lreg = bc->prop_load_regs[i*4+j];
             uint8_t sreg = bc->prop_store_regs[i*4+j];
             fwrite(&lreg, 1, 1, dest);
             fwrite(&sreg, 1, 1, dest);
+        }
+    }
+    
+    for (size_t i = 0; i < bc->ir->uni_count; i++) {
+        for (size_t j = 0; j < bc->ir->unis[i]->comp; j++) {
+            uint8_t name_len = strlen(bc->ir->unis[i]->name.name)+2;
+            fwrite(&name_len, 1, 1, dest);
+            fwrite(bc->ir->unis[i]->name.name, name_len-2, 1, dest);
+            fwrite(".", 1, 1, dest);
+            fwrite("xyzw"+j, 1, 1, dest);
+            uint8_t reg = bc->uni_regs[i*4+j];
+            fwrite(&reg, 1, 1, dest);
         }
     }
     
@@ -509,6 +544,7 @@ bool write_bc(FILE* dest, const bc_t* bc) {
 
 void free_bc(bc_t* bc) {
     free(bc->bc);
+    free(bc->uni_regs);
     free(bc->prop_load_regs);
     free(bc->prop_store_regs);
 }

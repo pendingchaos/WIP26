@@ -35,6 +35,7 @@ typedef struct {
     uint8_t* bc;
     uint8_t* prop_load_regs;
     uint8_t* prop_store_regs;
+    uint8_t* uni_regs;
     char error[1024];
 } bc_t;
 

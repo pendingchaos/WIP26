@@ -68,6 +68,9 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_PROP_DECL:
         printf("PROP_DECL: ");
         goto decl;
+    case NODET_UNI_DECL:
+        printf("UNI_DECL: ");
+        goto decl;
     case NODET_RETURN:
         printf("RETURN: ");
         goto unary;
@@ -166,7 +169,6 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_BEGIN_IF: printf("beginif "); break;
     case IR_OP_END_IF: printf("endif "); break;
     case IR_OP_PHI: printf("phi "); break;
-    case IR_OP_LOAD_PROP: printf("loadp "); break;
     case IR_OP_STORE_PROP: printf("storep "); break;
     }
     
@@ -188,7 +190,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
             }
             break;
         case IR_OPERAND_PROP:
-            printf("$%s.%c ", ir->properties[op.prop.index], "xyzw"[op.prop.comp]);
+            printf("$%s.%c ", ir->props[op.prop.index]->name.name, "xyzw"[op.prop.comp]);
             break;
         }
     }
@@ -218,8 +220,7 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
         case BC_OP_GREATER:
         case BC_OP_EQUAL:
         case BC_OP_BOOL_AND:
-        case BC_OP_BOOL_OR:
-        case BC_OP_BOOL_NOT: {
+        case BC_OP_BOOL_OR: {
             switch (op) {
             case BC_OP_ADD: printf("add "); break;
             case BC_OP_SUB: printf("sub "); break;
@@ -231,7 +232,6 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
 		    case BC_OP_EQUAL: printf("equal "); break;
 		    case BC_OP_BOOL_AND: printf("booland "); break;
 		    case BC_OP_BOOL_OR: printf("boolor "); break;
-		    case BC_OP_BOOL_NOT: printf("boolnot "); break;
             }
             uint8_t d = *bc++;
             uint8_t a = *bc++;
@@ -246,10 +246,14 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             printf("movf r%u %f\n", d, v);
             break;
         }
-        case BC_OP_SQRT: {
+        case BC_OP_SQRT:
+        case BC_OP_BOOL_NOT: {
             uint8_t d = *bc++;
             uint8_t v = *bc++;
-            printf("sqrt r%u r%u\n", d, v);
+            switch (op) {
+            case BC_OP_SQRT: printf("sqrt r%u r%u\n", d, v);
+            case BC_OP_BOOL_NOT: printf("boolnot r%u r%u\n", d, v);
+            }
             break;
         }
         case BC_OP_DELETE: {printf("delete\n"); break;}
@@ -357,8 +361,11 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    //for (size_t i = 0; i < ast.stmt_count; i++)
-    //    print_node(ast.stmts[i], 0);
+    //#define DEBUG
+    #ifdef DEBUG
+    for (size_t i = 0; i < ast.stmt_count; i++)
+        print_node(ast.stmts[i], 0);
+    #endif
     
     ir_t ir;
     if (!create_ir(&ast, &ir)) {
@@ -371,9 +378,11 @@ int main(int argc, char** argv) {
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
-    /*printf("--------IR--------\n");
+    #ifdef DEBUG
+    printf("--------IR--------\n");
     for (size_t i = 0; i < ir.inst_count; i++)
-        print_inst(&ir, ir.insts[i]);*/
+        print_inst(&ir, ir.insts[i]);
+    #endif
     
     free_ast(&ast);
     
@@ -386,15 +395,23 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    /*printf("---BC properties--\n");
+    #ifdef DEBUG
+    printf("---BC properties--\n");
     for (size_t i = 0; i < ir.prop_count; i++)
-        for (size_t j = 0; j < ir.prop_comp[i]; j++)
+        for (size_t j = 0; j < ir.props[i]->comp; j++)
             printf("%s.%c: load:r%u store:r%u\n",
-                   ir.properties[i], "xyzw"[j],
+                   ir.props[i]->name.name, "xyzw"[j],
                    bc.prop_load_regs[i*4+j], bc.prop_store_regs[i*4+j]);
     
+    printf("----BC uniforms---\n");
+    for (size_t i = 0; i < ir.uni_count; i++)
+        for (size_t j = 0; j < ir.unis[i]->comp; j++)
+            printf("%s.%c: r%u\n",
+                   ir.unis[i]->name.name, "xyzw"[j], bc.uni_regs[i*4+j]);
+    
     printf("-----Bytecode-----\n");
-    print_bc(bc.bc, bc.bc+bc.bc_size);*/
+    print_bc(bc.bc, bc.bc+bc.bc_size);
+    #endif
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {

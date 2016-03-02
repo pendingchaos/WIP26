@@ -15,6 +15,7 @@ typedef enum token_type_t {
     TOKT_DOT,
     TOKT_VAR,
     TOKT_PROP,
+    TOKT_UNI,
     TOKT_COLON,
     TOKT_SEMICOLON,
     TOKT_LEFT_PAREN,

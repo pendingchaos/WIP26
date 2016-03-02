@@ -65,6 +65,7 @@ struct program_t {
     runtime_t* runtime;
     program_type_t type;
     uint8_t property_count;
+    uint8_t uniform_count;
     char* property_names[256];
     uint8_t property_load_regs[256];
     uint8_t property_store_regs[256];

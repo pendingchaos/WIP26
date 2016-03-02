@@ -417,24 +417,14 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         return dest;
     }
     case NODET_VAR_DECL:
-    case NODET_PROP_DECL: {
+    case NODET_PROP_DECL:
+    case NODET_UNI_DECL: {
         decl_node_t* decl = (decl_node_t*)node;
         ir_var_decl_t* var = decl_var(ir, decl->name, get_dtype_comp(decl->dtype), func_count, funcs);
-        if (node->type == NODET_PROP_DECL) {
-            char* name = copy_str(decl->name);
-            size_t comp = var->comp;
-            ir->properties = append_mem(ir->properties, ir->prop_count, sizeof(char*), &name);
-            ir->prop_comp = append_mem(ir->prop_comp, ir->prop_count++, sizeof(size_t), &comp);
-            
-            ir_inst_t inst;
-            inst.op = IR_OP_LOAD_PROP;
-            inst.operand_count = 2;
-            for (size_t i = 0; i < var->comp; i++) {
-                inst.operands[0] = create_var_operand(get_var_comp(var, i));
-                inst.operands[1] = create_prop_operand(ir->prop_count-1, i);
-                add_inst(ir, &inst);
-            }
-        }
+        if (node->type == NODET_PROP_DECL)
+            ir->props = append_mem(ir->props, ir->prop_count++, sizeof(ir_var_decl_t*), &var);
+        else if (node->type == NODET_UNI_DECL)
+            ir->unis = append_mem(ir->unis, ir->uni_count++, sizeof(ir_var_decl_t*), &var);
         return var;
     }
     case NODET_RETURN: {
@@ -552,34 +542,13 @@ void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t**
 }
 
 bool create_ir(const ast_t* ast, ir_t* ir) {
-    ir->inst_count = 0;
-    ir->insts = NULL;
-    ir->var_count = 0;
-    ir->vars = NULL;
-    ir->func_count = 0;
-    ir->funcs = NULL;
-    ir->prop_count = 0;
-    ir->properties = NULL;
-    ir->prop_comp = NULL;
-    ir->error[0] = 0;
-    ir->next_temp_var = 0;
-    ir->next_inst_id = 0;
+    memset(ir, 0, sizeof(ir_t));
     
     bool returned = false;
     for (size_t i = 0; i<ast->stmt_count && !returned; i++) {
         if (!node_to_ir(ast->stmts[i], ir, &returned, 0, NULL)) {
             free_ir(ir);
-            ir->inst_count = 0;
-            ir->insts = NULL;
-            ir->var_count = 0;
-            ir->vars = NULL;
-            ir->func_count = 0;
-            ir->funcs = NULL;
-            ir->prop_count = 0;
-            ir->properties = NULL;
-            ir->prop_comp = NULL;
-            ir->next_temp_var = 0;
-            ir->next_inst_id = 0;
+            memset(ir, 0, sizeof(ir_t));
             return false;
         }
     }
@@ -588,7 +557,7 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
         ir_var_decl_t* var = NULL;
         for (size_t j = 0; j < ir->var_count; j++)
             if (ir->vars[j]->name.func_count==0 &&
-                !strcmp(ir->vars[j]->name.name, ir->properties[i])) {
+                !strcmp(ir->vars[j]->name.name, ir->props[i]->name.name)) {
                 var = ir->vars[j];
                 break;
             }
@@ -597,7 +566,7 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
         ir_inst_t inst;
         inst.op = IR_OP_STORE_PROP;
         inst.operand_count = 2;
-        for (size_t j = 0; j < ir->prop_comp[i]; j++) {
+        for (size_t j = 0; j < ir->props[i]->comp; j++) {
             inst.operands[0] = create_prop_operand(i, j);
             inst.operands[1] = create_var_operand(get_var_comp(var, j));
             add_inst(ir, &inst);
@@ -620,9 +589,8 @@ void free_ir(ir_t* ir) {
     free(ir->vars);
     free(ir->funcs);
     
-    for (size_t i = 0; i < ir->prop_count; i++) free(ir->properties[i]);
-    free(ir->properties);
-    free(ir->prop_comp);
+    free(ir->props);
+    free(ir->unis);
 }
 
 void remove_redundant_moves(ir_t* ir) {

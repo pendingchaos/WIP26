@@ -17,6 +17,7 @@ typedef enum node_type_t {
     NODET_MEMBER,
     NODET_VAR_DECL,
     NODET_PROP_DECL,
+    NODET_UNI_DECL,
     NODET_RETURN,
     NODET_CALL,
     NODET_FUNC_DECL,

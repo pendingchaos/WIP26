@@ -47,6 +47,7 @@ bool open_program(const char* filename, program_t* program) {
     else return set_error(program->runtime, "Invalid magic");
     
     if (!fread(&program->property_count, 1, 1, f)) return set_error(program->runtime, "Unable to read property count");
+    if (!fread(&program->uniform_count, 1, 1, f)) return set_error(program->runtime, "Unable to read uniform count");
     if (!fread(&program->bc_size, 4, 1, f)) return set_error(program->runtime, "Unable to read bytecode size");
     program->bc_size = le32toh(program->bc_size);
     
