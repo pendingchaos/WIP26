@@ -65,8 +65,8 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_VAR_DECL:
         printf("VAR_DECL: ");
         goto decl;
-    case NODET_PROP_DECL:
-        printf("PROP_DECL: ");
+    case NODET_ATTR_DECL:
+        printf("ATTR_DECL: ");
         goto decl;
     case NODET_UNI_DECL:
         printf("UNI_DECL: ");
@@ -169,7 +169,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_BEGIN_IF: printf("beginif "); break;
     case IR_OP_END_IF: printf("endif "); break;
     case IR_OP_PHI: printf("phi "); break;
-    case IR_OP_STORE_PROP: printf("storep "); break;
+    case IR_OP_STORE_ATTR: printf("storep "); break;
     }
     
     for (size_t i = 0; i < inst.operand_count; i++) {
@@ -189,8 +189,8 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
             case 3: printf(".w "); break;
             }
             break;
-        case IR_OPERAND_PROP:
-            printf("$%s.%c ", ir->props[op.prop.index]->name.name, "xyzw"[op.prop.comp]);
+        case IR_OPERAND_ATTR:
+            printf("$%s.%c ", ir->attrs[op.attr.index]->name.name, "xyzw"[op.attr.comp]);
             break;
         }
     }
@@ -396,12 +396,12 @@ int main(int argc, char** argv) {
     }
     
     #ifdef DEBUG
-    printf("---BC properties--\n");
-    for (size_t i = 0; i < ir.prop_count; i++)
-        for (size_t j = 0; j < ir.props[i]->comp; j++)
+    printf("---BC attributes--\n");
+    for (size_t i = 0; i < ir.attr_count; i++)
+        for (size_t j = 0; j < ir.attrs[i]->comp; j++)
             printf("%s.%c: load:r%u store:r%u\n",
-                   ir.props[i]->name.name, "xyzw"[j],
-                   bc.prop_load_regs[i*4+j], bc.prop_store_regs[i*4+j]);
+                   ir.attrs[i]->name.name, "xyzw"[j],
+                   bc.attr_load_regs[i*4+j], bc.attr_store_regs[i*4+j]);
     
     printf("----BC uniforms---\n");
     for (size_t i = 0; i < ir.uni_count; i++)

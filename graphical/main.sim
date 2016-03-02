@@ -1,8 +1,8 @@
 include stdlib;
 
-property pos:vec3;
-property vel:vec3;
-property col:vec3;
+attribute pos:vec3;
+attribute vel:vec3;
+attribute col:vec3;
 
 pos = pos + vel;
 

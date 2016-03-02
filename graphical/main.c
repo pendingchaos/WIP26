@@ -200,15 +200,15 @@ static void init_particle(unsigned int index) {
     
     float plen = sqrt(posx*posx + posy*posy + posz*posz);
     float dist = 0.0f; //rand() / (double)RAND_MAX;
-    ((float*)particle_system.properties[posx_index])[index] = posx/plen*dist;
-    ((float*)particle_system.properties[posy_index])[index] = posy/plen*dist;
-    ((float*)particle_system.properties[posz_index])[index] = posz/plen*dist;
-    ((float*)particle_system.properties[velx_index])[index] = velx/vlen*0.005f;
-    ((float*)particle_system.properties[vely_index])[index] = vely/vlen*0.005f;
-    ((float*)particle_system.properties[velz_index])[index] = velz/vlen*0.005f;
-    ((uint8_t*)particle_system.properties[colr_index])[index] = 0;
-    ((uint8_t*)particle_system.properties[colg_index])[index] = 0;
-    ((uint8_t*)particle_system.properties[colb_index])[index] = 0;
+    ((float*)particle_system.attributes[posx_index])[index] = posx/plen*dist;
+    ((float*)particle_system.attributes[posy_index])[index] = posy/plen*dist;
+    ((float*)particle_system.attributes[posz_index])[index] = posz/plen*dist;
+    ((float*)particle_system.attributes[velx_index])[index] = velx/vlen*0.005f;
+    ((float*)particle_system.attributes[vely_index])[index] = vely/vlen*0.005f;
+    ((float*)particle_system.attributes[velz_index])[index] = velz/vlen*0.005f;
+    ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
+    ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
+    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;
 }
 
 static void create_gl_program() {
@@ -286,37 +286,37 @@ int main() {
         FAIL("Failed to open main.sim.bin: %s", runtime.error);
     program_init = true;
     
-    posx_index = get_property_index(&program, "pos.x");
-    if (posx_index < 0) FAIL("Failed to find property \"pos.x\".");
-    posy_index = get_property_index(&program, "pos.y");
-    if (posy_index < 0) FAIL("Failed to find property \"pos.y\".");
-    posz_index = get_property_index(&program, "pos.z");
-    if (posz_index < 0) FAIL("Failed to find property \"pos.z\".");
-    velx_index = get_property_index(&program, "vel.x");
-    if (velx_index < 0) FAIL("Failed to find property \"vel.x\".");
-    vely_index = get_property_index(&program, "vel.y");
-    if (vely_index < 0) FAIL("Failed to find property \"vel.y\".");
-    velz_index = get_property_index(&program, "vel.z");
-    if (velz_index < 0) FAIL("Failed to find property \"vel.z\".");
-    colr_index = get_property_index(&program, "col.x");
-    if (colr_index < 0) FAIL("Failed to find property \"col.x\".");
-    colg_index = get_property_index(&program, "col.y");
-    if (colg_index < 0) FAIL("Failed to find property \"col.y\".");
-    colb_index = get_property_index(&program, "col.z");
-    if (colb_index < 0) FAIL("Failed to find property \"col.z\".");
+    posx_index = get_attribute_index(&program, "pos.x");
+    if (posx_index < 0) FAIL("Failed to find attribute \"pos.x\".");
+    posy_index = get_attribute_index(&program, "pos.y");
+    if (posy_index < 0) FAIL("Failed to find attribute \"pos.y\".");
+    posz_index = get_attribute_index(&program, "pos.z");
+    if (posz_index < 0) FAIL("Failed to find attribute \"pos.z\".");
+    velx_index = get_attribute_index(&program, "vel.x");
+    if (velx_index < 0) FAIL("Failed to find attribute \"vel.x\".");
+    vely_index = get_attribute_index(&program, "vel.y");
+    if (vely_index < 0) FAIL("Failed to find attribute \"vel.y\".");
+    velz_index = get_attribute_index(&program, "vel.z");
+    if (velz_index < 0) FAIL("Failed to find attribute \"vel.z\".");
+    colr_index = get_attribute_index(&program, "col.x");
+    if (colr_index < 0) FAIL("Failed to find attribute \"col.x\".");
+    colg_index = get_attribute_index(&program, "col.y");
+    if (colg_index < 0) FAIL("Failed to find attribute \"col.y\".");
+    colb_index = get_attribute_index(&program, "col.z");
+    if (colb_index < 0) FAIL("Failed to find attribute \"col.z\".");
     
     particle_system.runtime = &runtime;
     particle_system.pool_size = 300000;
     particle_system.sim_program = &program;
-    particle_system.property_dtypes[posx_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[posy_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[posz_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[velx_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[vely_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[velz_index] = PROP_FLOAT32;
-    particle_system.property_dtypes[colr_index] = PROP_UINT8;
-    particle_system.property_dtypes[colg_index] = PROP_UINT8;
-    particle_system.property_dtypes[colb_index] = PROP_UINT8;
+    particle_system.attribute_dtypes[posx_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[posy_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[posz_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[velx_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[vely_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[velz_index] = ATTR_FLOAT32;
+    particle_system.attribute_dtypes[colr_index] = ATTR_UINT8;
+    particle_system.attribute_dtypes[colg_index] = ATTR_UINT8;
+    particle_system.attribute_dtypes[colb_index] = ATTR_UINT8;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
@@ -345,12 +345,12 @@ int main() {
     glEnableVertexAttribArray(colg_loc);
     glEnableVertexAttribArray(colb_loc);
     glEnableVertexAttribArray(deleted_loc);
-    float* posx = particle_system.properties[posx_index];
-    float* posy = particle_system.properties[posy_index];
-    float* posz = particle_system.properties[posz_index];
-    uint8_t* colr = particle_system.properties[colr_index];
-    uint8_t* colg = particle_system.properties[colg_index];
-    uint8_t* colb = particle_system.properties[colb_index];
+    float* posx = particle_system.attributes[posx_index];
+    float* posy = particle_system.attributes[posy_index];
+    float* posz = particle_system.attributes[posz_index];
+    uint8_t* colr = particle_system.attributes[colr_index];
+    uint8_t* colg = particle_system.attributes[colg_index];
+    uint8_t* colb = particle_system.attributes[colb_index];
     uint8_t* deleted = particle_system.deleted_flags;
     glVertexAttribPointer(posx_loc, 1, GL_FLOAT, GL_FALSE, 0, posx);
     glVertexAttribPointer(posy_loc, 1, GL_FLOAT, GL_FALSE, 0, posy);

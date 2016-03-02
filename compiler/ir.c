@@ -67,11 +67,11 @@ static ir_operand_t create_var_operand(ir_var_t var) {
     return res;
 }
 
-static ir_operand_t create_prop_operand(unsigned int index, unsigned int comp) {
+static ir_operand_t create_attr_operand(unsigned int index, unsigned int comp) {
     ir_operand_t res;
-    res.type = IR_OPERAND_PROP;
-    res.prop.index = index;
-    res.prop.comp = comp;
+    res.type = IR_OPERAND_ATTR;
+    res.attr.index = index;
+    res.attr.comp = comp;
     return res;
 }
 
@@ -302,7 +302,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         bin_node_t* bin = (bin_node_t*)node;
         
         ir_var_decl_t* dest_var;
-        if (bin->lhs->type == NODET_VAR_DECL || bin->lhs->type == NODET_PROP_DECL) {
+        if (bin->lhs->type == NODET_VAR_DECL || bin->lhs->type == NODET_ATTR_DECL) {
             dest_var = node_to_ir(bin->lhs, ir, returned, func_count, funcs);
             if (!dest_var) return NULL;
         } else {
@@ -417,12 +417,12 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         return dest;
     }
     case NODET_VAR_DECL:
-    case NODET_PROP_DECL:
+    case NODET_ATTR_DECL:
     case NODET_UNI_DECL: {
         decl_node_t* decl = (decl_node_t*)node;
         ir_var_decl_t* var = decl_var(ir, decl->name, get_dtype_comp(decl->dtype), func_count, funcs);
-        if (node->type == NODET_PROP_DECL)
-            ir->props = append_mem(ir->props, ir->prop_count++, sizeof(ir_var_decl_t*), &var);
+        if (node->type == NODET_ATTR_DECL)
+            ir->attrs = append_mem(ir->attrs, ir->attr_count++, sizeof(ir_var_decl_t*), &var);
         else if (node->type == NODET_UNI_DECL)
             ir->unis = append_mem(ir->unis, ir->uni_count++, sizeof(ir_var_decl_t*), &var);
         return var;
@@ -556,21 +556,21 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
         }
     }
     
-    for (size_t i = 0; i < ir->prop_count; i++) {
+    for (size_t i = 0; i < ir->attr_count; i++) {
         ir_var_decl_t* var = NULL;
         for (size_t j = 0; j < ir->var_count; j++)
             if (ir->vars[j]->name.func_count==0 &&
-                !strcmp(ir->vars[j]->name.name, ir->props[i]->name.name)) {
+                !strcmp(ir->vars[j]->name.name, ir->attrs[i]->name.name)) {
                 var = ir->vars[j];
                 break;
             }
         assert(var);
         
         ir_inst_t inst;
-        inst.op = IR_OP_STORE_PROP;
+        inst.op = IR_OP_STORE_ATTR;
         inst.operand_count = 2;
-        for (size_t j = 0; j < ir->props[i]->comp; j++) {
-            inst.operands[0] = create_prop_operand(i, j);
+        for (size_t j = 0; j < ir->attrs[i]->comp; j++) {
+            inst.operands[0] = create_attr_operand(i, j);
             inst.operands[1] = create_var_operand(get_var_comp(var, j));
             add_inst(ir, &inst);
         }
@@ -592,7 +592,7 @@ void free_ir(ir_t* ir) {
     free(ir->vars);
     free(ir->funcs);
     
-    free(ir->props);
+    free(ir->attrs);
     free(ir->unis);
 }
 

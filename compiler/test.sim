@@ -1,9 +1,9 @@
 include stdlib;
 
-property position:vec3;
-property velocity:vec3;
-property accel:vec3;
-property colorrgb:vec3;
+attribute position:vec3;
+attribute velocity:vec3;
+attribute accel:vec3;
+attribute colorrgb:vec3;
 
 uniform uni:float;
 

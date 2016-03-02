@@ -38,7 +38,7 @@ const char* get_tok_type_str(token_type_t type) {
     case TOKT_POW: return "'^'";
     case TOKT_DOT: return "'.'";
     case TOKT_VAR: return "'var'";
-    case TOKT_PROP: return "'property'";
+    case TOKT_ATTR: return "'attribute'";
     case TOKT_UNI: return "'uniform'";
     case TOKT_COLON: return "':'";
     case TOKT_SEMICOLON: return "';'";
@@ -134,8 +134,8 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
         size_t len = tok->end-tok->begin;
         if (len==3 && !strncmp(tok->begin, "var", len))
             tok->type = TOKT_VAR;
-        else if (len==8 && !strncmp(tok->begin, "property", len))
-            tok->type = TOKT_PROP;
+        else if (len==9 && !strncmp(tok->begin, "attribute", len))
+            tok->type = TOKT_ATTR;
         else if (len==7 && !strncmp(tok->begin, "uniform", len))
             tok->type = TOKT_UNI;
         else if (len==6 && !strncmp(tok->begin, "return", len))

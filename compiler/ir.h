@@ -24,7 +24,7 @@ typedef enum {
     IR_OP_BOOL_OR,
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
-    IR_OP_STORE_PROP, //Must be at the end
+    IR_OP_STORE_ATTR, //Must be at the end
     IR_OP_SEL,
     IR_OP_BEGIN_IF,
     IR_OP_END_IF,
@@ -34,7 +34,7 @@ typedef enum {
 typedef enum {
     IR_OPERAND_NUM,
     IR_OPERAND_VAR,
-    IR_OPERAND_PROP //Only valid with IR_OP_LOAD_PROP and IR_OP_STORE_PROP
+    IR_OPERAND_ATTR //Only valid with IR_OP_LOAD_ATTR and IR_OP_STORE_ATTR
 } ir_operand_type_t;
 
 typedef struct ast_t ast_t;
@@ -60,14 +60,14 @@ typedef struct {
 typedef struct {
     unsigned int index;
     unsigned int comp;
-} ir_prop_t;
+} ir_attr_t;
 
 typedef struct {
     ir_operand_type_t type;
     union {
         double num;
         ir_var_t var;
-        ir_prop_t prop;
+        ir_attr_t attr;
     };
 } ir_operand_t;
 
@@ -95,8 +95,8 @@ typedef struct {
     size_t func_count;
     func_decl_node_t** funcs;
     
-    size_t prop_count;
-    ir_var_decl_t** props;
+    size_t attr_count;
+    ir_var_decl_t** attrs;
     
     size_t uni_count;
     ir_var_decl_t** unis;

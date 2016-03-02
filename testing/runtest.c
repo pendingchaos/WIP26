@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     system.runtime = &runtime;
     system.pool_size = count;
     system.sim_program = &program;
-    for (size_t i = 0; i < 256; i++) system.property_dtypes[i] = PROP_FLOAT32;
+    for (size_t i = 0; i < 256; i++) system.attribute_dtypes[i] = ATTR_FLOAT32;
     create_system(&system);
     for (size_t i = 0; i < count; i++)
         if (spawn_particle(&system) < 0) {
@@ -72,13 +72,13 @@ int main(int argc, char** argv) {
             const char* input = argv[i+1];
             int particle_index = atoi(argv[i+3]);
             
-            int index = get_property_index(&program, name);
+            int index = get_attribute_index(&program, name);
             if (index < 0) {
-                fprintf(stderr, "Unable to find property \"%s\"\n", name);
+                fprintf(stderr, "Unable to find attribute \"%s\"\n", name);
                 return 1;
             }
             
-            ((float*)system.properties[index])[particle_index] = atof(input);
+            ((float*)system.attributes[index])[particle_index] = atof(input);
             i += 4;
         } else if (argv[i][0] == 'u') {
             i++;
@@ -109,15 +109,15 @@ int main(int argc, char** argv) {
             const char* expected = argv[i+2];
             int particle_index = atoi(argv[i+3]);
             
-            int index = get_property_index(&program, name);
+            int index = get_attribute_index(&program, name);
             if (index < 0) {
-                fprintf(stderr, "Unable to find property \"%s\"\n", name);
+                fprintf(stderr, "Unable to find attribute \"%s\"\n", name);
                 return 1;
             }
             
-            float val = ((float*)system.properties[index])[particle_index];
+            float val = ((float*)system.attributes[index])[particle_index];
             if (!float_equal(val, atof(expected))) {
-                fprintf(stderr, "Incorrect value for property \"%s\" for particle %d. Expected %f. Got %f\n",
+                fprintf(stderr, "Incorrect value for attribute \"%s\" for particle %d. Expected %f. Got %f\n",
                         name, particle_index, atof(expected), val);
                 return 1;
             }

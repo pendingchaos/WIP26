@@ -46,37 +46,37 @@ bool open_program(const char* filename, program_t* program) {
     else if (memcmp(magic, "EMTv0.0 ", 8)==0) program->type = PROGRAM_TYPE_EMITTER;
     else return set_error(program->runtime, "Invalid magic");
     
-    if (!fread(&program->property_count, 1, 1, f)) return set_error(program->runtime, "Unable to read property count");
+    if (!fread(&program->attribute_count, 1, 1, f)) return set_error(program->runtime, "Unable to read attribute count");
     if (!fread(&program->uniform_count, 1, 1, f)) return set_error(program->runtime, "Unable to read uniform count");
     if (!fread(&program->bc_size, 4, 1, f)) return set_error(program->runtime, "Unable to read bytecode size");
     program->bc_size = le32toh(program->bc_size);
     
-    for (uint8_t i = 0; i < program->property_count; i++) {
+    for (uint8_t i = 0; i < program->attribute_count; i++) {
         uint8_t len;
         if (!fread(&len, 1, 1, f)) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to read property name length");
+            return set_error(program->runtime, "Unable to read attribute name length");
         }
         
-        program->property_names[i] = calloc(len+1, 1);
-        if (!program->property_names[i]) {
+        program->attribute_names[i] = calloc(len+1, 1);
+        if (!program->attribute_names[i]) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to allocate property name");
+            return set_error(program->runtime, "Unable to allocate attribute name");
         }
         
-        if (!fread(program->property_names[i], len, 1, f)) {
+        if (!fread(program->attribute_names[i], len, 1, f)) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to read property name");
+            return set_error(program->runtime, "Unable to read attribute name");
         }
         
-        if (!fread(&program->property_load_regs[i], 1, 1, f)) {
+        if (!fread(&program->attribute_load_regs[i], 1, 1, f)) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to read property load register");
+            return set_error(program->runtime, "Unable to read attribute load register");
         }
         
-        if (!fread(&program->property_store_regs[i], 1, 1, f)) {
+        if (!fread(&program->attribute_store_regs[i], 1, 1, f)) {
             destroy_program(program);
-            return set_error(program->runtime, "Unable to read property store register");
+            return set_error(program->runtime, "Unable to read attribute store register");
         }
     }
     
@@ -126,13 +126,13 @@ bool destroy_program(program_t* program) {
     bool success = true;
     if (!program->runtime->backend.destroy_program(program))
         success = false;
-    for (uint8_t i = 0; i < program->property_count; i++)
-        free(program->property_names[i]);
+    for (uint8_t i = 0; i < program->attribute_count; i++)
+        free(program->attribute_names[i]);
     free(program->bc);
     return success;
 }
 
-bool validate_program(const program_t* program) { //TODO: Validate property indices, register indices and conditional bytecode
+bool validate_program(const program_t* program) { //TODO: Validate attribute indices, register indices and conditional bytecode
     const uint8_t* bc = program->bc;
     const uint8_t* end = bc + program->bc_size;
     bool has_end_inst = false;
@@ -169,9 +169,9 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
     else return true;
 }
 
-int get_property_index(const program_t* program, const char* name) {
-    for (uint8_t i = 0; i < program->property_count; i++)
-        if (strcmp(program->property_names[i], name) == 0) return i;
+int get_attribute_index(const program_t* program, const char* name) {
+    for (uint8_t i = 0; i < program->attribute_count; i++)
+        if (strcmp(program->attribute_names[i], name) == 0) return i;
     return -1;
 }
 
@@ -181,20 +181,20 @@ int get_uniform_index(const program_t* program, const char* name) {
     return -1;
 }
 
-size_t get_property_padding(const runtime_t* runtime) {
-    return runtime->backend.get_property_padding(runtime);
+size_t get_attribute_padding(const runtime_t* runtime) {
+    return runtime->backend.get_attribute_padding(runtime);
 }
 
-static size_t get_prop_dtype_size(prop_dtype_t dtype) {
+static size_t get_attr_dtype_size(attr_dtype_t dtype) {
     switch (dtype) {
-    case PROP_UINT8:
-    case PROP_INT8: return 1;
-    case PROP_UINT16:
-    case PROP_INT16: return 2;
-    case PROP_UINT32:
-    case PROP_INT32:
-    case PROP_FLOAT32: return 4;
-    case PROP_FLOAT64: return 8;
+    case ATTR_UINT8:
+    case ATTR_INT8: return 1;
+    case ATTR_UINT16:
+    case ATTR_INT16: return 2;
+    case ATTR_UINT32:
+    case ATTR_INT32:
+    case ATTR_FLOAT32: return 4;
+    case ATTR_FLOAT64: return 8;
     }
     return 0;
 }
@@ -203,13 +203,13 @@ bool create_system(system_t* system) {
     if (system->sim_program->type != PROGRAM_TYPE_SIMULATION)
         return set_error(system->runtime, "Simulation program is not a simulation program");
     
-    size_t padding = get_property_padding(system->runtime);
+    size_t padding = get_attribute_padding(system->runtime);
     system->pool_size = ceil(system->pool_size/(double)padding) * padding;
     system->pool_usage = 0;
     
     system->nexts = NULL;
     system->deleted_flags = NULL;
-    memset(system->properties, 0, sizeof(system->properties));
+    memset(system->attributes, 0, sizeof(system->attributes));
     
     system->nexts = malloc(system->pool_size*sizeof(int));
     if (!system->nexts) return set_error(system->runtime, "Unable to allocate next indices");
@@ -222,13 +222,13 @@ bool create_system(system_t* system) {
     if (!system->deleted_flags) return set_error(system->runtime, "Unable to allocate deleted flags");
     memset(system->deleted_flags, 1, system->pool_size);
     
-    for (size_t i = 0; i < system->sim_program->property_count; i++) {
-        int index = /*system->sim_program->property_indices[*/i/*]*/;
-        size_t size = get_prop_dtype_size(system->property_dtypes[i]);
-        system->properties[index] = calloc(1, system->pool_size*size);
-        if (!system->properties[index]) {
+    for (size_t i = 0; i < system->sim_program->attribute_count; i++) {
+        int index = /*system->sim_program->attribute_indices[*/i/*]*/;
+        size_t size = get_attr_dtype_size(system->attribute_dtypes[i]);
+        system->attributes[index] = calloc(1, system->pool_size*size);
+        if (!system->attributes[index]) {
             destroy_system(system);
-            return set_error(system->runtime, "Unable to allocate property");
+            return set_error(system->runtime, "Unable to allocate attribute");
         }
     }
     
@@ -238,8 +238,8 @@ bool create_system(system_t* system) {
 bool destroy_system(system_t* system) {
     free(system->deleted_flags);
     free(system->nexts);
-    for (size_t i = 0; i < system->sim_program->property_count; i++)
-        free(system->properties[/*system->sim_program->property_indices[*/i/*]*/]);
+    for (size_t i = 0; i < system->sim_program->attribute_count; i++)
+        free(system->attributes[/*system->sim_program->attribute_indices[*/i/*]*/]);
     return true;
 }
 

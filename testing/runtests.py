@@ -17,10 +17,10 @@ for testf in test_files:
         
         cmd = './runtest .temp %d' % (test['count'])
         
-        for name in test['properties'].keys():
+        for name in test['attributes'].keys():
             for i in range(test['count']):
                 exp = test['expected'][name][i]
-                val = test['properties'][name][i]
+                val = test['attributes'][name][i]
                 cmd += ' p %s %f %f %d' % (name, val, exp, i)
         
         for name in test.get('uniforms', {}).keys():

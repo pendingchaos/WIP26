@@ -188,75 +188,75 @@ static void simd8f_get(simd8f_t v, float* dest) {
 #endif
 
 //TODO: Slow
-void load_prop(float* val, void* property, prop_dtype_t dtype, size_t offset) {
+void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
-    case PROP_UINT8:
+    case ATTR_UINT8:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((uint8_t*)property)[i+offset] / 255.0f;
+            val[i] = ((uint8_t*)attribute)[i+offset] / 255.0f;
         break;
-    case PROP_INT8:
+    case ATTR_INT8:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((int8_t*)property)[i+offset] / 127.0f;
+            val[i] = ((int8_t*)attribute)[i+offset] / 127.0f;
         break;
-    case PROP_UINT16:
+    case ATTR_UINT16:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((uint16_t*)property)[i+offset] / 65535.0f;
+            val[i] = ((uint16_t*)attribute)[i+offset] / 65535.0f;
         break;
-    case PROP_INT16:
+    case ATTR_INT16:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((int16_t*)property)[i+offset] / 32767.0f;
+            val[i] = ((int16_t*)attribute)[i+offset] / 32767.0f;
         break;
-    case PROP_UINT32:
+    case ATTR_UINT32:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((uint32_t*)property)[i+offset] / 4294967295.0;
+            val[i] = ((uint32_t*)attribute)[i+offset] / 4294967295.0;
         break;
-    case PROP_INT32:
+    case ATTR_INT32:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((int32_t*)property)[i+offset] / 2147483647.0;
+            val[i] = ((int32_t*)attribute)[i+offset] / 2147483647.0;
         break;
-    case PROP_FLOAT32:
-        memcpy(val, ((float*)property)+offset, sizeof(float)*8);
+    case ATTR_FLOAT32:
+        memcpy(val, ((float*)attribute)+offset, sizeof(float)*8);
         break;
-    case PROP_FLOAT64:
+    case ATTR_FLOAT64:
         for (size_t i = 0; i < 8; i++)
-            val[i] = ((double*)property)[i+offset];
+            val[i] = ((double*)attribute)[i+offset];
         break;
     }
 }
 
 //TODO: Slow
-void store_prop(const float* val, void* property, prop_dtype_t dtype, size_t offset) {
+void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
-    case PROP_UINT8:
+    case ATTR_UINT8:
         for (size_t i = 0; i < 8; i++)
-            ((uint8_t*)property)[i+offset] = val[i] * 255.0f;
+            ((uint8_t*)attribute)[i+offset] = val[i] * 255.0f;
         break;
-    case PROP_INT8:
+    case ATTR_INT8:
         for (size_t i = 0; i < 8; i++)
-            ((int8_t*)property)[i+offset] = val[i] * 127.0f;
+            ((int8_t*)attribute)[i+offset] = val[i] * 127.0f;
         break;
-    case PROP_UINT16:
+    case ATTR_UINT16:
         for (size_t i = 0; i < 8; i++)
-            ((uint16_t*)property)[i+offset] = val[i] * 65535.0f;
+            ((uint16_t*)attribute)[i+offset] = val[i] * 65535.0f;
         break;
-    case PROP_INT16:
+    case ATTR_INT16:
         for (size_t i = 0; i < 8; i++)
-            ((int16_t*)property)[i+offset] = val[i] * 32767.0f;
+            ((int16_t*)attribute)[i+offset] = val[i] * 32767.0f;
         break;
-    case PROP_UINT32:
+    case ATTR_UINT32:
         for (size_t i = 0; i < 8; i++)
-            ((uint32_t*)property)[i+offset] = val[i] * 4294967295.0;
+            ((uint32_t*)attribute)[i+offset] = val[i] * 4294967295.0;
         break;
-    case PROP_INT32:
+    case ATTR_INT32:
         for (size_t i = 0; i < 8; i++)
-            ((int32_t*)property)[i+offset] = val[i] * 2147483647.0;
+            ((int32_t*)attribute)[i+offset] = val[i] * 2147483647.0;
         break;
-    case PROP_FLOAT32:
-        memcpy(((float*)property)+offset, val, sizeof(float)*8);
+    case ATTR_FLOAT32:
+        memcpy(((float*)attribute)+offset, val, sizeof(float)*8);
         break;
-    case PROP_FLOAT64:
+    case ATTR_FLOAT64:
         for (size_t i = 0; i < 8; i++)
-            ((double*)property)[i+offset] = val[i];
+            ((double*)attribute)[i+offset] = val[i];
         break;
     }
 }
@@ -394,10 +394,10 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     const uint8_t* bc = program->bc;
     simd8f_t regs[256];
     
-    for (size_t i = 0; i < program->property_count; i++) {
+    for (size_t i = 0; i < program->attribute_count; i++) {
         float val[8];
-        load_prop(val, system->properties[i], system->property_dtypes[i], offset);
-        simd8f_init(regs+program->property_load_regs[i], val);
+        load_attr(val, system->attributes[i], system->attribute_dtypes[i], offset);
+        simd8f_init(regs+program->attribute_load_regs[i], val);
     }
     
     for (size_t i = 0; i < program->uniform_count; i++)
@@ -517,8 +517,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             simd8f_get(regs[c], v);
             for (uint_fast8_t i = 0; i < 8; i++) {
                 if (system->deleted_flags[offset+i]) continue;
-                
                 if (v[i] < 0.5f) continue;
+                
                 float fregs[256];
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     fregs[j] = ((float*)(regs+j))[i];
@@ -544,9 +544,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     #endif
     
     end:
-    for (size_t i = 0; i < program->property_count; i++) {
-        store_prop((const float*)(regs+program->property_store_regs[i]),
-                   system->properties[i], system->property_dtypes[i], offset);
+    for (size_t i = 0; i < program->attribute_count; i++) {
+        store_attr((const float*)(regs+program->attribute_store_regs[i]),
+                   system->attributes[i], system->attribute_dtypes[i], offset);
     }
     return true;
 }
@@ -565,7 +565,7 @@ static bool vm_destroy(runtime_t* runtime) {
     return true;
 }
 
-static size_t vm_get_property_padding(const runtime_t* runtime) {
+static size_t vm_get_attribute_padding(const runtime_t* runtime) {
     return 8;
 }
 
@@ -589,7 +589,7 @@ static bool vm_simulate_system(system_t* system) {
 bool vm_backend(backend_t* backend) {
     backend->create = &vm_create;
     backend->destroy = &vm_destroy;
-    backend->get_property_padding = &vm_get_property_padding;
+    backend->get_attribute_padding = &vm_get_attribute_padding;
     backend->create_program = &vm_create_program;
     backend->destroy_program = &vm_destroy_program;
     backend->simulate_system = &vm_simulate_system;
