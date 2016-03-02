@@ -80,6 +80,30 @@ bool open_program(const char* filename, program_t* program) {
         }
     }
     
+    for (uint8_t i = 0; i < program->uniform_count; i++) {
+        uint8_t len;
+        if (!fread(&len, 1, 1, f)) {
+            destroy_program(program);
+            return set_error(program->runtime, "Unable to read uniform name length");
+        }
+        
+        program->uniform_names[i] = calloc(len+1, 1);
+        if (!program->uniform_names[i]) {
+            destroy_program(program);
+            return set_error(program->runtime, "Unable to allocate uniform name");
+        }
+        
+        if (!fread(program->uniform_names[i], len, 1, f)) {
+            destroy_program(program);
+            return set_error(program->runtime, "Unable to read uniform name");
+        }
+        
+        if (!fread(&program->uniform_regs[i], 1, 1, f)) {
+            destroy_program(program);
+            return set_error(program->runtime, "Unable to read uniform register");
+        }
+    }
+    
     program->bc = malloc(program->bc_size+1);
     if (!program->bc) {
         destroy_program(program);
@@ -147,8 +171,13 @@ bool validate_program(const program_t* program) { //TODO: Validate property indi
 
 int get_property_index(const program_t* program, const char* name) {
     for (uint8_t i = 0; i < program->property_count; i++)
-        if (strcmp(program->property_names[i], name) == 0)
-            return /*program->property_indices[*/i/*]*/;
+        if (strcmp(program->property_names[i], name) == 0) return i;
+    return -1;
+}
+
+int get_uniform_index(const program_t* program, const char* name) {
+    for (uint8_t i = 0; i < program->uniform_count; i++)
+        if (strcmp(program->uniform_names[i], name) == 0) return i;
     return -1;
 }
 

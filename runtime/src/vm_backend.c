@@ -400,6 +400,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         simd8f_init(regs+program->property_load_regs[i], val);
     }
     
+    for (size_t i = 0; i < program->uniform_count; i++)
+        simd8f_init1(regs+program->uniform_regs[i], system->sim_uniforms[i]);
+    
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,

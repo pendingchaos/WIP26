@@ -21,7 +21,10 @@ for testf in test_files:
             for i in range(test['count']):
                 exp = test['expected'][name][i]
                 val = test['properties'][name][i]
-                cmd += ' %s %f %f %d' % (name, val, exp, i)
+                cmd += ' p %s %f %f %d' % (name, val, exp, i)
+        
+        for name in test.get('uniforms', {}).keys():
+            cmd += ' u %s %f' % (name, test['uniforms'][name])
         
         os.system(cmd)
         

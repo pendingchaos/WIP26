@@ -65,10 +65,12 @@ struct program_t {
     runtime_t* runtime;
     program_type_t type;
     uint8_t property_count;
-    uint8_t uniform_count;
     char* property_names[256];
     uint8_t property_load_regs[256];
     uint8_t property_store_regs[256];
+    uint8_t uniform_count;
+    char* uniform_names[256];
+    uint8_t uniform_regs[256];
     uint32_t bc_size;
     uint8_t* bc;
     
@@ -86,6 +88,8 @@ struct system_t {
     void* properties[256];
     prop_dtype_t property_dtypes[256];
     uint8_t* deleted_flags;
+    
+    float sim_uniforms[256];
 };
 
 bool create_runtime(runtime_t* runtime, const char* backend);
@@ -97,6 +101,7 @@ bool open_program(const char* filename, program_t* program);
 bool destroy_program(program_t* program);
 bool validate_program(const program_t* program);
 int get_property_index(const program_t* program, const char* name);
+int get_uniform_index(const program_t* program, const char* name);
 
 bool create_system(system_t* system);
 bool destroy_system(system_t* system);

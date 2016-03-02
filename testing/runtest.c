@@ -65,18 +65,35 @@ int main(int argc, char** argv) {
             return 1;
         }
     
-    for (int i = 3; i<argc; i += 4) {
-        const char* name = argv[i];
-        const char* input = argv[i+1];
-        int particle_index = atoi(argv[i+3]);
-        
-        int index = get_property_index(&program, name);
-        if (index < 0) {
-            fprintf(stderr, "Unable to find property \"%s\"\n", name);
-            return 1;
+    for (int i = 3; i<argc;) {
+        if (argv[i][0] == 'p') {
+            i++;
+            const char* name = argv[i];
+            const char* input = argv[i+1];
+            int particle_index = atoi(argv[i+3]);
+            
+            int index = get_property_index(&program, name);
+            if (index < 0) {
+                fprintf(stderr, "Unable to find property \"%s\"\n", name);
+                return 1;
+            }
+            
+            ((float*)system.properties[index])[particle_index] = atof(input);
+            i += 4;
+        } else if (argv[i][0] == 'u') {
+            i++;
+            const char* name = argv[i];
+            const char* input = argv[i+1];
+            
+            int index = get_uniform_index(&program, name);
+            if (index < 0) {
+                fprintf(stderr, "Unable to find uniform \"%s\"\n", name);
+                return 1;
+            }
+            
+            system.sim_uniforms[index] = atof(input);
+            i += 2;
         }
-        
-        ((float*)system.properties[index])[particle_index] = atof(input);
     }
     
     if (!simulate_system(&system)) {
@@ -85,24 +102,27 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    for (int i = 3; i<argc; i += 4) {
-        const char* name = argv[i];
-        const char* expected = argv[i+2];
-        int particle_index = atoi(argv[i+3]);
-        
-        int index = get_property_index(&program, name);
-        if (index < 0) {
-            fprintf(stderr, "Unable to find property \"%s\"\n", name);
-            return 1;
-        }
-        
-        float val = ((float*)system.properties[index])[particle_index];
-        if (!float_equal(val, atof(expected))) {
-            fprintf(stderr, "Incorrect value for property \"%s\" for particle %d. Expected %f. Got %f\n",
-                    name, particle_index, atof(expected), val);
-            return 1;
-        }
-    }
+    for (int i = 3; i<argc;)
+        if (argv[i][0] == 'p') {
+            i++;
+            const char* name = argv[i];
+            const char* expected = argv[i+2];
+            int particle_index = atoi(argv[i+3]);
+            
+            int index = get_property_index(&program, name);
+            if (index < 0) {
+                fprintf(stderr, "Unable to find property \"%s\"\n", name);
+                return 1;
+            }
+            
+            float val = ((float*)system.properties[index])[particle_index];
+            if (!float_equal(val, atof(expected))) {
+                fprintf(stderr, "Incorrect value for property \"%s\" for particle %d. Expected %f. Got %f\n",
+                        name, particle_index, atof(expected), val);
+                return 1;
+            }
+            i += 4;
+        } else if (argv[i][0] == 'u') i += 3;
     
     if (!destroy_system(&system)) {
         fprintf(stderr, "Unable to destroy program: %s\n", runtime.error);

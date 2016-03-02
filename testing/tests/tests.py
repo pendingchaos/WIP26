@@ -449,4 +449,22 @@
         'v.z': [7.0],
         'v.w': [8.0]
     }
+},
+{
+    'name': 'test uniforms',
+    'source':
+    '''property v:float;
+    uniform nv:float;
+    v = nv;
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [3.0],
+    },
+    'expected': {
+        'v.x': [7.0],
+    },
+    'uniforms': {
+        'nv.x': 7.0
+    }
 }

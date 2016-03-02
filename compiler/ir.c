@@ -548,7 +548,10 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
     for (size_t i = 0; i<ast->stmt_count && !returned; i++) {
         if (!node_to_ir(ast->stmts[i], ir, &returned, 0, NULL)) {
             free_ir(ir);
+            char error[sizeof(ir->error)];
+            memcpy(error, ir->error, sizeof(ir->error));
             memset(ir, 0, sizeof(ir_t));
+            memcpy(ir->error, error, sizeof(ir->error));
             return false;
         }
     }
