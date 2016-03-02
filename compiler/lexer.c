@@ -78,8 +78,8 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
     }
     
     tok->begin = src;
-    tok->column = src - toks->cur_line_ptr;
-    tok->line = toks->cur_line;
+    tok->loc.column = src - toks->cur_line_ptr;
+    tok->loc.line = toks->cur_line;
     tok->end = src;
     #define CHAR_TOK(c, t) else if (*tok->begin == c) {tok->type = t; tok->end = src + 1;}
     #define TWO_CHAR_TOK(c1, c2, t) else if ((*tok->begin)==c1 && (*(tok->begin+1))==c2) {tok->type = t; tok->end = src + 2;}
@@ -120,7 +120,7 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
         strtod(tok->begin, (char**)&tok->end);
         
         if (tok->end==tok->begin) {
-            set_error(toks->ast, "%u:%u: Unable to parse number.", tok->line, tok->column);
+            set_error(toks->ast, "%u:%u: Unable to parse number.", tok->loc.line, tok->loc.column);
             return false;
         }
     } else if (is_alpha(*tok->begin) || *tok->begin=='_') {
@@ -145,7 +145,7 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
         else if (len==2 && !strncmp(tok->begin, "if", len))
             tok->type = TOKT_IF;
     } else {
-        set_error(toks->ast, "%u:%u: Unexpected character: '%c'", tok->line, tok->column, *src);
+        set_error(toks->ast, "%u:%u: Unexpected character: '%c'", tok->loc.line, tok->loc.column, *src);
         return false;
     }
     
@@ -165,6 +165,6 @@ bool get_token(tokens_t* toks, token_t* tok) {
 bool expect_token(tokens_t* toks, token_type_t type, token_t* tok) {
     if (!get_token(toks, tok)) return false;
     if (tok->type != type)
-        return set_error(toks->ast, "%u:%u: Expected %s. Got %s.", tok->line, tok->column, get_tok_type_str(type), get_tok_type_str(tok->type));
+        return set_error(toks->ast, "%u:%u: Expected %s. Got %s.", tok->loc.line, tok->loc.column, get_tok_type_str(type), get_tok_type_str(tok->type));
     return true;
 }

@@ -34,16 +34,21 @@ typedef enum token_type_t {
     TOKT_BOOL_NOT
 } token_type_t;
 
+typedef struct src_loc_t src_loc_t;
 typedef struct tokens_t tokens_t;
 typedef struct token_t token_t;
 typedef struct ast_t ast_t;
+
+struct src_loc_t {
+    unsigned int line;
+    unsigned int column;
+};
 
 struct token_t {
     token_type_t type;
     const char* begin;
     const char* end;
-    unsigned int line;
-    unsigned int column;
+    src_loc_t loc;
 };
 
 struct tokens_t {

@@ -7,46 +7,52 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-num_node_t* create_num_node(ast_t* ast, double val) {
+num_node_t* create_num_node(ast_t* ast, src_loc_t loc, double val) {
     num_node_t* node = mem_group_alloc(ast->mem, sizeof(num_node_t));
     node->head.type = NODET_NUM;
+    node->head.loc = loc;
     node->val = val;
     return node;
 }
 
-id_node_t* create_id_node(ast_t* ast, const char* name) {
+id_node_t* create_id_node(ast_t* ast, src_loc_t loc, const char* name) {
     id_node_t* node = mem_group_alloc(ast->mem, sizeof(id_node_t));
     node->head.type = NODET_ID;
+    node->head.loc = loc;
     node->name = copy_str_group(ast->mem, name);
     return node;
 }
 
-bin_node_t* create_bin_node(ast_t* ast, node_type_t type, node_t* lhs, node_t* rhs) {
+bin_node_t* create_bin_node(ast_t* ast, src_loc_t loc, node_type_t type, node_t* lhs, node_t* rhs) {
     bin_node_t* node = mem_group_alloc(ast->mem, sizeof(bin_node_t));
     node->head.type = type;
+    node->head.loc = loc;
     node->lhs = lhs;
     node->rhs = rhs;
     return node;
 }
 
-unary_node_t* create_unary_node(ast_t* ast, node_type_t type, node_t* val) {
+unary_node_t* create_unary_node(ast_t* ast, src_loc_t loc, node_type_t type, node_t* val) {
     unary_node_t* node = mem_group_alloc(ast->mem, sizeof(unary_node_t));
     node->head.type = type;
+    node->head.loc = loc;
     node->val = val;
     return node;
 }
 
-decl_node_t* create_decl_node(ast_t* ast, node_type_t type, const char* name, const char* dtype) {
+decl_node_t* create_decl_node(ast_t* ast, src_loc_t loc, node_type_t type, const char* name, const char* dtype) {
     decl_node_t* node = mem_group_alloc(ast->mem, sizeof(decl_node_t));
     node->head.type = type;
+    node->head.loc = loc;
     node->name = copy_str_group(ast->mem, name);
     node->dtype = copy_str_group(ast->mem, dtype);
     return node;
 }
 
-call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, node_t** args) {
+call_node_t* create_call_node(ast_t* ast, src_loc_t loc, const char* func, size_t arg_count, node_t** args) {
     call_node_t* node = mem_group_alloc(ast->mem, sizeof(call_node_t));
     node->head.type = NODET_CALL;
+    node->head.loc = loc;
     node->func = copy_str_group(ast->mem, func);
     node->args = mem_group_alloc(ast->mem, arg_count*sizeof(node_t*));
     node->arg_count = arg_count;
@@ -54,9 +60,10 @@ call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, no
     return node;
 }
 
-func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl) {
+func_decl_node_t* create_func_decl_node(ast_t* ast, src_loc_t loc, func_decl_node_t* decl) {
     func_decl_node_t* node = mem_group_alloc(ast->mem, sizeof(func_decl_node_t));
     node->head.type = NODET_FUNC_DECL;
+    node->head.loc = loc;
     node->name = NULL;
     node->arg_names = NULL;
     node->arg_types = NULL;
@@ -76,9 +83,10 @@ func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl) {
     return node;
 }
 
-if_node_t* create_if_node(ast_t* ast, size_t stmt_count, node_t** stmts, node_t* cond) {
+if_node_t* create_if_node(ast_t* ast, src_loc_t loc, size_t stmt_count, node_t** stmts, node_t* cond) {
     if_node_t* node = mem_group_alloc(ast->mem, sizeof(if_node_t));
     node->head.type = NODET_IF;
+    node->head.loc = loc;
     node->stmts = mem_group_alloc(ast->mem, stmt_count*sizeof(node_t*));
     memcpy(node->stmts, stmts, stmt_count*sizeof(node_t*));
     node->condition = cond;
@@ -193,8 +201,8 @@ static void _add_drop_vars(ast_t* ast, size_t count, node_t** nodes, size_t* res
                 if (!strcmp(vars[j].name, future[k].name))
                     goto end;
             
-            id_node_t* id = create_id_node(ast, vars[j].name);
-            node_t* node = (node_t*)create_unary_node(ast, NODET_DROP, (node_t*)id);
+            id_node_t* id = create_id_node(ast, (src_loc_t){}, vars[j].name);
+            node_t* node = (node_t*)create_unary_node(ast, (src_loc_t){}, NODET_DROP, (node_t*)id);
             new_nodes = append_mem(new_nodes, new_count++, sizeof(node_t*), &node);
             
             memmove(vars+j, vars+j+1, (var_count-j-1)*sizeof(id_node_t));

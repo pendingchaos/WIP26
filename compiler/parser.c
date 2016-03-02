@@ -12,7 +12,7 @@ static node_t* parse_primary(tokens_t* toks) {
     if (!get_token(toks, &tok)) return NULL;
     switch (tok.type) {
     case TOKT_NUM: {
-        return (node_t*)create_num_node(toks->ast, atof(tok.begin));
+        return (node_t*)create_num_node(toks->ast, tok.loc, atof(tok.begin));
     }
     case TOKT_ID: {
         char name[tok.end-tok.begin+1];
@@ -38,7 +38,7 @@ static node_t* parse_primary(tokens_t* toks) {
                     if (!get_token(toks, &tok)) goto error;
                     if (tok.type == TOKT_RIGHT_PAREN) break;
                     else if (tok.type != TOKT_COMMA)  {
-                        set_error(toks->ast, "%u:%u: Expected ')' or ','. Got %s.", tok.line, tok.column, get_tok_type_str(tok.type));
+                        set_error(toks->ast, "%u:%u: Expected ')' or ','. Got %s.", tok.loc.line, tok.loc.column, get_tok_type_str(tok.type));
                         goto error;
                     } else continue;
                     
@@ -50,18 +50,18 @@ static node_t* parse_primary(tokens_t* toks) {
                 get_token(toks, &peek);
             }
             
-            node_t* node = (node_t*)create_call_node(toks->ast, name, arg_count, args);
+            node_t* node = (node_t*)create_call_node(toks->ast, tok.loc, name, arg_count, args);
             free(args);
             return node;
         } else {
-            return (node_t*)create_id_node(toks->ast, name);
+            return (node_t*)create_id_node(toks->ast, tok.loc, name);
         }
     }
     case TOKT_SUB: {
-        return (node_t*)create_unary_node(toks->ast, NODET_NEG, parse_primary(toks));
+        return (node_t*)create_unary_node(toks->ast, tok.loc, NODET_NEG, parse_primary(toks));
     }
     case TOKT_BOOL_NOT: {
-        return (node_t*)create_unary_node(toks->ast, NODET_BOOL_NOT, parse_primary(toks));
+        return (node_t*)create_unary_node(toks->ast, tok.loc, NODET_BOOL_NOT, parse_primary(toks));
     }
     case TOKT_LEFT_PAREN: {
         node_t* res = (node_t*)parse_expr(toks, TOKT_RIGHT_PAREN, TOKT_RIGHT_PAREN);
@@ -70,7 +70,7 @@ static node_t* parse_primary(tokens_t* toks) {
         return res;
     }
     default: {
-        set_error(toks->ast, "%u:%u: Expected primary expression. Got %s.", tok.line, tok.column, get_tok_type_str(tok.type));
+        set_error(toks->ast, "%u:%u: Expected primary expression. Got %s.", tok.loc.line, tok.loc.column, get_tok_type_str(tok.type));
         return NULL;
     }
     }
@@ -116,20 +116,20 @@ static bool is_binary_op(token_type_t tok) {
     }
 }
 
-static node_t* create_node(ast_t* ast, token_type_t tok, node_t* lhs, node_t* rhs) {
-    switch (tok) {
-    case TOKT_ASSIGN: return (node_t*)create_bin_node(ast, NODET_ASSIGN, lhs, rhs);
-    case TOKT_ADD: return (node_t*)create_bin_node(ast, NODET_ADD, lhs, rhs);
-    case TOKT_SUB: return (node_t*)create_bin_node(ast, NODET_SUB, lhs, rhs);
-    case TOKT_MUL: return (node_t*)create_bin_node(ast, NODET_MUL, lhs, rhs);
-    case TOKT_DIV: return (node_t*)create_bin_node(ast, NODET_DIV, lhs, rhs);
-    case TOKT_POW: return (node_t*)create_bin_node(ast, NODET_POW, lhs, rhs);
-    case TOKT_LESS: return (node_t*)create_bin_node(ast, NODET_LESS, lhs, rhs);
-    case TOKT_GREATER: return (node_t*)create_bin_node(ast, NODET_GREATER, lhs, rhs);
-    case TOKT_EQUAL: return (node_t*)create_bin_node(ast, NODET_EQUAL, lhs, rhs);
-    case TOKT_BOOL_AND: return (node_t*)create_bin_node(ast, NODET_BOOL_AND, lhs, rhs);
-    case TOKT_BOOL_OR: return (node_t*)create_bin_node(ast, NODET_BOOL_OR, lhs, rhs);
-    case TOKT_DOT: return (node_t*)create_bin_node(ast, NODET_MEMBER, lhs, rhs);
+static node_t* create_node(ast_t* ast, token_t tok, node_t* lhs, node_t* rhs) {
+    switch (tok.type) {
+    case TOKT_ASSIGN: return (node_t*)create_bin_node(ast, tok.loc, NODET_ASSIGN, lhs, rhs);
+    case TOKT_ADD: return (node_t*)create_bin_node(ast, tok.loc, NODET_ADD, lhs, rhs);
+    case TOKT_SUB: return (node_t*)create_bin_node(ast, tok.loc, NODET_SUB, lhs, rhs);
+    case TOKT_MUL: return (node_t*)create_bin_node(ast, tok.loc, NODET_MUL, lhs, rhs);
+    case TOKT_DIV: return (node_t*)create_bin_node(ast, tok.loc, NODET_DIV, lhs, rhs);
+    case TOKT_POW: return (node_t*)create_bin_node(ast, tok.loc, NODET_POW, lhs, rhs);
+    case TOKT_LESS: return (node_t*)create_bin_node(ast, tok.loc, NODET_LESS, lhs, rhs);
+    case TOKT_GREATER: return (node_t*)create_bin_node(ast, tok.loc, NODET_GREATER, lhs, rhs);
+    case TOKT_EQUAL: return (node_t*)create_bin_node(ast, tok.loc, NODET_EQUAL, lhs, rhs);
+    case TOKT_BOOL_AND: return (node_t*)create_bin_node(ast, tok.loc, NODET_BOOL_AND, lhs, rhs);
+    case TOKT_BOOL_OR: return (node_t*)create_bin_node(ast, tok.loc, NODET_BOOL_OR, lhs, rhs);
+    case TOKT_DOT: return (node_t*)create_bin_node(ast, tok.loc, NODET_MEMBER, lhs, rhs);
     default: return NULL;
     }
 }
@@ -146,7 +146,7 @@ static node_t* _parse_expr(tokens_t* toks, token_type_t delim1, token_type_t del
         
         if (lookahead.type==TOKT_EOF || lookahead.type==delim1 ||
             lookahead.type==delim2)
-            return create_node(toks->ast, op.type, lhs, rhs);
+            return create_node(toks->ast, op, lhs, rhs);
         
         int lookahead_prec = get_precedence(lookahead.type);
         int op_prec = get_precedence(op.type);
@@ -157,12 +157,12 @@ static node_t* _parse_expr(tokens_t* toks, token_type_t delim1, token_type_t del
             if (!peek_token(toks, &lookahead)) return NULL;
             if (lookahead.type==TOKT_EOF || lookahead.type==delim1 ||
                 lookahead.type==delim2)
-                return create_node(toks->ast, op.type, lhs, rhs);
+                return create_node(toks->ast, op, lhs, rhs);
             
             lookahead_prec = get_precedence(lookahead.type);
         }
         
-        lhs = create_node(toks->ast, op.type, lhs, rhs);
+        lhs = create_node(toks->ast, op, lhs, rhs);
     }
     
     return lhs;
@@ -195,13 +195,13 @@ static node_t* parse_decl(tokens_t* toks, token_type_t tok_type, node_type_t nod
     strncpy(dtype, dtype_tok.begin, dtype_tok.end-dtype_tok.begin);
     dtype[dtype_tok.end-dtype_tok.begin] = 0;
     
-    node_t* decl = (node_t*)create_decl_node(toks->ast, node_type, name, dtype);
+    node_t* decl = (node_t*)create_decl_node(toks->ast, tok.loc, node_type, name, dtype);
     
     token_t peek;
     if (peek_token(toks, &peek) && peek.type==TOKT_ASSIGN) {
         get_token(toks, &peek);
         node_t* val = parse_expr(toks, TOKT_SEMICOLON, TOKT_SEMICOLON);
-        return (node_t*)create_bin_node(toks->ast, NODET_ASSIGN, decl, val);
+        return (node_t*)create_bin_node(toks->ast, peek.loc, NODET_ASSIGN, decl, val);
     }
     
     return decl;
@@ -274,7 +274,7 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
         if (!get_token(toks, &tok)) goto error;
         if (tok.type == TOKT_RIGHT_PAREN) break;
         if (tok.type != TOKT_ID) {
-            set_error(toks->ast, "%u:%u: Expected ')' or identifier. Got %s.\n", tok.line, tok.column, get_tok_type_str(tok.type));
+            set_error(toks->ast, "%u:%u: Expected ')' or identifier. Got %s.\n", tok.loc.line, tok.loc.column, get_tok_type_str(tok.type));
             goto error;
         }
         
@@ -340,7 +340,7 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
     decl.stmt_count = stmt_count;
     decl.stmts = stmts;
     decl.ret_type = rtype;
-    node_t* res = (node_t*)create_func_decl_node(toks->ast, &decl);
+    node_t* res = (node_t*)create_func_decl_node(toks->ast, func_tok.loc, &decl);
     free(name);
     free(rtype);
     for (size_t i = 0; i < arg_count; i++) {
@@ -368,7 +368,7 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
 static node_t* parse_return(tokens_t* toks) {
     token_t tok;
     if (!get_token(toks, &tok)) return NULL;
-    return (node_t*)create_unary_node(toks->ast, NODET_RETURN, parse_expr(toks, TOKT_EOF, TOKT_EOF));
+    return (node_t*)create_unary_node(toks->ast, tok.loc, NODET_RETURN, parse_expr(toks, TOKT_EOF, TOKT_EOF));
 }
 
 static node_t* parse_include(tokens_t* toks, size_t* stmt_count, node_t*** stmts, size_t inc_dir_count, char** inc_dirs) {
@@ -397,7 +397,7 @@ static node_t* parse_include(tokens_t* toks, size_t* stmt_count, node_t*** stmts
         if (source) break;
     }
     if (!source) {
-        set_error(toks->ast, "%u:%u: Failed to read from %s", tok.line, tok.column, filename);
+        set_error(toks->ast, "%u:%u: Failed to read from %s", tok.loc.line, tok.loc.column, filename);
         free(filename);
         return NULL;
     }
@@ -437,7 +437,7 @@ static node_t* parse_if(tokens_t* toks, size_t inc_dir_count, char** inc_dirs) {
     node_t** stmts = NULL;
     if (!parse_stmts(toks, &stmt_count, &stmts, true, inc_dir_count, inc_dirs)) return NULL;
     
-    node_t* res = (node_t*)create_if_node(toks->ast, stmt_count, stmts, cond);
+    node_t* res = (node_t*)create_if_node(toks->ast, if_tok.loc, stmt_count, stmts, cond);
     free(stmts);
     return res;
 }

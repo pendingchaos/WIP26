@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "shared.h"
+#include "lexer.h"
 
 typedef enum node_type_t {
     NODET_NUM,
@@ -46,6 +47,7 @@ typedef struct ast_t ast_t;
 
 struct node_t {
     node_type_t type;
+    src_loc_t loc;
 };
 
 struct num_node_t {
@@ -107,14 +109,14 @@ struct ast_t {
     mem_group_t* mem;
 };
 
-num_node_t* create_num_node(ast_t* ast, double val);
-id_node_t* create_id_node(ast_t* ast, const char* name);
-bin_node_t* create_bin_node(ast_t* ast, node_type_t type, node_t* lhs, node_t* rhs);
-unary_node_t* create_unary_node(ast_t* ast, node_type_t type, node_t* val);
-decl_node_t* create_decl_node(ast_t* ast, node_type_t type, const char* name, const char* dtype);
-call_node_t* create_call_node(ast_t* ast, const char* func, size_t arg_count, node_t** args);
-func_decl_node_t* create_func_decl_node(ast_t* ast, func_decl_node_t* decl);
-if_node_t* create_if_node(ast_t* ast, size_t stmt_count, node_t** stmts, node_t* cond);
+num_node_t* create_num_node(ast_t* ast, src_loc_t loc, double val);
+id_node_t* create_id_node(ast_t* ast, src_loc_t loc, const char* name);
+bin_node_t* create_bin_node(ast_t* ast, src_loc_t loc, node_type_t type, node_t* lhs, node_t* rhs);
+unary_node_t* create_unary_node(ast_t* ast, src_loc_t loc, node_type_t type, node_t* val);
+decl_node_t* create_decl_node(ast_t* ast, src_loc_t loc, node_type_t type, const char* name, const char* dtype);
+call_node_t* create_call_node(ast_t* ast, src_loc_t loc, const char* func, size_t arg_count, node_t** args);
+func_decl_node_t* create_func_decl_node(ast_t* ast, src_loc_t loc, func_decl_node_t* decl);
+if_node_t* create_if_node(ast_t* ast, src_loc_t loc, size_t stmt_count, node_t** stmts, node_t* cond);
 node_t* create_nop_node(ast_t* ast);
 void free_node(node_t* node);
 bool free_ast(ast_t* ast);
