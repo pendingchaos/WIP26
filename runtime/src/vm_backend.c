@@ -520,13 +520,13 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                 
                 if (v[i] < 0.5f) continue;
                 float fregs[256];
-                for (uint_fast16_t j = 0; j < 256; j++) //TODO: Using rmin and rmax does not work
+                for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     fregs[j] = ((float*)(regs+j))[i];
                 
                 if (!vm_execute1(bc, offset+i, system, fregs, true))
                     return false;
                 
-                for (uint_fast16_t j = 0; j < 256; j++)
+                for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
             bc += le32toh(count);
