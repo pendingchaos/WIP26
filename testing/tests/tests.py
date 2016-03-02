@@ -451,6 +451,27 @@
     }
 },
 {
+    'name': 'test if3',
+    'source':
+    '''property v:vec4;
+    if true {v.x = v.y;}
+    if false {v.z = v.w;}
+    ''',
+    'count': 1,
+    'properties': {
+        'v.x': [3.0],
+        'v.y': [6.0],
+        'v.z': [7.0],
+        'v.w': [8.0]
+    },
+    'expected': {
+        'v.x': [6.0],
+        'v.y': [6.0],
+        'v.z': [7.0],
+        'v.w': [8.0]
+    }
+},
+{
     'name': 'test uniforms',
     'source':
     '''property v:float;
