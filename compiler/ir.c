@@ -255,6 +255,34 @@ static ir_var_decl_t* gen_func_call(ir_t* ir, call_node_t* call, size_t func_cou
     return gen_temp_var(ir, get_dtype_comp(func->ret_type));
 }
 
+static void begin_phi(ir_t* ir, size_t* last_var_count, unsigned int** last_vers) {
+    *last_var_count = ir->var_count;
+    *last_vers = alloc_mem(sizeof(unsigned int)*ir->var_count*4);
+    for (size_t i = 0; i < ir->var_count; i++)
+        memcpy(*last_vers+i*4, ir->vars[i]->current_ver, 4*sizeof(unsigned int));
+}
+
+static void end_phi(ir_t* ir, size_t last_var_count, unsigned int* last_vers, size_t end_id) {
+    //This assumes new variables are added to the end of the list
+    //and that it is never reordered
+    for (size_t i = 0; i < last_var_count; i++)
+        for (size_t j = 0; j < 4; j++)
+            if (last_vers[i*4+j] != ir->vars[i]->current_ver[j]) {
+                ir_inst_t inst;
+                inst.op = IR_OP_PHI;
+                inst.operand_count = 3;
+                inst.operands[0] = create_var_operand(get_var_comp(ir->vars[i], j));
+                inst.operands[1] = inst.operands[0];
+                inst.operands[2] = inst.operands[0];
+                inst.operands[2].var.ver = last_vers[i*4+j];
+                ir->vars[i]->current_ver[j]++;
+                inst.operands[0].var.ver++;
+                inst.end = end_id;
+                add_inst(ir, &inst);
+            }
+    free(last_vers);
+}
+
 static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t func_count, char** funcs) {
     switch (node->type) {
     case NODET_NUM: {
@@ -474,10 +502,9 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
         size_t begin = add_inst(ir, &inst)->id;
         
-        size_t last_var_count = ir->var_count;
-        unsigned int* last_vers = alloc_mem(sizeof(unsigned int)*ir->var_count*4);
-        for (size_t i = 0; i < ir->var_count; i++)
-            memcpy(last_vers+i*4, ir->vars[i]->current_ver, 4*sizeof(unsigned int));
+        size_t last_var_count;
+        unsigned int* last_vers;
+        begin_phi(ir, &last_var_count, &last_vers);
         
         for (size_t i = 0; i < if_->stmt_count; i++) {
             if (!node_to_ir(if_->stmts[i], ir, returned, func_count, funcs)) {
@@ -491,29 +518,53 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         inst.operand_count = 0;
         inst.begin_if = begin;
         size_t end = add_inst(ir, &inst)->id;
-        ir->insts[begin].end_if = end;
+        ir->insts[begin].end = end;
         
-        //This assumes new variables are added to the end of the list
-        //and that it is never reordered
-        for (size_t i = 0; i < last_var_count; i++)
-            for (size_t j = 0; j < 4; j++)
-                if (last_vers[i*4+j] != ir->vars[i]->current_ver[j]) {
-                    inst.op = IR_OP_PHI;
-                    inst.operand_count = 3;
-                    inst.operands[0] = create_var_operand(get_var_comp(ir->vars[i], j));
-                    inst.operands[1] = inst.operands[0];
-                    inst.operands[2] = inst.operands[0];
-                    inst.operands[2].var.ver = last_vers[i*4+j];
-                    ir->vars[i]->current_ver[j]++;
-                    inst.operands[0].var.ver++;
-                    inst.end_if = end;
-                    add_inst(ir, &inst);
-                }
-        free(last_vers);
+        end_phi(ir, last_var_count, last_vers, end);
         
         return gen_temp_var(ir, 0);
     }
     case NODET_WHILE: {
+        cond_node_t* while_ = (cond_node_t*)node;
+        
+        size_t begin_while_idx = ir->inst_count;
+        ir_inst_t inst;
+        inst.op = IR_OP_BEGIN_WHILE;
+        inst.operand_count = 0;
+        add_inst(ir, &inst);
+        
+        ir_var_decl_t* cond = node_to_ir(while_->condition, ir, returned, func_count, funcs);
+        if (cond->comp != 1)
+            return ir_set_error(ir, "Result type of condition must a boolean"), NULL;
+        
+        size_t end_while_cond_idx = ir->inst_count;
+        inst.op = IR_OP_END_WHILE_COND;
+        add_inst(ir, &inst);
+        
+        ir->insts[begin_while_idx].end_while_cond = ir->insts[ir->inst_count-1].id;
+        
+        size_t last_var_count;
+        unsigned int* last_vers;
+        begin_phi(ir, &last_var_count, &last_vers);
+        
+        for (size_t i = 0; i < while_->stmt_count; i++) {
+            if (!node_to_ir(while_->stmts[i], ir, returned, func_count, funcs)) {
+                free(last_vers);
+                return NULL;
+            }
+            if (*returned) break;
+        }
+        
+        inst.op = IR_OP_END_WHILE;
+        inst.operand_count = 1;
+        inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
+        add_inst(ir, &inst);
+        
+        size_t end_while = ir->insts[ir->inst_count-1].id;
+        ir->insts[end_while_cond_idx].end_while = end_while;
+        
+        end_phi(ir, last_var_count, last_vers, end_while);
+        
         return gen_temp_var(ir, 0);
     }
     }

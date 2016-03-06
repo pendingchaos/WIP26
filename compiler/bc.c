@@ -352,7 +352,7 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             break;
         }
         case IR_OP_BEGIN_IF: {
-            const ir_inst_t* end_if = find_by_id(insts, inst_count, inst->end_if);
+            const ir_inst_t* end_if = find_by_id(insts, inst_count, inst->end);
             for (size_t j = end_if-insts+1; j < inst_count; j++) {
                 const ir_inst_t* phi = insts + j;
                 if (phi->op == IR_OP_PHI) {
@@ -367,7 +367,7 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             int cond_reg = get_reg(state, inst->operands[0].var);
             if (cond_reg < 0) goto error;
             
-            size_t end = inst->end_if;
+            size_t end = inst->end;
             gen_bc_state_t inner_state;
             inner_state.bc = NULL;
             inner_state.bc_size = 0;

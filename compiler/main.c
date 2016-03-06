@@ -148,7 +148,7 @@ static void print_node(node_t* node, unsigned int indent) {
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst) {
-    //if (inst.op == IR_OP_DROP) return;
+    if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
     
@@ -172,6 +172,9 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_SEL: printf("sel "); break;
     case IR_OP_BEGIN_IF: printf("beginif "); break;
     case IR_OP_END_IF: printf("endif "); break;
+    case IR_OP_BEGIN_WHILE: printf("beginloop "); break;
+    case IR_OP_END_WHILE_COND: printf("endloopcond "); break;
+    case IR_OP_END_WHILE: printf("endloop "); break;
     case IR_OP_PHI: printf("phi "); break;
     case IR_OP_STORE_ATTR: printf("storep "); break;
     }
@@ -200,11 +203,15 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     }
     
     if (inst.op == IR_OP_BEGIN_IF)
-        printf("until instruction %zu", inst.end_if);
+        printf("until instruction %zu", inst.end);
     else if (inst.op == IR_OP_END_IF)
         printf("starting at instruction %zu", inst.begin_if);
     else if (inst.op == IR_OP_PHI)
-        printf("endif at instruction %zu", inst.end_if);
+        printf("end instruction is %zu", inst.end);
+    else if (inst.op == IR_OP_BEGIN_WHILE)
+        printf("end condition instruction is %zu", inst.end_while_cond);
+    else if (inst.op == IR_OP_END_WHILE_COND)
+        printf("end loop instruction is %zu", inst.end_while);
     
     putchar('\n');
 }
