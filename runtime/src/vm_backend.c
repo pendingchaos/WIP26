@@ -367,6 +367,9 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
             bc += 4;
+            unsigned int rmin = *bc++;
+            unsigned int rmax = *bc++;
+            
             if (regs[c] >= 0.5f) vm_execute1(bc, index, system, regs, cond);
             else bc += le32toh(count);
         END_CASE

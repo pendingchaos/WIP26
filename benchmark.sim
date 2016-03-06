@@ -1,0 +1,90 @@
+include stdlib;
+
+attribute position:vec3;
+attribute velocity:vec3;
+
+position = position + velocity;
+position = position + velocity;
+position = position + velocity;
+position = position + velocity;
+position = position + velocity;
+position = position - velocity;
+position = position - velocity;
+position = position - velocity;
+position = position - velocity;
+position = position - velocity;
+position = position * velocity;
+position = position * velocity;
+position = position * velocity;
+position = position * velocity;
+position = position * velocity;
+position = position / velocity;
+position = position / velocity;
+position = position / velocity;
+position = position / velocity;
+position = position / velocity;
+position = position ^ velocity;
+position = position ^ velocity;
+position = position ^ velocity;
+position = position ^ velocity;
+position = position ^ velocity;
+position = -position;
+position = -position;
+position = -position;
+position = -position;
+position = -position;
+position = sqrt(position);
+position = sqrt(position);
+position = sqrt(position);
+position = sqrt(position);
+position = sqrt(position);
+position = sel(position, velocity, bvec3(true));
+position = sel(position, velocity, bvec3(true));
+position = sel(position, velocity, bvec3(true));
+position = sel(position, velocity, bvec3(true));
+position = sel(position, velocity, bvec3(true));
+var v:bvec3 = position > velocity;
+v = position > velocity;
+v = position > velocity;
+v = position > velocity;
+v = position > velocity;
+v = position < velocity;
+v = position < velocity;
+v = position < velocity;
+v = position < velocity;
+v = position < velocity;
+v = position == velocity;
+v = position == velocity;
+v = position == velocity;
+v = position == velocity;
+v = position == velocity;
+v = v && v;
+v = v && v;
+v = v && v;
+v = v && v;
+v = v && v;
+v = v || v;
+v = v || v;
+v = v || v;
+v = v || v;
+v = v || v;
+v = !v;
+v = !v;
+v = !v;
+v = !v;
+v = !v;
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+if true {position.x = position.x + 1.0;}
+position = vec3(0.0);
+position = vec3(0.0);
+position = vec3(0.0);
+position = vec3(0.0);
+position = vec3(0.0);

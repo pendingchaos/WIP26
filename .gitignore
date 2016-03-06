@@ -3,6 +3,7 @@
 *.geany
 old_compiler
 main
+benchmark
 compiler/compiler
 testing/runtest
 # Compiled programs
