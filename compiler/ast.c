@@ -83,9 +83,9 @@ func_decl_node_t* create_func_decl_node(ast_t* ast, src_loc_t loc, func_decl_nod
     return node;
 }
 
-if_node_t* create_if_node(ast_t* ast, src_loc_t loc, size_t stmt_count, node_t** stmts, node_t* cond) {
-    if_node_t* node = mem_group_alloc(ast->mem, sizeof(if_node_t));
-    node->head.type = NODET_IF;
+cond_node_t* create_cond_node(ast_t* ast, src_loc_t loc, node_type_t type, size_t stmt_count, node_t** stmts, node_t* cond) {
+    cond_node_t* node = mem_group_alloc(ast->mem, sizeof(cond_node_t));
+    node->head.type = type;
     node->head.loc = loc;
     node->stmts = mem_group_alloc(ast->mem, stmt_count*sizeof(node_t*));
     memcpy(node->stmts, stmts, stmt_count*sizeof(node_t*));

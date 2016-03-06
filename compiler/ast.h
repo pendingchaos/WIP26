@@ -26,6 +26,7 @@ typedef enum node_type_t {
     NODET_NEG,
     NODET_DROP,
     NODET_IF,
+    NODET_WHILE,
     NODET_LESS,
     NODET_GREATER,
     NODET_EQUAL,
@@ -42,7 +43,7 @@ typedef struct unary_node_t unary_node_t;
 typedef struct decl_node_t decl_node_t;
 typedef struct call_node_t call_node_t;
 typedef struct func_decl_node_t func_decl_node_t;
-typedef struct if_node_t if_node_t;
+typedef struct cond_node_t cond_node_t;
 typedef struct ast_t ast_t;
 
 struct node_t {
@@ -95,7 +96,7 @@ struct func_decl_node_t {
     node_t** stmts;
 };
 
-struct if_node_t {
+struct cond_node_t {
     node_t head;
     node_t* condition;
     size_t stmt_count;
@@ -116,7 +117,7 @@ unary_node_t* create_unary_node(ast_t* ast, src_loc_t loc, node_type_t type, nod
 decl_node_t* create_decl_node(ast_t* ast, src_loc_t loc, node_type_t type, const char* name, const char* dtype);
 call_node_t* create_call_node(ast_t* ast, src_loc_t loc, const char* func, size_t arg_count, node_t** args);
 func_decl_node_t* create_func_decl_node(ast_t* ast, src_loc_t loc, func_decl_node_t* decl);
-if_node_t* create_if_node(ast_t* ast, src_loc_t loc, size_t stmt_count, node_t** stmts, node_t* cond);
+cond_node_t* create_cond_node(ast_t* ast, src_loc_t loc, node_type_t type, size_t stmt_count, node_t** stmts, node_t* cond);
 node_t* create_nop_node(ast_t* ast);
 void free_node(node_t* node);
 bool free_ast(ast_t* ast);

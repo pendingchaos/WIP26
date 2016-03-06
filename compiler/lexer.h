@@ -26,6 +26,7 @@ typedef enum token_type_t {
     TOKT_COMMA,
     TOKT_FUNC,
     TOKT_IF,
+    TOKT_WHILE,
     TOKT_LESS,
     TOKT_GREATER,
     TOKT_EQUAL,

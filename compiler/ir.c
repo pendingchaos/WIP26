@@ -462,7 +462,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     }
     case NODET_NOP: {return gen_temp_var(ir, 0);}
     case NODET_IF: {
-        if_node_t* if_ = (if_node_t*)node;
+        cond_node_t* if_ = (cond_node_t*)node;
         
         ir_var_decl_t* cond = node_to_ir(if_->condition, ir, returned, func_count, funcs);
         if (cond->comp != 1)
@@ -511,6 +511,9 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
                 }
         free(last_vers);
         
+        return gen_temp_var(ir, 0);
+    }
+    case NODET_WHILE: {
         return gen_temp_var(ir, 0);
     }
     }

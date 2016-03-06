@@ -424,9 +424,9 @@ static node_t* parse_include(tokens_t* toks, size_t* stmt_count, node_t*** stmts
     return create_nop_node(ast);
 }
 
-static node_t* parse_if(tokens_t* toks, size_t inc_dir_count, char** inc_dirs) {
-    token_t if_tok;
-    if (!expect_token(toks, TOKT_IF, &if_tok)) return NULL;
+static node_t* parse_cond(tokens_t* toks, size_t inc_dir_count, char** inc_dirs) {
+    token_t cond_tok;
+    if (!get_token(toks, &cond_tok)) return NULL;
     
     node_t* cond = parse_expr(toks, TOKT_LEFT_BRACE, TOKT_LEFT_BRACE);
     
@@ -437,7 +437,8 @@ static node_t* parse_if(tokens_t* toks, size_t inc_dir_count, char** inc_dirs) {
     node_t** stmts = NULL;
     if (!parse_stmts(toks, &stmt_count, &stmts, true, inc_dir_count, inc_dirs)) return NULL;
     
-    node_t* res = (node_t*)create_if_node(toks->ast, if_tok.loc, stmt_count, stmts, cond);
+    node_type_t type = cond_tok.type==TOKT_IF ? NODET_IF : NODET_WHILE;
+    node_t* res = (node_t*)create_cond_node(toks->ast, cond_tok.loc, type, stmt_count, stmts, cond);
     free(stmts);
     return res;
 }
@@ -453,7 +454,8 @@ static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_coun
     case TOKT_UNI: return parse_uni_decl(toks);
     case TOKT_FUNC: return *semicolon_req=false, parse_func_decl(toks, inc_dir_count, inc_dirs);
     case TOKT_RETURN: return parse_return(toks);
-    case TOKT_IF: return *semicolon_req=false, parse_if(toks, inc_dir_count, inc_dirs);
+    case TOKT_IF:
+    case TOKT_WHILE: return *semicolon_req=false, parse_cond(toks, inc_dir_count, inc_dirs);
     case TOKT_ID:
         if (!strncmp(tok.begin, "include", 7) && (tok.end-tok.begin)==7)
             return parse_include(toks, stmt_count, stmts, inc_dir_count, inc_dirs);

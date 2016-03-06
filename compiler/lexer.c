@@ -50,6 +50,7 @@ const char* get_tok_type_str(token_type_t type) {
     case TOKT_COMMA: return "','";
     case TOKT_FUNC: return "func";
     case TOKT_IF: return "if";
+    case TOKT_WHILE: return "while";
     case TOKT_LESS: return "<";
     case TOKT_GREATER: return ">";
     case TOKT_EQUAL: return "==";
@@ -144,6 +145,8 @@ static bool _token(tokens_t* toks, token_t* tok, bool get) {
             tok->type = TOKT_FUNC;
         else if (len==2 && !strncmp(tok->begin, "if", len))
             tok->type = TOKT_IF;
+        else if (len==5 && !strncmp(tok->begin, "while", len))
+            tok->type = TOKT_WHILE;
     } else {
         set_error(toks->ast, "%u:%u: Unexpected character: '%c'", tok->loc.line, tok->loc.column, *src);
         return false;

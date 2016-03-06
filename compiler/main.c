@@ -13,7 +13,8 @@ static const struct option options[] = {
     {"input", required_argument, NULL, 'i'},
     {"output", required_argument, NULL, 'o'},
     {"type", required_argument, NULL, 't'},
-    {"incdir", required_argument, NULL, 'I'}
+    {"incdir", required_argument, NULL, 'I'},
+    {"debug", no_argument, NULL, 'd'}
 };
 
 static void print_node(node_t* node, unsigned int indent) {
@@ -94,7 +95,10 @@ static void print_node(node_t* node, unsigned int indent) {
         goto unary;
     case NODET_IF:
         printf("IF: ");
-        goto if_;
+        goto cond;
+    case NODET_WHILE:
+        printf("WHILE: ");
+        goto cond;
     }
     
     num:
@@ -134,9 +138,9 @@ static void print_node(node_t* node, unsigned int indent) {
         printf("\n");
         print_node(((unary_node_t*)node)->val, indent+1);
         return;
-    if_:
+    cond:
         printf("\n");
-        if_node_t* if_ = (if_node_t*)node;
+        cond_node_t* if_ = (cond_node_t*)node;
         print_node(if_->condition, indent+1);
         for (size_t i = 0; i < if_->stmt_count; i++)
             print_node(if_->stmts[i], indent+1);
@@ -290,15 +294,18 @@ int main(int argc, char** argv) {
     char* input = NULL;
     char* output = NULL;
     char* type = NULL;
+    char* debug_env = getenv("WIP26_COMPILER_DEBUG");
+    bool debug = debug_env ? atoi(debug_env) : false;
     
     size_t inc_dir_count = 0;
     char** inc_dirs = NULL;
     
     int opt_index= 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "i:o:t:I:", options, &opt_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "i:o:t:I:d", options, &opt_index)) != -1) {
         char** ptr;
         switch (c) {
+        case 'd': debug = true; continue;
         case 'i': ptr = &input; goto setstr;
         case 'o': ptr = &output; goto setstr;
         case 't': ptr = &type; goto setstr;
@@ -361,11 +368,9 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    //#define DEBUG
-    #ifdef DEBUG
-    for (size_t i = 0; i < ast.stmt_count; i++)
-        print_node(ast.stmts[i], 0);
-    #endif
+    if (debug)
+        for (size_t i = 0; i < ast.stmt_count; i++)
+            print_node(ast.stmts[i], 0);
     
     ir_t ir;
     if (!create_ir(&ast, &ir)) {
@@ -378,11 +383,11 @@ int main(int argc, char** argv) {
     remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
-    #ifdef DEBUG
-    printf("--------IR--------\n");
-    for (size_t i = 0; i < ir.inst_count; i++)
-        print_inst(&ir, ir.insts[i]);
-    #endif
+    if (debug) {
+        printf("--------IR--------\n");
+        for (size_t i = 0; i < ir.inst_count; i++)
+            print_inst(&ir, ir.insts[i]);
+    }
     
     free_ast(&ast);
     
@@ -395,23 +400,23 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    #ifdef DEBUG
-    printf("---BC attributes--\n");
-    for (size_t i = 0; i < ir.attr_count; i++)
-        for (size_t j = 0; j < ir.attrs[i]->comp; j++)
-            printf("%s.%c: load:r%u store:r%u\n",
-                   ir.attrs[i]->name.name, "xyzw"[j],
-                   bc.attr_load_regs[i*4+j], bc.attr_store_regs[i*4+j]);
-    
-    printf("----BC uniforms---\n");
-    for (size_t i = 0; i < ir.uni_count; i++)
-        for (size_t j = 0; j < ir.unis[i]->comp; j++)
-            printf("%s.%c: r%u\n",
-                   ir.unis[i]->name.name, "xyzw"[j], bc.uni_regs[i*4+j]);
-    
-    printf("-----Bytecode-----\n");
-    print_bc(bc.bc, bc.bc+bc.bc_size);
-    #endif
+    if (debug) {
+        printf("---BC attributes--\n");
+        for (size_t i = 0; i < ir.attr_count; i++)
+            for (size_t j = 0; j < ir.attrs[i]->comp; j++)
+                printf("%s.%c: load:r%u store:r%u\n",
+                       ir.attrs[i]->name.name, "xyzw"[j],
+                       bc.attr_load_regs[i*4+j], bc.attr_store_regs[i*4+j]);
+        
+        printf("----BC uniforms---\n");
+        for (size_t i = 0; i < ir.uni_count; i++)
+            for (size_t j = 0; j < ir.unis[i]->comp; j++)
+                printf("%s.%c: r%u\n",
+                       ir.unis[i]->name.name, "xyzw"[j], bc.uni_regs[i*4+j]);
+        
+        printf("-----Bytecode-----\n");
+        print_bc(bc.bc, bc.bc+bc.bc_size);
+    }
     
     FILE* dest = fopen(output, "wb");
     if (!dest) {
