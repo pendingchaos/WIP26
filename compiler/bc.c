@@ -108,33 +108,35 @@ static ir_var_t gen_tmp_var(gen_bc_state_t* state) {
 #define WRITEF(f) do {state->bc = realloc_mem(state->bc, state->bc_size+4);*(float*)(state->bc+state->bc_size)=f;state->bc_size+=4;} while (0);
 #define WRITEU32(i) do {state->bc = realloc_mem(state->bc, state->bc_size+4);*(uint32_t*)(state->bc+state->bc_size)=i;state->bc_size+=4;} while (0);
 
+static ir_var_t _operands[16];
+static bool _num_operands[16];
+
+static int begin_operand(gen_bc_state_t* state, size_t index, ir_operand_t operand) {
+    if (operand.type == IR_OPERAND_NUM) {
+        _num_operands[index] = true;
+        _operands[index] = gen_tmp_var(state);
+        int reg = get_reg(state, _operands[index]);
+        if (reg >= 0) {
+            WRITEB(BC_OP_MOVF);
+            WRITEB(reg);
+            WRITEF(operand.num);
+        }
+        return reg;
+    } else {
+        _num_operands[index] = false;
+        _operands[index] = operand.var;
+        return get_reg(state, _operands[index]);
+    }
+}
+
+static void end_operand(gen_bc_state_t* state, size_t index) {
+    if (_num_operands[index]) drop_var(state, _operands[index]);
+}
+
 static bool write_bin(gen_bc_state_t* state, int dest_reg, const ir_inst_t* inst) {
-    ir_var_t lhs, rhs;
-    
-    bool lhs_num = inst->operands[1].type == IR_OPERAND_NUM;
-    bool rhs_num = inst->operands[2].type == IR_OPERAND_NUM;
-    
-    if (lhs_num) lhs = gen_tmp_var(state);
-    else lhs = inst->operands[1].var;
-    
-    if (rhs_num) rhs = gen_tmp_var(state);
-    else rhs = inst->operands[2].var;
-    
-    int lhs_reg = get_reg(state, lhs);
-    int rhs_reg = get_reg(state, rhs);
+    int lhs_reg = begin_operand(state, 0, inst->operands[1]);
+    int rhs_reg = begin_operand(state, 1, inst->operands[2]);
     if (lhs_reg<0 || rhs_reg<0) return false;
-    
-    if (lhs_num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(lhs_reg);
-        WRITEF(inst->operands[1].num);
-    }
-    
-    if (rhs_num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(rhs_reg);
-        WRITEF(inst->operands[2].num);
-    }
     
     switch (inst->op) {
     case IR_OP_ADD: WRITEB(BC_OP_ADD); break;
@@ -154,8 +156,8 @@ static bool write_bin(gen_bc_state_t* state, int dest_reg, const ir_inst_t* inst
     WRITEB(lhs_reg);
     WRITEB(rhs_reg);
     
-    if (lhs_num) drop_var(state, lhs);
-    if (rhs_num) drop_var(state, rhs);
+    end_operand(state, 0);
+    end_operand(state, 1);
     
     return true;
 }
@@ -188,22 +190,10 @@ static bool write_mov(gen_bc_state_t* state, const ir_inst_t* inst) {
 }
 
 static bool write_unary(gen_bc_state_t* state, const ir_inst_t* inst) {
-    ir_var_t lhs_var;
-    bool num = inst->operands[1].type == IR_OPERAND_NUM;
-    
-    if (num) lhs_var = gen_tmp_var(state);
-    else lhs_var = inst->operands[1].var;
-    
     int dest_reg = get_reg(state, inst->operands[0].var);
-    int lhs_reg = get_reg(state, lhs_var);
+    int lhs_reg = begin_operand(state, 0, inst->operands[1]);
     
     if (dest_reg<0 || lhs_reg<0) return false;
-    
-    if (num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(lhs_reg);
-        WRITEF(inst->operands[1].num);
-    }
     
     switch (inst->op) {
     case IR_OP_BOOL_NOT: WRITEB(BC_OP_BOOL_NOT); break;
@@ -214,7 +204,7 @@ static bool write_unary(gen_bc_state_t* state, const ir_inst_t* inst) {
     WRITEB(dest_reg);
     WRITEB(lhs_reg);
     
-    if (num) drop_var(state, lhs_var);
+    end_operand(state, 0);
     
     return true;
 }
@@ -250,40 +240,12 @@ static bool write_neg(gen_bc_state_t* state, const ir_inst_t* inst) {
 }
 
 static bool write_sel(gen_bc_state_t* state, const ir_inst_t* inst) {
-    bool a_num = inst->operands[1].type == IR_OPERAND_NUM;
-    bool b_num = inst->operands[2].type == IR_OPERAND_NUM;
-    bool cond_num = inst->operands[3].type == IR_OPERAND_NUM;
-    
-    ir_var_t a_var, b_var, cond_var;
-    if (a_num) a_var = gen_tmp_var(state);
-    else a_var = inst->operands[1].var;
-    if (b_num) b_var = gen_tmp_var(state);
-    else b_var = inst->operands[2].var;
-    if (cond_num) b_var = gen_tmp_var(state);
-    else cond_var = inst->operands[3].var;
-    
+    int a_reg = begin_operand(state, 0, inst->operands[1]);
+    int b_reg = begin_operand(state, 1, inst->operands[2]);
+    int cond_reg = begin_operand(state, 2, inst->operands[3]);
     int dest_reg = get_reg(state, inst->operands[0].var);
-    int a_reg = get_reg(state, inst->operands[1].var);
-    int b_reg = get_reg(state, inst->operands[2].var);
-    int cond_reg = get_reg(state, inst->operands[3].var);
     
-    if (a_num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(a_reg);
-        WRITEF(inst->operands[1].num);
-    }
-    
-    if (b_num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(b_reg);
-        WRITEF(inst->operands[2].num);
-    }
-    
-    if (cond_num) {
-        WRITEB(BC_OP_MOVF);
-        WRITEB(cond_reg);
-        WRITEF(inst->operands[3].num);
-    }
+    if (a_reg<0 || b_reg<0 || cond_reg<0 || dest_reg<0) return false;
     
     WRITEB(BC_OP_SEL);
     WRITEB(dest_reg);
@@ -291,9 +253,9 @@ static bool write_sel(gen_bc_state_t* state, const ir_inst_t* inst) {
     WRITEB(b_reg);
     WRITEB(cond_reg);
     
-    if (a_num) drop_var(state, a_var);
-    if (b_num) drop_var(state, b_var);
-    if (cond_num) drop_var(state, cond_var);
+    end_operand(state, 0);
+    end_operand(state, 1);
+    end_operand(state, 2);
     
     return true;
 }
