@@ -378,26 +378,15 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             int cond_reg = get_reg(state, inst->operands[0].var);
             if (cond_reg < 0) goto error;
             
-            gen_bc_state_t inner_state;
+            gen_bc_state_t inner_state = *state;
             inner_state.bc = NULL;
             inner_state.bc_size = 0;
-            inner_state.var_count = state->var_count;
-            inner_state.vars = alloc_mem(state->var_count*sizeof(ir_var_t));
-            memcpy(inner_state.vars, state->vars, state->var_count*sizeof(ir_var_t));
-            inner_state.var_regs = alloc_mem(state->var_count);
-            memcpy(inner_state.var_regs, state->var_regs, state->var_count);
-            inner_state.temp_var = state->temp_var;
             inner_state.min_reg = 255;
             inner_state.max_reg = 0;
-            inner_state.res_bc = state->res_bc;
             if (!_gen_bc(&inner_state, inst->insts, inst->inst_count, NULL)) {
                 free(inner_state.bc);
-                free(inner_state.vars);
-                free(inner_state.var_regs);
                 return false;
             }
-            free(state->vars);
-            free(state->var_regs);
             state->vars = inner_state.vars;
             state->var_regs = inner_state.var_regs;
             state->var_count = inner_state.var_count;
