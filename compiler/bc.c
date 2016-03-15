@@ -95,16 +95,6 @@ static void drop_var(gen_bc_state_t* state, ir_var_t var) {
     state->var_regs = realloc_mem(state->var_regs, state->var_count);
 }
 
-static bool redef(gen_bc_state_t* state, ir_var_t dest, ir_var_t src) {
-    int reg = get_reg(state, dest);
-    if (reg < 0) return false;
-    uint8_t reg8 = reg;
-    state->vars = append_mem(state->vars, state->var_count, sizeof(ir_var_t), &src);
-    state->var_regs = append_mem(state->var_regs, state->var_count, 1, &reg8);
-    state->var_count++;
-    return true;
-}
-
 static ir_var_t gen_tmp_var(gen_bc_state_t* state) {
     unsigned int ver = state->temp_var.current_ver[0]++;
     ir_var_t var;

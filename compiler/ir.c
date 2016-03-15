@@ -48,7 +48,7 @@ static size_t get_dtype_comp(const char* dtype) {
 
 static ir_inst_t* _add_inst(size_t* next_id, ir_inst_t** insts, size_t* inst_count, ir_inst_t* inst) {
     *insts = append_mem(*insts, *inst_count, sizeof(ir_inst_t), inst);
-    ir_inst_t* res = (*insts)+((*inst_count)++);
+    ir_inst_t* res = *insts+(*inst_count)++;
     res->id = (*next_id)++;
     return res;
 }
@@ -708,8 +708,7 @@ static void _remove_redundant_moves(ir_t* ir, ir_inst_t** insts_, size_t* inst_c
                         break;
                     }
                 
-                if (idx != -1)
-                    inst.operands[j].var = replace_vals[idx];
+                if (idx != -1) inst.operands[j].var = replace_vals[idx];
             }
             ir_inst_t* res = _add_inst(&ir->next_inst_id, &insts, &inst_count, &inst);
             res->id = inst.id;
