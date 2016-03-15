@@ -147,10 +147,12 @@ static void print_node(node_t* node, unsigned int indent) {
         return;
 }
 
-static void print_inst(ir_t* ir, ir_inst_t inst) {
+static void print_inst(ir_t* ir, ir_inst_t inst, size_t indent) {
     if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
+    
+    for (size_t i = 0; i < indent; i++) printf("    ");
     
     switch (inst.op) {
     case IR_OP_MOV: printf("mov "); break;
@@ -170,8 +172,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_SQRT: printf("sqrt "); break;
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_SEL: printf("sel "); break;
-    case IR_OP_BEGIN_IF: printf("beginif "); break;
-    case IR_OP_END_IF: printf("endif "); break;
+    case IR_OP_IF: printf("if "); break;
     case IR_OP_BEGIN_WHILE: printf("beginloop "); break;
     case IR_OP_END_WHILE_COND: printf("endloopcond "); break;
     case IR_OP_END_WHILE: printf("endloop "); break;
@@ -202,18 +203,17 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
         }
     }
     
-    if (inst.op == IR_OP_BEGIN_IF)
-        printf("until instruction %zu", inst.end);
-    else if (inst.op == IR_OP_END_IF)
-        printf("starting at instruction %zu", inst.begin_if);
-    else if (inst.op == IR_OP_PHI)
-        printf("end instruction is %zu", inst.end);
+    if (inst.op == IR_OP_PHI)
+        printf("cond instruction is %zu", inst.phi_inst_cond);
     else if (inst.op == IR_OP_BEGIN_WHILE)
         printf("end condition instruction is %zu", inst.end_while_cond);
     else if (inst.op == IR_OP_END_WHILE_COND)
         printf("end loop instruction is %zu", inst.end_while);
-    
     putchar('\n');
+    
+    if (inst.op == IR_OP_IF)
+        for (size_t i = 0; i < inst.inst_count; i++)
+            print_inst(ir, inst.insts[i], indent+1);
 }
 
 static void print_bc(uint8_t* begin, uint8_t* end) {
@@ -388,12 +388,12 @@ int main(int argc, char** argv) {
     }
     
     remove_redundant_moves(&ir);
-    add_drop_insts(&ir);
+    //add_drop_insts(&ir);
     
     if (debug) {
         printf("--------IR--------\n");
         for (size_t i = 0; i < ir.inst_count; i++)
-            print_inst(&ir, ir.insts[i]);
+            print_inst(&ir, ir.insts[i], 0);
     }
     
     free_ast(&ast);

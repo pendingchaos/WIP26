@@ -26,8 +26,7 @@ typedef enum {
     IR_OP_SQRT,
     IR_OP_STORE_ATTR, //Must be at the end
     IR_OP_SEL,
-    IR_OP_BEGIN_IF,
-    IR_OP_END_IF,
+    IR_OP_IF,
     IR_OP_BEGIN_WHILE,
     IR_OP_END_WHILE_COND,
     IR_OP_END_WHILE,
@@ -81,10 +80,10 @@ struct ir_inst_t {
     size_t operand_count;
     ir_operand_t operands[IR_OPERAND_MAX];
     union {
-        size_t end; //Only with IR_OP_BEGIN_IF and IR_OP_PHI
-        size_t begin_if; //Only with IR_OP_END_IF
         size_t end_while_cond; //Only with IR_OP_BEGIN_WHILE
         size_t end_while; //Only with IR_OP_END_WHILE_COND
+        size_t phi_inst_cond;
+        struct {size_t inst_count; ir_inst_t* insts;};
     };
 };
 
