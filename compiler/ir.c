@@ -606,6 +606,13 @@ static void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_
                 (*var_count)++;
             }
         }
+        
+        if (inst->op == IR_OP_IF)
+            get_vars(inst->insts, inst->inst_count, var_count, vars);
+        else if (inst->op == IR_OP_WHILE) {
+            get_vars(inst->cond_insts, inst->cond_inst_count, var_count, vars);
+            get_vars(inst->body_insts, inst->body_inst_count, var_count, vars);
+        }
     }
 }
 
@@ -761,15 +768,26 @@ void remove_redundant_moves(ir_t* ir) {
     free(replace_vals);
 }
 
-void add_drop_insts(ir_t* ir) {
-    size_t var_count = 0;
-    ir_var_t* vars = NULL;
-    size_t inst_count = ir->inst_count;
-    ir_inst_t* insts = ir->insts;
-    ir->inst_count = 0;
-    ir->insts = NULL;
+static void _add_drop_insts(size_t* next_id, ir_inst_t** dest_insts, size_t* dest_inst_count,
+                            ir_inst_t** insts_, size_t* inst_count_,
+                            ir_var_t** vars_, size_t* var_count_) {
+    size_t var_count = *var_count_;
+    ir_var_t* vars = *vars_;
+    size_t inst_count = *inst_count_;
+    ir_inst_t* insts = *insts_;
     for (size_t i = 0; i < inst_count; i++) {
-        add_inst(ir, insts+i)->id = insts[i].id;
+        ir_inst_t* inst = insts + i;
+        
+        if (inst->op == IR_OP_IF) {
+            size_t src_inst_count = inst->inst_count;
+            ir_inst_t* src_insts = inst->insts;
+            inst->inst_count = 0;
+            inst->insts = NULL;
+            _add_drop_insts(next_id, &inst->insts, &inst->inst_count,
+                            &src_insts, &src_inst_count, &vars, &var_count);
+        }
+        
+        _add_inst(next_id, dest_insts, dest_inst_count, inst)->id = inst->id;
         
         get_vars(insts+i, 1, &var_count, &vars);
         
@@ -782,11 +800,11 @@ void add_drop_insts(ir_t* ir) {
                 if (vars[j].ver==future[k].ver && vars[j].decl==future[k].decl &&
                     vars[j].comp_idx==future[k].comp_idx) goto end;
             
-            ir_inst_t inst;
-            inst.op = IR_OP_DROP;
-            inst.operand_count = 1;
-            inst.operands[0] = create_var_operand(vars[j]);
-            add_inst(ir, &inst);
+            ir_inst_t drop_inst;
+            drop_inst.op = IR_OP_DROP;
+            drop_inst.operand_count = 1;
+            drop_inst.operands[0] = create_var_operand(vars[j]);
+            _add_inst(next_id, dest_insts, dest_inst_count, &drop_inst);
             
             memmove(vars+j, vars+j+1, (var_count-j-1)*sizeof(ir_var_t));
             if (var_count-1)
@@ -804,6 +822,21 @@ void add_drop_insts(ir_t* ir) {
         
         free(future);
     }
+    *inst_count_ = inst_count;
+    *insts_ = insts;
+    *var_count_ = var_count;
+    *vars_ = vars;
+}
+
+void add_drop_insts(ir_t* ir) {
+    size_t var_count = 0;
+    ir_var_t* vars = NULL;
+    size_t inst_count = ir->inst_count;
+    ir_inst_t* insts = ir->insts;
+    ir->inst_count = 0;
+    ir->insts = NULL;
+    _add_drop_insts(&ir->next_inst_id, &ir->insts, &ir->inst_count,
+                    &insts, &inst_count, &vars, &var_count);
     free(insts);
     free(vars);
 }

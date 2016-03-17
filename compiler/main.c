@@ -148,7 +148,7 @@ static void print_node(node_t* node, unsigned int indent) {
 }
 
 static void print_inst(ir_t* ir, ir_inst_t inst, size_t indent) {
-    if (inst.op == IR_OP_DROP) return;
+    //if (inst.op == IR_OP_DROP) return;
     
     printf("%zu\t", inst.id);
     
@@ -212,7 +212,8 @@ static void print_inst(ir_t* ir, ir_inst_t inst, size_t indent) {
         for (size_t i = 0; i < inst.cond_inst_count; i++)
             print_inst(ir, inst.cond_insts[i], indent+1);
         
-        for (size_t i = 0; i < indent; i++) printf("    ");
+        printf("\t");
+        for (size_t i = 0; i <= indent; i++) printf("    ");
         printf("--------\n");
         
         for (size_t i = 0; i < inst.body_inst_count; i++)
@@ -391,8 +392,8 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    remove_redundant_moves(&ir);
-    //add_drop_insts(&ir);
+    //remove_redundant_moves(&ir);
+    add_drop_insts(&ir);
     
     if (debug) {
         printf("--------IR--------\n");
