@@ -691,8 +691,7 @@ void remove_redundant_moves(ir_t* ir) {
                         break;
                     }
                 
-                if (idx != -1)
-                    inst.operands[j].var = replace_vals[idx];
+                if (idx != -1) inst.operands[j].var = replace_vals[idx];
             }
             add_inst(ir, &inst)->id = inst.id;
         }

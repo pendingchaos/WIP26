@@ -262,8 +262,8 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             uint8_t d = *bc++;
             uint8_t v = *bc++;
             switch (op) {
-            case BC_OP_SQRT: printf("sqrt r%u r%u\n", d, v);
-            case BC_OP_BOOL_NOT: printf("boolnot r%u r%u\n", d, v);
+            case BC_OP_SQRT: printf("sqrt r%u r%u\n", d, v); break;
+            case BC_OP_BOOL_NOT: printf("boolnot r%u r%u\n", d, v); break;
             }
             break;
         }
