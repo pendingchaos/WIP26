@@ -173,9 +173,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst, size_t indent) {
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_SEL: printf("sel "); break;
     case IR_OP_IF: printf("if "); break;
-    case IR_OP_BEGIN_WHILE: printf("beginloop "); break;
-    case IR_OP_END_WHILE_COND: printf("endloopcond "); break;
-    case IR_OP_END_WHILE: printf("endloop "); break;
+    case IR_OP_WHILE: printf("while "); break;
     case IR_OP_PHI: printf("phi "); break;
     case IR_OP_STORE_ATTR: printf("storep "); break;
     }
@@ -205,15 +203,21 @@ static void print_inst(ir_t* ir, ir_inst_t inst, size_t indent) {
     
     if (inst.op == IR_OP_PHI)
         printf("cond instruction is %zu", inst.phi_inst_cond);
-    else if (inst.op == IR_OP_BEGIN_WHILE)
-        printf("end condition instruction is %zu", inst.end_while_cond);
-    else if (inst.op == IR_OP_END_WHILE_COND)
-        printf("end loop instruction is %zu", inst.end_while);
     putchar('\n');
     
     if (inst.op == IR_OP_IF)
         for (size_t i = 0; i < inst.inst_count; i++)
             print_inst(ir, inst.insts[i], indent+1);
+    else if (inst.op == IR_OP_WHILE) {
+        for (size_t i = 0; i < inst.cond_inst_count; i++)
+            print_inst(ir, inst.cond_insts[i], indent+1);
+        
+        for (size_t i = 0; i < indent; i++) printf("    ");
+        printf("--------\n");
+        
+        for (size_t i = 0; i < inst.body_inst_count; i++)
+            print_inst(ir, inst.body_insts[i], indent+1);
+    }
 }
 
 static void print_bc(uint8_t* begin, uint8_t* end) {

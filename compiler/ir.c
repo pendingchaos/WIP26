@@ -531,24 +531,15 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         
         return gen_temp_var(ir, 0);
     }
-    /*case NODET_WHILE: {
+    case NODET_WHILE: {
         cond_node_t* while_ = (cond_node_t*)node;
         
-        size_t begin_while_idx = ir->inst_count;
         ir_inst_t inst;
-        inst.op = IR_OP_BEGIN_WHILE;
+        inst.op = IR_OP_WHILE;
         inst.operand_count = 0;
         add_inst(ir, &inst);
-        
-        ir_var_decl_t* cond = node_to_ir(while_->condition, ir, returned, func_count, funcs);
-        if (cond->comp != 1)
-            return ir_set_error(ir, "Result type of condition must a boolean"), NULL;
-        
-        size_t end_while_cond_idx = ir->inst_count;
-        inst.op = IR_OP_END_WHILE_COND;
-        add_inst(ir, &inst);
-        
-        ir->insts[begin_while_idx].end_while_cond = ir->insts[ir->inst_count-1].id;
+        size_t first = ir->inst_count;
+        size_t if_inst_idx = first - 1;
         
         size_t last_var_count;
         unsigned int* last_vers;
@@ -562,18 +553,34 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
             if (*returned) break;
         }
         
-        inst.op = IR_OP_END_WHILE;
-        inst.operand_count = 1;
-        inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
-        add_inst(ir, &inst);
+        ir_inst_t* while_inst = ir->insts + if_inst_idx;
+        while_inst->body_inst_count = ir->inst_count - first;
+        while_inst->body_insts = alloc_mem(sizeof(ir_inst_t)*while_inst->body_inst_count);
+        memcpy(while_inst->body_insts, ir->insts+first, while_inst->body_inst_count*sizeof(ir_inst_t));
+        ir->insts = realloc_mem(ir->insts, sizeof(ir_inst_t)*first);
+        ir->inst_count = first;
         
-        size_t end_while = ir->insts[ir->inst_count-1].id;
-        ir->insts[end_while_cond_idx].end_while = end_while;
+        ir_var_decl_t* cond = node_to_ir(while_->condition, ir, returned, func_count, funcs);
+        if (!cond) {
+            free(last_vers);
+            return NULL;
+        }
         
-        end_phi(ir, last_var_count, last_vers, end_while);
+        while_inst = ir->insts + if_inst_idx;
+        
+        while_inst->operand_count = 1;
+        while_inst->operands[0] = create_var_operand(get_var_comp(cond, 0));
+        
+        while_inst->cond_inst_count = ir->inst_count - first;
+        while_inst->cond_insts = alloc_mem(sizeof(ir_inst_t)*while_inst->cond_inst_count);
+        memcpy(while_inst->cond_insts, ir->insts+first, while_inst->cond_inst_count*sizeof(ir_inst_t));
+        ir->insts = realloc_mem(ir->insts, sizeof(ir_inst_t)*first);
+        ir->inst_count = first;
+        
+        end_phi(ir, last_var_count, last_vers, ir->insts[if_inst_idx].id);
         
         return gen_temp_var(ir, 0);
-    }*/
+    }
     }
     
     assert(false);
@@ -645,6 +652,14 @@ static void free_inst(const ir_inst_t* inst) {
         for (size_t i = 0; i < inst->inst_count; i++)
             free_inst(inst->insts + i);
         free(inst->insts);
+    } else if (inst->op == IR_OP_WHILE) {
+        for (size_t i = 0; i < inst->cond_inst_count; i++)
+            free_inst(inst->cond_insts + i);
+        free(inst->cond_insts);
+        
+        for (size_t i = 0; i < inst->body_inst_count; i++)
+            free_inst(inst->body_insts + i);
+        free(inst->body_insts);
     }
 }
 
@@ -717,6 +732,15 @@ static void _remove_redundant_moves(ir_t* ir, ir_inst_t** insts_, size_t* inst_c
                 _remove_redundant_moves(ir, &res->insts, &res->inst_count,
                                         &replace_count, &replace_keys,
                                         &replace_vals, true);
+            else if (inst.op == IR_OP_WHILE) {
+                _remove_redundant_moves(ir, &res->cond_insts, &res->cond_inst_count,
+                                        &replace_count, &replace_keys,
+                                        &replace_vals, true);
+                
+                _remove_redundant_moves(ir, &res->body_insts, &res->body_inst_count,
+                                        &replace_count, &replace_keys,
+                                        &replace_vals, true);
+            }
         }
     }
     free(*insts_);
