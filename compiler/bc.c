@@ -363,10 +363,95 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             WRITEB(BC_OP_COND_END);
             
             i += end+1; //Skip instructions and endif
+            break;
+        }
+        case IR_OP_BEGIN_WHILE: {
+            const ir_inst_t* end_cond = find_by_id(insts, inst_count, inst->end_while_cond);
+            const ir_inst_t* end = find_by_id(insts, inst_count, end_cond->end_while);
             
+            for (size_t j = end-insts+1; j < inst_count; j++) {
+                const ir_inst_t* phi = insts + j;
+                if (phi->op == IR_OP_PHI) {
+                    if (!redef(state, phi->operands[2].var, phi->operands[0].var)) //res -> false
+                        return false;
+                    if (!redef(state, phi->operands[2].var, phi->operands[1].var)) //true -> false
+                        return false;
+                } else if (phi->op == IR_OP_DROP) {
+                } else break;
+            }
+            
+            gen_bc_state_t cond_state = *state;
+            cond_state.bc = NULL;
+            cond_state.bc_size = 0;
+            cond_state.min_reg = 255;
+            cond_state.max_reg = 0;
+            size_t end_id = end_cond->id;
+            if (!_gen_bc(&cond_state, inst+1, inst_count-i-1, &end_id)) {
+                free(cond_state.bc);
+                return false;
+            }
+            state->vars = cond_state.vars;
+            state->var_regs = cond_state.var_regs;
+            state->var_count = cond_state.var_count;
+            state->temp_var = cond_state.temp_var;
+            
+            gen_bc_state_t body_state = *state;
+            body_state.bc = NULL;
+            body_state.bc_size = 0;
+            body_state.min_reg = 255;
+            body_state.max_reg = 0;
+            end_id = end->id;
+            if (!_gen_bc(&body_state, end_cond+1, inst_count-i-1, &end_id)) {
+                free(body_state.bc);
+                return false;
+            }
+            state->vars = body_state.vars;
+            state->var_regs = body_state.var_regs;
+            state->var_count = body_state.var_count;
+            state->temp_var = body_state.temp_var;
+            
+            int cond_reg = get_reg(state, end->operands[0].var);
+            if (cond_reg < 0) goto error;
+            
+            WRITEB(BC_OP_WHILE_BEGIN);
+            WRITEB(cond_reg);
+            WRITEU32(cond_state.bc_size+1);
+            if (cond_state.max_reg < cond_state.min_reg) {
+                WRITEB(0)
+                WRITEB(0)
+            } else {
+                WRITEB(cond_state.min_reg);
+                WRITEB(cond_state.max_reg);
+            }
+            WRITEU32(body_state.bc_size);
+            if (body_state.max_reg < body_state.min_reg) {
+                WRITEB(0)
+                WRITEB(0)
+            } else {
+                WRITEB(body_state.min_reg);
+                WRITEB(body_state.max_reg);
+            }
+            
+            state->bc = realloc_mem(state->bc, state->bc_size+cond_state.bc_size);
+            memcpy(state->bc+state->bc_size, cond_state.bc, cond_state.bc_size);
+            state->bc_size += cond_state.bc_size;
+            free(cond_state.bc);
+            
+            WRITEB(BC_OP_WHILE_END_COND);
+            
+            state->bc = realloc_mem(state->bc, state->bc_size+body_state.bc_size);
+            memcpy(state->bc+state->bc_size, body_state.bc, body_state.bc_size);
+            state->bc_size += body_state.bc_size;
+            free(body_state.bc);
+            
+            WRITEB(BC_OP_WHILE_END);
+            
+            i += (end-insts)+1; //Skip instructions and endwhile
             break;
         }
         case IR_OP_END_IF:
+        case IR_OP_END_WHILE:
+        case IR_OP_END_WHILE_COND:
         case IR_OP_PHI: {
 			break;
 		}

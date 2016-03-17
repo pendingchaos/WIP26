@@ -261,7 +261,7 @@ void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t of
     }
 }
 
-static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float* regs, bool cond) {
+static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t index, system_t* system, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
                                      &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
@@ -269,7 +269,8 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
-                                     &&BC_OP_COND_END, &&BC_OP_END};
+                                     &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
+                                     &&BC_OP_WHILE_END, &&BC_OP_END};
     DISPATCH;
     #else
     while (true) {
@@ -368,10 +369,35 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
             uint32_t count = *(uint32_t*)bc;
             bc += 6;
             
-            if (regs[c] >= 0.5f) vm_execute1(bc, index, system, regs, cond);
+            if (deleted_flags[index]) bc += le32toh(count);
+            else if (((uint32_t*)regs)[c]) vm_execute1(bc, deleted_flags, index, system, regs, true);
             else bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
+            if (cond) return true;
+        END_CASE
+        BEGIN_CASE(BC_OP_WHILE_BEGIN)
+            uint8_t c = *bc++;
+            uint32_t cond_count = *(uint32_t*)bc;
+            bc += 6;
+            uint32_t body_count = *(uint32_t*)bc;
+            bc += 6;
+            
+            const uint8_t* body_bc = bc + cond_count;
+            
+            if (deleted_flags[index])
+                while (true) {
+                    vm_execute1(bc, deleted_flags ,index, system, regs, true);
+                    if (!((uint32_t*)regs)[c]) break;
+                    vm_execute1(body_bc, deleted_flags, index, system, regs, true);
+                }
+            
+            bc = body_bc + body_count;
+        END_CASE
+        BEGIN_CASE(BC_OP_WHILE_END_COND)
+            if (cond) return true;
+        END_CASE
+        BEGIN_CASE(BC_OP_WHILE_END)
             if (cond) return true;
         END_CASE
         BEGIN_CASE(BC_OP_END)
@@ -382,8 +408,6 @@ static bool vm_execute1(const uint8_t* bc, size_t index, system_t* system, float
         }
     }
     #endif
-    
-    return true;
 }
 
 static bool vm_execute8(const program_t* program, size_t offset, system_t* system) {
@@ -411,7 +435,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                                      &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
-                                     &&BC_OP_COND_END, &&BC_OP_END};
+                                     &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
+                                     &&BC_OP_WHILE_END, &&BC_OP_END};
     DISPATCH;
     #else
     while (true) {
@@ -514,26 +539,67 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             unsigned int rmin = *bc++;
             unsigned int rmax = *bc++;
             
-            float v[8];
-            simd8f_get(regs[c], v);
+            uint32_t v[8];
+            simd8f_get(regs[c], (float*)v);
             for (uint_fast8_t i = 0; i < 8; i++) {
                 if (system->deleted_flags[offset+i]) continue;
-                if (v[i] < 0.5f) continue;
+                if (!v[i]) continue;
                 
                 float fregs[256];
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     fregs[j] = ((float*)(regs+j))[i];
-                
-                if (!vm_execute1(bc, offset+i, system, fregs, true))
+                if (!vm_execute1(bc, system->deleted_flags, offset+i, system, fregs, true))
                     return false;
-                
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     ((float*)(regs+j))[i] = fregs[j];
             }
             bc += le32toh(count);
         END_CASE
+        BEGIN_CASE(BC_OP_WHILE_END_COND)
+        END_CASE
         BEGIN_CASE(BC_OP_COND_END)
-            //Nothing
+        END_CASE
+        BEGIN_CASE(BC_OP_WHILE_BEGIN)
+            uint8_t c = *bc++;
+            
+            uint32_t cond_count = *(uint32_t*)bc;
+            bc += 4;
+            unsigned int crmin = *bc++;
+            unsigned int crmax = *bc++;
+            
+            uint32_t body_count = *(uint32_t*)bc;
+            bc += 4;
+            unsigned int brmin = *bc++;
+            unsigned int brmax = *bc++;
+            
+            const uint8_t* body_bc = bc + cond_count;
+            
+            for (uint_fast8_t i = 0; i < 8; i++) {
+                if (system->deleted_flags[offset+i]) continue;
+                
+                while (true) {
+                    float fregs[256];
+                    for (uint_fast16_t j = crmin; j < crmax+1; j++)
+                        fregs[j] = ((float*)(regs+j))[i];
+                    if (!vm_execute1(bc, system->deleted_flags, offset+i, system, fregs, true))
+                        return false;
+                    for (uint_fast16_t j = crmin; j < crmax+1; j++)
+                        ((float*)(regs+j))[i] = fregs[j];
+                    
+                    if (!((uint32_t*)fregs)[c]) break;
+                    
+                    for (uint_fast16_t j = brmin; j < brmax+1; j++)
+                        fregs[j] = ((float*)(regs+j))[i];
+                    if (!vm_execute1(body_bc, system->deleted_flags, offset+i, system, fregs, true))
+                        return false;
+                    for (uint_fast16_t j = brmin; j < brmax+1; j++)
+                        ((float*)(regs+j))[i] = fregs[j];
+                }
+            }
+            
+            bc = body_bc + body_count;
+        END_CASE
+        BEGIN_CASE(BC_OP_WHILE_END)
         END_CASE
         BEGIN_CASE(BC_OP_END)
             goto end;

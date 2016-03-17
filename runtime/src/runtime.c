@@ -155,7 +155,10 @@ bool validate_program(const program_t* program) { //TODO: Validate attribute ind
         case BC_OP_BOOL_NOT: required = 2; break;
         case BC_OP_SEL: required = 4; break;
         case BC_OP_COND_BEGIN: required = 7; break;
+        case BC_OP_WHILE_BEGIN: required = 13; break;
         case BC_OP_COND_END:
+        case BC_OP_WHILE_END:
+        case BC_OP_WHILE_END_COND:
         case BC_OP_DELETE: required = 0; break;
         case BC_OP_END: required = 0; has_end_inst = true; break;
         default: return set_error(program->runtime, "Unsupported or invalid instruction.");

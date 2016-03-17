@@ -22,7 +22,10 @@ typedef enum bc_op_t {
     BC_OP_SEL = 14,
     BC_OP_COND_BEGIN = 15,
     BC_OP_COND_END = 16,
-    BC_OP_END = 17
+    BC_OP_WHILE_BEGIN = 17,
+    BC_OP_WHILE_END_COND = 18,
+    BC_OP_WHILE_END = 19,
+    BC_OP_END = 20
 } bc_op_t;
 
 typedef enum program_type_t {

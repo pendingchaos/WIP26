@@ -488,4 +488,20 @@
     'uniforms': {
         'nv.x': 7.0
     }
+},
+{
+    'name': 'test while',
+    'source':
+    '''attribute v:float;
+    while v < 5 {
+        v = v + 1;
+    }
+    ''',
+    'count': 1,
+    'attributes': {
+        'v.x': [1.0],
+    },
+    'expected': {
+        'v.x': [5.0]
+    }
 }

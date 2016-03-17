@@ -289,6 +289,25 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             printf("endif\n");
             break;
         }
+        case BC_OP_WHILE_BEGIN: {
+			uint8_t c = *bc++;
+            uint32_t cond_count = le32toh(*(uint32_t*)bc);
+            bc += 4;
+            uint8_t cregmin = *bc++;
+            uint8_t cregmax = *bc++;
+            uint32_t body_count = le32toh(*(uint32_t*)bc);
+            bc += 4;
+            uint8_t bregmin = *bc++;
+            uint8_t bregmax = *bc++;
+            printf("beginwhile r%u (endcond at %u) (cond registers %u-%u) (endwhile at %u) (body registers %u-%u)\n",
+                   c, (unsigned int)(bc-begin) + cond_count, cregmin, cregmax, (unsigned int)(bc-begin)+cond_count+body_count,
+                   bregmin, bregmax);
+            break;
+        }
+        case BC_OP_WHILE_END: {
+            printf("endwhile\n");
+            break;
+        }
         case BC_OP_END:
             printf("end\n");
             break;
