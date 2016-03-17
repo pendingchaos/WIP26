@@ -7,17 +7,13 @@ attribute colorrgb:vec3;
 
 uniform uni:float;
 
-#position = position + velocity;
-#velocity = velocity*vec3(0.9) + accel;
-#accel = accel * vec3(0.8);
+position = position + velocity;
+velocity = velocity*vec3(0.9) + accel;
+accel = accel * vec3(0.8);
 
-#var brightness:float = saturate(length(velocity));
-#colorrgb = vec3(lerp(0.1, 1.0, brightness));
+var brightness:float = saturate(length(velocity));
+colorrgb = vec3(lerp(0.1, 1.0, brightness));
 
 while true {
     position.x = 2.0;
-}
-
-if true {
-    position.x = 5.0;
 }
