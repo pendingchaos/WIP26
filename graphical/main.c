@@ -186,7 +186,27 @@ static void _fail(int status) {
 }
 
 static void init_particle(unsigned int index) {
-    float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
+    float velx=0.0f, vely=0.0f, velz=0.0f, vlen=-1.0f;
+    while ((vlen <= 0.0f) || (vely<0.0f)) {
+        velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        vely = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
+        vlen = sqrt(velx*velx + vely*vely + velz*velz);
+        velx /= vlen;
+        vely /= vlen;
+        velz /= vlen;
+    }
+    
+    ((float*)particle_system.attributes[posx_index])[index] = 0.0f;
+    ((float*)particle_system.attributes[posy_index])[index] = 0.0f;
+    ((float*)particle_system.attributes[posz_index])[index] = 0.0f;
+    ((float*)particle_system.attributes[velx_index])[index] = velx*0.005f;
+    ((float*)particle_system.attributes[vely_index])[index] = vely*0.005f;
+    ((float*)particle_system.attributes[velz_index])[index] = velz*0.005f;
+    ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
+    ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
+    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;
+    /*float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posy = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posz = rand() / (double)RAND_MAX * 2.0 - 1.0;
     
@@ -208,7 +228,7 @@ static void init_particle(unsigned int index) {
     ((float*)particle_system.attributes[velz_index])[index] = velz/vlen*0.005f;
     ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
     ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
-    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;
+    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;*/
 }
 
 static void create_gl_program() {
