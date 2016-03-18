@@ -3,22 +3,20 @@ include stdlib;
 attribute pos:vec3;
 attribute vel:vec3;
 attribute col:vec3;
+attribute time:float;
 
 pos = pos + vel;
 vel.y = vel.y - 0.00005;
+time = time + 0.016666;
 
-#if length(pos) > 0.99 {vel = -vel;}
-#vel = sel(-vel, vel, length(pos) > 0.99);
+if pos.x > 1 {vel.x = -(vel.x);}
+if pos.y > 1 {vel.y = -(vel.y);}
+if pos.z > 1 {vel.z = -(vel.z);}
+if pos.x < -1 {vel.x = -(vel.x);}
+if pos.y < -1 {vel.y = -(vel.y);}
+if pos.z < -1 {vel.z = -(vel.z);}
 
-#if pos.x > 1.0 {vel.x = -(vel.x);}
-#if pos.y > 1.0 {vel.y = -(vel.y);}
-#if pos.z > 1.0 {vel.z = -(vel.z);}
-#if pos.x < -1.0 {vel.x = -(vel.x);}
-#if pos.y < -1.0 {vel.y = -(vel.y);}
-#if pos.z < -1.0 {vel.z = -(vel.z);}
+col = lerp(vec3(0.2, 1, 0.2), vec3(1, 0.2, 0.2), vec3(length(pos)/2));
+col = col * vec3(1-time/20);
 
-var len:float = length(pos);
-if len > 0.99 {del();}
-#col = lerp(normalize(vel)*vec3(0.5) + vec3(0.5), vec3(0.0), vec3(len));
-col = lerp(vec3(0.2, 1.0, 0.2), vec3(1.0, 0.2, 0.2), vec3(len));
-col = col * vec3(1.0-len);
+if time > 20 {del();}

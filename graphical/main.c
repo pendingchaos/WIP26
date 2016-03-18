@@ -69,6 +69,7 @@ static int velz_index;
 static int colr_index;
 static int colg_index;
 static int colb_index;
+static int time_index;
 static GLuint gl_program;
 static float anglea = 0.0f;
 static float angleb = 0.0f;
@@ -206,6 +207,7 @@ static void init_particle(unsigned int index) {
     ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
     ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
     ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;
+    ((float*)particle_system.attributes[time_index])[index] = 0.0;
     /*float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posy = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posz = rand() / (double)RAND_MAX * 2.0 - 1.0;
@@ -324,6 +326,8 @@ int main() {
     if (colg_index < 0) FAIL("Failed to find attribute \"col.y\".");
     colb_index = get_attribute_index(&program, "col.z");
     if (colb_index < 0) FAIL("Failed to find attribute \"col.z\".");
+    time_index = get_attribute_index(&program, "time.x");
+    if (time_index < 0) FAIL("Failed to find attribute \"time.x\".");
     
     particle_system.runtime = &runtime;
     particle_system.pool_size = 300000;
@@ -337,6 +341,7 @@ int main() {
     particle_system.attribute_dtypes[colr_index] = ATTR_UINT8;
     particle_system.attribute_dtypes[colg_index] = ATTR_UINT8;
     particle_system.attribute_dtypes[colb_index] = ATTR_UINT8;
+    particle_system.attribute_dtypes[time_index] = ATTR_FLOAT32;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
