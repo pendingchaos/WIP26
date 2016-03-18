@@ -492,6 +492,7 @@ bool gen_bc(bc_t* bc, bool simulation) {
     state.temp_var.name.func_count = 0;
     state.temp_var.name.funcs = NULL;
     state.temp_var.name.name = "~bctmp";
+    state.temp_var.name.call_id = 0;
     state.temp_var.comp = 1;
     state.temp_var.current_ver[0] = 0;
     state.min_reg = 255;

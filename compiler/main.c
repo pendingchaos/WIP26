@@ -186,6 +186,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
             printf("%f ", op.num);
             break;
         case IR_OPERAND_VAR:
+            printf("%zu_", op.var.decl->name.call_id);
             for (size_t j = 0; j < op.var.decl->name.func_count; j++)
                 printf("%s::", op.var.decl->name.funcs[j]);
             printf("%s_%u", op.var.decl->name.name, op.var.ver);

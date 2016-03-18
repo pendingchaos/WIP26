@@ -46,6 +46,7 @@ typedef struct {
     size_t func_count;
     char** funcs;
     char* name;
+    size_t call_id;
 } ir_var_name_t;
 
 typedef struct {
@@ -107,6 +108,7 @@ typedef struct {
     ir_var_decl_t** unis;
     
     size_t next_inst_id;
+    size_t next_call_id;
 } ir_t;
 
 bool create_ir(const ast_t* ast, ir_t* ir);
