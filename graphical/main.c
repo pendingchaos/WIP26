@@ -278,6 +278,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+    glfwWindowHint(GLFW_SAMPLES, 16);
     
     window = glfwCreateWindow(800, 800, "", NULL, NULL);
     if (!window) FAIL("Failed to create window");
