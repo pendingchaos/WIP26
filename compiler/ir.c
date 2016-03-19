@@ -9,28 +9,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static bool is_valid_comp(char c, size_t comp) {
-    if (c=='x' && comp>=1) return true;
-    else if (c=='y' && comp>=2) return true;
-    else if (c=='z' && comp>=3) return true;
-    else if (c=='w' && comp>=4) return true;
-    else return false;
-}
-
 static size_t get_comp_from_c(char c) {
     if (c=='x') return 0;
     else if (c=='y') return 1;
     else if (c=='z') return 2;
     else if (c=='w') return 3;
     else return 0;
-}
-
-static bool ir_set_error(ir_t* ir, const char* format, ...) {
-    va_list list;
-    va_start(list, format);
-    vsnprintf(ir->error, sizeof(ir->error), format, list);
-    va_end(list);
-    return false;
 }
 
 static size_t get_dtype_comp(const char* dtype) {
@@ -219,10 +203,6 @@ static ir_var_decl_t* gen_func_call(ir_t* ir, call_node_t* call, size_t func_cou
             func = ir->funcs[i];
             break;
         }
-    if (!func) {
-        free(args);
-        return ir_set_error(ir, "Unable to find compatible overload of \"%s\".", call->func), NULL;
-    }
     
     size_t new_func_count = func_count + 1;
     char** new_funcs = alloc_mem(sizeof(char*)*new_func_count);
@@ -328,9 +308,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
             add_inst(ir, &inst);
             return dest;
         } else {
-            ir_var_decl_t* var = get_id_var_decl(ir, id, func_count, funcs, call_id);
-            if (!var) return ir_set_error(ir, "Unknown variable \"%s\".", id->name), NULL;
-            return var;
+            return get_id_var_decl(ir, id, func_count, funcs, call_id);
         }
     }
     case NODET_ASSIGN: {
@@ -344,8 +322,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
             node_t* dest = bin->lhs;
             while (dest->type == NODET_MEMBER) dest = ((bin_node_t*)dest)->lhs;
             dest_var = get_id_var_decl(ir, (id_node_t*)dest, func_count, funcs, call_id);
-            if (!dest_var)
-                return ir_set_error(ir, "Unknown variable \"%s\".", ((id_node_t*)dest)->name), NULL;
         }
         
         size_t dest_swizzle[4] = {0, 1, 2, 3};
@@ -353,8 +329,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         node_t* lhs = bin->lhs;
         while (lhs->type == NODET_MEMBER) {
             char* swizzle = ((id_node_t*)((bin_node_t*)lhs)->rhs)->name;
-            if (strlen(swizzle) > dest_comp)
-                return ir_set_error(ir, "Invalid swizzle."), NULL;
             dest_comp = strlen(swizzle);
             for (size_t i = 0; i < dest_comp; i++)
                 dest_swizzle[i] = get_comp_from_c(swizzle[i]);
@@ -363,9 +337,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         
         ir_var_decl_t* src_var = node_to_ir(bin->rhs, ir, returned, func_count, funcs, call_id);
         if (!src_var) return NULL;
-        
-        if (src_var->comp != dest_comp)
-            return ir_set_error(ir, "Assignment of incompatible types."), NULL;
         
         ir_inst_t inst;
         inst.op = IR_OP_MOV;
@@ -395,9 +366,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         ir_var_decl_t* rhs = node_to_ir(bin->rhs, ir, returned, func_count, funcs, call_id);
         if (!lhs || !rhs) return NULL;
         
-        if (lhs->comp != rhs->comp)
-            return ir_set_error(ir, "Incompatible types in binary operation."), NULL;
-        
         ir_var_decl_t* dest = gen_temp_var(ir, lhs->comp, call_id);
         
         ir_inst_t inst;
@@ -426,15 +394,9 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     case NODET_MEMBER: {
         bin_node_t* bin = (bin_node_t*)node;
         
-        if (bin->rhs->type != NODET_ID)
-            return ir_set_error(ir, "Invalid swizzle."), NULL;
-        
         ir_var_decl_t* src = node_to_ir(bin->lhs, ir, returned, func_count, funcs, call_id);
         if (!src) return NULL;
         char* swizzle = ((id_node_t*)bin->rhs)->name;
-        
-        if (strlen(swizzle)<1 || strlen(swizzle)>4)
-            return ir_set_error(ir, "Invalid swizzle."), NULL;
         
         ir_var_decl_t* dest = gen_temp_var(ir, strlen(swizzle), call_id);
         
@@ -443,8 +405,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         inst.operand_count = 2;
         for (size_t i = 0; i < dest->comp; i++) {
             char mem = swizzle[i];
-            if (!is_valid_comp(mem, src->comp))
-                return ir_set_error(ir, "Invalid swizzle."), NULL;
             inst.operands[0] = create_var_operand(get_var_comp(dest, i));
             inst.operands[1] = create_var_operand(get_var_comp(src, get_comp_from_c(mem)));
             add_inst(ir, &inst);
@@ -500,8 +460,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         cond_node_t* if_ = (cond_node_t*)node;
         
         ir_var_decl_t* cond = node_to_ir(if_->condition, ir, returned, func_count, funcs, call_id);
-        if (cond->comp != 1)
-            return ir_set_error(ir, "Result type of condition must a boolean"), NULL;
         
         ir_inst_t inst;
         inst.op = IR_OP_BEGIN_IF;
@@ -541,8 +499,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         add_inst(ir, &inst);
         
         ir_var_decl_t* cond = node_to_ir(while_->condition, ir, returned, func_count, funcs, call_id);
-        if (cond->comp != 1)
-            return ir_set_error(ir, "Result type of condition must a boolean"), NULL;
         
         size_t end_while_cond_idx = ir->inst_count;
         inst.op = IR_OP_END_WHILE_COND;

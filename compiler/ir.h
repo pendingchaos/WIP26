@@ -111,7 +111,7 @@ typedef struct {
     size_t next_call_id;
 } ir_t;
 
-bool create_ir(const ast_t* ast, ir_t* ir);
+bool create_ir(const ast_t* ast, ir_t* ir); //AST should be validated
 void free_ir(ir_t* ir);
 void remove_redundant_moves(ir_t* ir);
 void add_drop_insts(ir_t* ir);
