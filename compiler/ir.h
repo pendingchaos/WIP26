@@ -2,6 +2,7 @@
 #define IR_H
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define IR_OPERAND_MAX 4
 

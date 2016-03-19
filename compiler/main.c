@@ -467,8 +467,6 @@ int main(int argc, char** argv) {
     free(output);
     free(type);
     
-    print_mem_stats();
-    
     return 0;
     
     error:
