@@ -43,27 +43,27 @@ typedef enum {
 typedef struct ast_t ast_t;
 
 typedef struct {
-    size_t func_count;
+    unsigned int func_count;
+    unsigned int call_id;
     char** funcs;
     char* name;
-    size_t call_id;
 } ir_var_name_t;
 
 typedef struct {
     ir_var_name_t name;
-    size_t comp;
+    uint8_t comp;
     unsigned int current_ver[4];
 } ir_var_decl_t;
 
 typedef struct {
     ir_var_decl_t* decl;
     unsigned int ver;
-    unsigned int comp_idx;
+    uint8_t comp_idx;
 } ir_var_t;
 
 typedef struct {
-    unsigned int index;
-    unsigned int comp;
+    uint8_t index;
+    uint8_t comp;
 } ir_attr_t;
 
 typedef struct {
@@ -77,38 +77,38 @@ typedef struct {
 
 typedef struct ir_inst_t ir_inst_t;
 struct ir_inst_t {
-    size_t id;
-    ir_opcode_t op;
-    size_t operand_count;
+    unsigned int id;
+    ir_opcode_t op:8;
+    uint8_t operand_count;
     ir_operand_t operands[IR_OPERAND_MAX];
     union {
-        size_t end; //Only with IR_OP_BEGIN_IF and IR_OP_PHI
-        size_t begin_if; //Only with IR_OP_END_IF
-        size_t end_while_cond; //Only with IR_OP_BEGIN_WHILE
-        size_t end_while; //Only with IR_OP_END_WHILE_COND
+        unsigned int end; //Only with IR_OP_BEGIN_IF and IR_OP_PHI
+        unsigned int begin_if; //Only with IR_OP_END_IF
+        unsigned int end_while_cond; //Only with IR_OP_BEGIN_WHILE
+        unsigned int end_while; //Only with IR_OP_END_WHILE_COND
     };
 };
 
 typedef struct {
-    size_t inst_count;
+    unsigned int inst_count;
     ir_inst_t* insts;
     char error[1024];
     unsigned int next_temp_var;
     
-    size_t var_count;
+    unsigned int var_count;
     ir_var_decl_t** vars;
     
-    size_t func_count;
+    unsigned int func_count;
     func_decl_node_t** funcs;
     
-    size_t attr_count;
+    unsigned int attr_count;
     ir_var_decl_t** attrs;
     
-    size_t uni_count;
+    unsigned int uni_count;
     ir_var_decl_t** unis;
     
-    size_t next_inst_id;
-    size_t next_call_id;
+    unsigned int next_inst_id;
+    unsigned int next_call_id;
 } ir_t;
 
 bool create_ir(const ast_t* ast, ir_t* ir); //AST should be validated

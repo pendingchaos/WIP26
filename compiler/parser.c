@@ -220,7 +220,7 @@ static node_t* parse_uni_decl(tokens_t* toks) {
 }
 
 static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_count, node_t*** stmts, size_t inc_dir_count, char** inc_dirs);
-static bool parse_stmts(tokens_t* toks, size_t* count_, node_t*** stmts_, bool in_braces, size_t inc_dir_count, char** inc_dirs) {
+static bool parse_stmts(tokens_t* toks, unsigned int* count_, node_t*** stmts_, bool in_braces, size_t inc_dir_count, char** inc_dirs) {
     size_t count = 0;
     node_t** stmts = NULL;
     while (true) {
@@ -323,7 +323,7 @@ static node_t* parse_func_decl(tokens_t* toks, size_t inc_dir_count, char** inc_
     token_t left_brace_tok;
     if (!expect_token(toks, TOKT_LEFT_BRACE, &left_brace_tok)) goto error2;
     
-    size_t stmt_count = 0;
+    unsigned int stmt_count = 0;
     node_t** stmts = NULL;
     if (!parse_stmts(toks, &stmt_count, &stmts, true, inc_dir_count, inc_dirs)) goto error;
     
@@ -408,7 +408,7 @@ static node_t* parse_include(tokens_t* toks, size_t* stmt_count, node_t*** stmts
     tokens_t toks2;
     create_tokens(&toks2, ast, source);
     
-    size_t new_stmt_count;
+    unsigned int new_stmt_count;
     node_t** new_stmts;
     if (!parse_stmts(&toks2, &new_stmt_count, &new_stmts, false, inc_dir_count, inc_dirs)) {
         free(source);
@@ -433,7 +433,7 @@ static node_t* parse_cond(tokens_t* toks, size_t inc_dir_count, char** inc_dirs)
     token_t left_brace_tok;
     if (!expect_token(toks, TOKT_LEFT_BRACE, &left_brace_tok)) return NULL;
     
-    size_t stmt_count = 0;
+    unsigned int stmt_count = 0;
     node_t** stmts = NULL;
     if (!parse_stmts(toks, &stmt_count, &stmts, true, inc_dir_count, inc_dirs)) return NULL;
     

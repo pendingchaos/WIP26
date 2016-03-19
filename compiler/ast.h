@@ -47,7 +47,7 @@ typedef struct cond_node_t cond_node_t;
 typedef struct ast_t ast_t;
 
 struct node_t {
-    node_type_t type;
+    node_type_t type:8;
     src_loc_t loc;
 };
 
@@ -81,7 +81,7 @@ struct decl_node_t {
 struct call_node_t {
     node_t head;
     char* func;
-    size_t arg_count;
+    unsigned int arg_count;
     node_t** args;
 };
 
@@ -89,8 +89,8 @@ struct func_decl_node_t {
     node_t head;
     char* name;
     char* ret_type;
-    size_t arg_count;
-    size_t stmt_count;
+    unsigned int arg_count;
+    unsigned int stmt_count;
     char** arg_names;
     char** arg_types;
     node_t** stmts;
@@ -99,12 +99,12 @@ struct func_decl_node_t {
 struct cond_node_t {
     node_t head;
     node_t* condition;
-    size_t stmt_count;
+    unsigned int stmt_count;
     node_t** stmts;
 };
 
 struct ast_t {
-    size_t stmt_count;
+    unsigned int stmt_count;
     node_t** stmts;
     char error[1024];
     mem_group_t* mem;

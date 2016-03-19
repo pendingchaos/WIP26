@@ -46,10 +46,10 @@ struct src_loc_t {
 };
 
 struct token_t {
-    token_type_t type;
+    token_type_t type:8;
+    src_loc_t loc;
     const char* begin;
     const char* end;
-    src_loc_t loc;
 };
 
 struct tokens_t {

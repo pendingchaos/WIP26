@@ -150,7 +150,7 @@ static void print_node(node_t* node, unsigned int indent) {
 static void print_inst(ir_t* ir, ir_inst_t inst) {
     if (inst.op == IR_OP_DROP) return;
     
-    printf("%zu\t", inst.id);
+    printf("%u\t", inst.id);
     
     switch (inst.op) {
     case IR_OP_MOV: printf("mov "); break;
@@ -186,7 +186,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
             printf("%f ", op.num);
             break;
         case IR_OPERAND_VAR:
-            printf("%zu_", op.var.decl->name.call_id);
+            printf("%u_", op.var.decl->name.call_id);
             for (size_t j = 0; j < op.var.decl->name.func_count; j++)
                 printf("%s::", op.var.decl->name.funcs[j]);
             printf("%s_%u", op.var.decl->name.name, op.var.ver);
@@ -204,15 +204,15 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     }
     
     if (inst.op == IR_OP_BEGIN_IF)
-        printf("until instruction %zu", inst.end);
+        printf("until instruction %u", inst.end);
     else if (inst.op == IR_OP_END_IF)
-        printf("starting at instruction %zu", inst.begin_if);
+        printf("starting at instruction %u", inst.begin_if);
     else if (inst.op == IR_OP_PHI)
-        printf("end instruction is %zu", inst.end);
+        printf("end instruction is %u", inst.end);
     else if (inst.op == IR_OP_BEGIN_WHILE)
-        printf("end condition instruction is %zu", inst.end_while_cond);
+        printf("end condition instruction is %u", inst.end_while_cond);
     else if (inst.op == IR_OP_END_WHILE_COND)
-        printf("end loop instruction is %zu", inst.end_while);
+        printf("end loop instruction is %u", inst.end_while);
     
     putchar('\n');
 }
@@ -466,6 +466,9 @@ int main(int argc, char** argv) {
     free(input);
     free(output);
     free(type);
+    
+    print_mem_stats();
+    
     return 0;
     
     error:
