@@ -122,6 +122,6 @@ node_t* create_nop_node(ast_t* ast);
 void free_node(node_t* node);
 bool free_ast(ast_t* ast);
 bool set_error(ast_t* ast, const char* format, ...);
-bool validate_ast(const ast_t* ast);
+bool validate_ast(ast_t* ast);
 bool add_drop_vars(ast_t* ast);
 #endif

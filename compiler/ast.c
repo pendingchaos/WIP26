@@ -114,10 +114,6 @@ bool set_error(ast_t* ast, const char* format, ...) {
     return false;
 }
 
-bool validate_ast(const ast_t* ast) {
-    return true;
-}
-
 static bool get_vars(ast_t* ast, size_t node_count, node_t** nodes, size_t* var_count, id_node_t** vars) {
     for (size_t i = 0; i < node_count; i++) {
         node_t* node = nodes[i];

@@ -38,7 +38,7 @@ func vec4(xyzw:float):vec4 {
     return xyzw.xxxx;
 }
 
-func bool(x:bool):float {
+func bool(x:bool):bool {
     return x;
 }
 
@@ -78,22 +78,6 @@ func bvec4(xyzw:bool):bvec4 {
     return xyzw.xxxx;
 }
 
-func saturate(x:float):float {
-    return min(max(x, 0.0), 1.0);
-}
-
-func saturate(x:vec2):vec2 {
-    return min(max(x, vec2(0.0)), vec2(1.0));
-}
-
-func saturate(x:vec3):vec3 {
-    return min(max(x, vec3(0.0)), vec3(1.0));
-}
-
-func saturate(x:vec4):vec4 {
-    return min(max(x, vec4(0.0)), vec4(1.0));
-}
-
 func dot(a:float, b:float):float {
     return a*b;
 }
@@ -126,6 +110,34 @@ func lerp(a:vec4, b:vec4, f:vec4):vec4 {
     return a*(vec4(1)-f) + b*f;
 }
 
+func sel(a:float, b:float, cond:bool):float {
+    return __sel(a, b, cond);
+}
+
+func sel(a:vec2, b:vec2, cond:bvec2):vec2 {
+    return __sel(a, b, cond);
+}
+
+func sel(a:vec3, b:vec3, cond:bvec3):vec3 {
+    return __sel(a, b, cond);
+}
+
+func sel(a:vec4, b:vec4, cond:bvec4):vec4 {
+    return __sel(a, b, cond);
+}
+
+func sel(a:vec2, b:vec2, cond:bool):vec2 {
+    return __sel(a, b, bvec2(cond));
+}
+
+func sel(a:vec3, b:vec3, cond:bool):vec3 {
+    return __sel(a, b, bvec3(cond));
+}
+
+func sel(a:vec4, b:vec4, cond:bool):vec4 {
+    return __sel(a, b, bvec4(cond));
+}
+
 func abs(v:float):float {
     return sel(-v, v, v<0.0);
 }
@@ -146,6 +158,22 @@ func length(v:float):float {
     return abs(v);
 }
 
+func sqrt(x:float):float {
+    return __sqrt(x);
+}
+
+func sqrt(x:vec2):vec2 {
+    return __sqrt(x);
+}
+
+func sqrt(x:vec3):vec3 {
+    return __sqrt(x);
+}
+
+func sqrt(x:vec4):vec4 {
+    return __sqrt(x);
+}
+
 func length(v:vec2):float {
     return sqrt(dot(v, v));
 }
@@ -162,48 +190,16 @@ func normalize(v:float):float {
     return v / length(v);
 }
 
-func normalize(v:vec2):float {
+func normalize(v:vec2):vec2 {
     return v / vec2(length(v));
 }
 
-func normalize(v:vec3):float {
+func normalize(v:vec3):vec3 {
     return v / vec3(length(v));
 }
 
-func normalize(v:vec4):float {
+func normalize(v:vec4):vec4 {
     return v / vec4(length(v));
-}
-
-func min(v:float):float {
-    return v;
-}
-
-func min(v:vec2):float {
-    return min(v.x, v.y);
-}
-
-func min(v:vec3):float {
-    return min(v.x, min(v.y, v.z));
-}
-
-func min(v:vec4):float {
-    return min(min(v.x, v.y), min(v.z, v.w));
-}
-
-func max(v:float):float {
-    return v;
-}
-
-func max(v:vec2):float {
-    return max(v.x, v.y);
-}
-
-func max(v:vec3):float {
-    return max(v.x, max(v.y, v.z));
-}
-
-func max(v:vec4):float {
-    return max(max(v.x, v.y), max(v.z, v.w));
 }
 
 func min(a:float, b:float):float {
@@ -222,6 +218,22 @@ func min(a:vec4, b:vec4):vec4 {
     return sel(a, b, a<b);
 }
 
+func min(v:float):float {
+    return v;
+}
+
+func min(v:vec2):float {
+    return min(v.x, v.y);
+}
+
+func min(v:vec3):float {
+    return min(v.x, min(v.y, v.z));
+}
+
+func min(v:vec4):float {
+    return min(min(v.x, v.y), min(v.z, v.w));
+}
+
 func max(a:float, b:float):float {
     return sel(a, b, a>b);
 }
@@ -238,20 +250,36 @@ func max(a:vec4, b:vec4):vec4 {
     return sel(a, b, a>b);
 }
 
-func sqrt(x:float):float {
-    return __sqrt(x);
+func max(v:float):float {
+    return v;
 }
 
-func sqrt(x:vec2):vec2 {
-    return __sqrt(x);
+func max(v:vec2):float {
+    return max(v.x, v.y);
 }
 
-func sqrt(x:vec3):vec3 {
-    return __sqrt(x);
+func max(v:vec3):float {
+    return max(v.x, max(v.y, v.z));
 }
 
-func sqrt(x:vec4):vec4 {
-    return __sqrt(x);
+func max(v:vec4):float {
+    return max(max(v.x, v.y), max(v.z, v.w));
+}
+
+func saturate(x:float):float {
+    return min(max(x, 0.0), 1.0);
+}
+
+func saturate(x:vec2):vec2 {
+    return min(max(x, vec2(0.0)), vec2(1.0));
+}
+
+func saturate(x:vec3):vec3 {
+    return min(max(x, vec3(0.0)), vec3(1.0));
+}
+
+func saturate(x:vec4):vec4 {
+    return min(max(x, vec4(0.0)), vec4(1.0));
 }
 
 func any(v:bool):bool {
@@ -284,34 +312,6 @@ func all(v:bvec3):bool {
 
 func all(v:bvec4):bool {
     return v.x && v.y && v.z && v.w;
-}
-
-func sel(a:float, b:float, cond:bool):float {
-    return __sel(a, b, cond);
-}
-
-func sel(a:vec2, b:vec2, cond:bvec2):vec2 {
-    return __sel(a, b, cond);
-}
-
-func sel(a:vec3, b:vec3, cond:bvec3):vec3 {
-    return __sel(a, b, cond);
-}
-
-func sel(a:vec4, b:vec4, cond:bvec4):vec4 {
-    return __sel(a, b, cond);
-}
-
-func sel(a:vec2, b:vec2, cond:bool):vec2 {
-    return __sel(a, b, bvec2(cond));
-}
-
-func sel(a:vec3, b:vec3, cond:bool):vec3 {
-    return __sel(a, b, bvec3(cond));
-}
-
-func sel(a:vec4, b:vec4, cond:bool):vec4 {
-    return __sel(a, b, bvec4(cond));
 }
 
 func del():void {

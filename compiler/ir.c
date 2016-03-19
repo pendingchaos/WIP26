@@ -377,7 +377,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
             add_inst(ir, &inst);
             dest_var->current_ver[dest_swizzle[i]]++;
         }
-        return dest_var;
+        return gen_temp_var(ir, 0, call_id);
     }
     case NODET_ADD:
     case NODET_SUB:
