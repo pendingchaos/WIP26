@@ -13,7 +13,7 @@
     'expected': {'v.x': [1.0, 2.0, 3.0]}
 },
 {
-    'name': 'addition',
+    'name': 'test addition',
     'source':
     '''attribute v:vec3;
     v.x = v.x + 1.0;
@@ -33,7 +33,7 @@
     }
 },
 {
-    'name': 'subtraction',
+    'name': 'test subtraction',
     'source':
     '''attribute v:vec3;
     v.x = v.x - 1.0;
@@ -53,7 +53,7 @@
     }
 },
 {
-    'name': 'multiplication',
+    'name': 'test multiplication',
     'source':
     '''attribute v:vec3;
     v.x = v.x * 4.0;
@@ -73,7 +73,7 @@
     }
 },
 {
-    'name': 'division',
+    'name': 'test division',
     'source':
     '''attribute v:vec3;
     v.x = v.x / 4.0;
@@ -93,7 +93,7 @@
     }
 },
 {
-    'name': 'power',
+    'name': 'test power',
     'source':
     '''attribute v:vec3;
     v.x = v.x ^ 4.0;
@@ -113,7 +113,7 @@
     }
 },
 {
-    'name': 'get and set member',
+    'name': 'test get and set member',
     'source':
     '''attribute v:vec3;
     var v2:vec3 = v;
@@ -134,7 +134,7 @@
     }
 },
 {
-    'name': 'swizzle',
+    'name': 'test swizzle',
     'source':
     '''attribute v:vec3;
     v.xzy = v.yzx;

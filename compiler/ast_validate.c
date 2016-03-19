@@ -144,7 +144,19 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         return error(state, node, "No such variable '%s'.", id->name);
     }
     case NODET_ASSIGN: {
-        //TODO
+        bin_node_t* bin = (bin_node_t*)node;
+        
+        dtype_t a = validate_node(state, bin->lhs, ret_type);
+        if (a == DTYPE_ERROR) return DTYPE_ERROR;
+        if (a == DTYPE_VOID) return error(state, bin->lhs, "Void value not ignored.");
+        
+        dtype_t b = validate_node(state, bin->rhs, ret_type);
+        if (b == DTYPE_ERROR) return DTYPE_ERROR;
+        if (b == DTYPE_VOID) return error(state, bin->rhs, "Void value not ignored.");
+        
+        if (a != b)
+            return error(state, node, "Assignment with operands of incompatible types.");
+        
         return DTYPE_VOID;
     }
     case NODET_ADD:
@@ -224,7 +236,7 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         
         state->vars = append_mem(state->vars, state->var_count++, sizeof(var_t), &var);
         
-        return DTYPE_VOID;
+        return var.dtype;
     }
     case NODET_RETURN: {
         if (ret_type == DTYPE_ERROR) return error(state, node, "Invalid return.");
@@ -246,6 +258,7 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
             if (arg_types[i] == DTYPE_ERROR) return DTYPE_ERROR;
         }
         
+        //TODO: This is probably the ugliest code I've ever written
         if (!strcmp(call->func, "__sqrt") && call->arg_count==1 &&
             get_base_type(arg_types[0])==DTYPE_FLOAT) return arg_types[0];
         else if (!strcmp(call->func, "__sel") && call->arg_count==3 &&
@@ -312,13 +325,14 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         state->funcs = append_mem(state->funcs, state->func_count++, sizeof(decl_node_t*), &decl);
         return DTYPE_VOID;
     }
-    case NODET_NEG: {
+    case NODET_NEG:
+    case NODET_BOOL_NOT: {
         node_t* val = ((unary_node_t*)node)->val;
         
         dtype_t a = validate_node(state, val, ret_type);
         if (a == DTYPE_ERROR) return DTYPE_ERROR;
-        if (get_base_type(a) == DTYPE_BOOL)
-            return error(state, val, "Invalid data type for negation.");
+        if (get_base_type(a) == (node->type==NODET_NEG ?DTYPE_BOOL : DTYPE_FLOAT))
+            return error(state, val, "Invalid data type for unary operation.");
         
         return a;
     }
@@ -338,8 +352,7 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         return DTYPE_VOID;
     }
     case NODET_BOOL_AND:
-    case NODET_BOOL_OR:
-    case NODET_BOOL_NOT: {
+    case NODET_BOOL_OR: {
         bin_node_t* bin = (bin_node_t*)node;
         
         dtype_t a = validate_node(state, bin->lhs, ret_type);
