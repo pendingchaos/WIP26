@@ -319,7 +319,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             regs[d] = sqrt(regs[a]);
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
-            delete_particle(system, index);
+            delete_particle(system->particles, index);
             return true;
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
@@ -387,7 +387,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             
             if (deleted_flags[index])
                 while (true) {
-                    vm_execute1(bc, deleted_flags ,index, system, regs, true);
+                    vm_execute1(bc, deleted_flags, index, system, regs, true);
                     if (!((uint32_t*)regs)[c]) break;
                     vm_execute1(body_bc, deleted_flags, index, system, regs, true);
                 }
@@ -413,7 +413,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
 static bool vm_execute8(const program_t* program, size_t offset, system_t* system) {
     bool deleted = true;
     for (uint_fast8_t i = 0; i < 8; i++)
-        deleted = deleted && system->deleted_flags[offset+i];
+        deleted = deleted && system->particles->deleted_flags[offset+i];
     if (deleted) return true;
     
     const uint8_t* bc = program->bc;
@@ -421,7 +421,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     
     for (size_t i = 0; i < program->attribute_count; i++) {
         float val[8];
-        load_attr(val, system->attributes[i], system->attribute_dtypes[i], offset);
+        int index = system->sim_attribute_indices[i];
+        load_attr(val, system->particles->attributes[index],
+                  system->particles->attribute_dtypes[index], offset);
         simd8f_init(regs+program->attribute_load_regs[i], val);
     }
     
@@ -486,8 +488,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         END_CASE
         BEGIN_CASE(BC_OP_DELETE)
             for (uint_fast8_t i = 0; i < 8; i++)
-                if (!system->deleted_flags[i])
-                    delete_particle(system, offset+i);
+                if (!system->particles->deleted_flags[i])
+                    delete_particle(system->particles, offset+i);
             goto end;
         END_CASE
         BEGIN_CASE(BC_OP_LESS)
@@ -542,13 +544,14 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             uint32_t v[8];
             simd8f_get(regs[c], (float*)v);
             for (uint_fast8_t i = 0; i < 8; i++) {
-                if (system->deleted_flags[offset+i]) continue;
+                if (system->particles->deleted_flags[offset+i]) continue;
                 if (!v[i]) continue;
                 
                 float fregs[256];
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     fregs[j] = ((float*)(regs+j))[i];
-                if (!vm_execute1(bc, system->deleted_flags, offset+i, system, fregs, true))
+                if (!vm_execute1(bc, system->particles->deleted_flags,
+                                 offset+i, system, fregs, true))
                     return false;
                 for (uint_fast16_t j = rmin; j < rmax+1; j++)
                     ((float*)(regs+j))[i] = fregs[j];
@@ -575,13 +578,14 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             const uint8_t* body_bc = bc + cond_count;
             
             for (uint_fast8_t i = 0; i < 8; i++) {
-                if (system->deleted_flags[offset+i]) continue;
+                if (system->particles->deleted_flags[offset+i]) continue;
                 
                 while (true) {
                     float fregs[256];
                     for (uint_fast16_t j = crmin; j < crmax+1; j++)
                         fregs[j] = ((float*)(regs+j))[i];
-                    if (!vm_execute1(bc, system->deleted_flags, offset+i, system, fregs, true))
+                    if (!vm_execute1(bc, system->particles->deleted_flags,
+                                     offset+i, system, fregs, true))
                         return false;
                     for (uint_fast16_t j = crmin; j < crmax+1; j++)
                         ((float*)(regs+j))[i] = fregs[j];
@@ -590,7 +594,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                     
                     for (uint_fast16_t j = brmin; j < brmax+1; j++)
                         fregs[j] = ((float*)(regs+j))[i];
-                    if (!vm_execute1(body_bc, system->deleted_flags, offset+i, system, fregs, true))
+                    if (!vm_execute1(body_bc, system->particles->deleted_flags,
+                                     offset+i, system, fregs, true))
                         return false;
                     for (uint_fast16_t j = brmin; j < brmax+1; j++)
                         ((float*)(regs+j))[i] = fregs[j];
@@ -612,8 +617,10 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     
     end:
     for (size_t i = 0; i < program->attribute_count; i++) {
-        store_attr((const float*)(regs+program->attribute_store_regs[i]),
-                   system->attributes[i], system->attribute_dtypes[i], offset);
+        int index = system->sim_attribute_indices[i];
+        store_attr((const float*)(regs+program->attribute_store_regs[index]),
+                   system->particles->attributes[index],
+                   system->particles->attribute_dtypes[index], offset);
     }
     return true;
 }
@@ -646,7 +653,7 @@ static bool vm_destroy_program(program_t* program) {
 
 static bool vm_simulate_system(system_t* system) {
     const program_t* p = system->sim_program;
-    for (size_t i = 0; i < system->pool_size; i += 8)
+    for (size_t i = 0; i < system->particles->pool_size; i += 8)
         if (!vm_execute8(p, i, system))
             return false;
     

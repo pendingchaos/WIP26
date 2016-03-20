@@ -53,12 +53,14 @@ static const char* fragment_source = "#version 120\n"
 static bool glfw_init = false;
 static bool runtime_init = false;
 static bool program_init = false;
+static bool particles_init = false;
 static bool system_init = false;
 static bool gl_program_init = false;
 
 static GLFWwindow* window;
 static runtime_t runtime;
 static program_t program;
+static particles_t particles;
 static system_t particle_system;
 static int posx_index;
 static int posy_index;
@@ -176,6 +178,7 @@ static void on_scroll(GLFWwindow* window, double x, double y) {
 static void deinit() {
     if (gl_program_init) glDeleteProgram(gl_program);
     if (system_init) destroy_system(&particle_system);
+    if (particles_init) destroy_particles(&particles);
     if (program_init) destroy_program(&program);
     if (runtime_init) destroy_runtime(&runtime);
     if (glfw_init) glfwTerminate();
@@ -198,16 +201,16 @@ static void init_particle(unsigned int index) {
         velz /= vlen;
     }
     
-    ((float*)particle_system.attributes[posx_index])[index] = 0.0f;
-    ((float*)particle_system.attributes[posy_index])[index] = 0.0f;
-    ((float*)particle_system.attributes[posz_index])[index] = 0.0f;
-    ((float*)particle_system.attributes[velx_index])[index] = velx*0.005f;
-    ((float*)particle_system.attributes[vely_index])[index] = vely*0.005f;
-    ((float*)particle_system.attributes[velz_index])[index] = velz*0.005f;
-    ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
-    ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
-    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;
-    ((float*)particle_system.attributes[time_index])[index] = 0.0;
+    ((float*)particles.attributes[posx_index])[index] = 0.0f;
+    ((float*)particles.attributes[posy_index])[index] = 0.0f;
+    ((float*)particles.attributes[posz_index])[index] = 0.0f;
+    ((float*)particles.attributes[velx_index])[index] = velx*0.005f;
+    ((float*)particles.attributes[vely_index])[index] = vely*0.005f;
+    ((float*)particles.attributes[velz_index])[index] = velz*0.005f;
+    ((uint8_t*)particles.attributes[colr_index])[index] = 0;
+    ((uint8_t*)particles.attributes[colg_index])[index] = 0;
+    ((uint8_t*)particles.attributes[colb_index])[index] = 0;
+    ((float*)particles.attributes[time_index])[index] = 0.0;
     /*float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posy = rand() / (double)RAND_MAX * 2.0 - 1.0;
     float posz = rand() / (double)RAND_MAX * 2.0 - 1.0;
@@ -222,15 +225,15 @@ static void init_particle(unsigned int index) {
     
     float plen = sqrt(posx*posx + posy*posy + posz*posz);
     float dist = 0.0f; //rand() / (double)RAND_MAX;
-    ((float*)particle_system.attributes[posx_index])[index] = posx/plen*dist;
-    ((float*)particle_system.attributes[posy_index])[index] = posy/plen*dist;
-    ((float*)particle_system.attributes[posz_index])[index] = posz/plen*dist;
-    ((float*)particle_system.attributes[velx_index])[index] = velx/vlen*0.005f;
-    ((float*)particle_system.attributes[vely_index])[index] = vely/vlen*0.005f;
-    ((float*)particle_system.attributes[velz_index])[index] = velz/vlen*0.005f;
-    ((uint8_t*)particle_system.attributes[colr_index])[index] = 0;
-    ((uint8_t*)particle_system.attributes[colg_index])[index] = 0;
-    ((uint8_t*)particle_system.attributes[colb_index])[index] = 0;*/
+    ((float*)particles.attributes[posx_index])[index] = posx/plen*dist;
+    ((float*)particles.attributes[posy_index])[index] = posy/plen*dist;
+    ((float*)particles.attributes[posz_index])[index] = posz/plen*dist;
+    ((float*)particles.attributes[velx_index])[index] = velx/vlen*0.005f;
+    ((float*)particles.attributes[vely_index])[index] = vely/vlen*0.005f;
+    ((float*)particles.attributes[velz_index])[index] = velz/vlen*0.005f;
+    ((uint8_t*)particles.attributes[colr_index])[index] = 0;
+    ((uint8_t*)particles.attributes[colg_index])[index] = 0;
+    ((uint8_t*)particles.attributes[colb_index])[index] = 0;*/
 }
 
 static void create_gl_program() {
@@ -309,46 +312,42 @@ int main() {
         FAIL("Failed to open main.sim.bin: %s", runtime.error);
     program_init = true;
     
-    posx_index = get_attribute_index(&program, "pos.x");
-    if (posx_index < 0) FAIL("Failed to find attribute \"pos.x\".");
-    posy_index = get_attribute_index(&program, "pos.y");
-    if (posy_index < 0) FAIL("Failed to find attribute \"pos.y\".");
-    posz_index = get_attribute_index(&program, "pos.z");
-    if (posz_index < 0) FAIL("Failed to find attribute \"pos.z\".");
-    velx_index = get_attribute_index(&program, "vel.x");
-    if (velx_index < 0) FAIL("Failed to find attribute \"vel.x\".");
-    vely_index = get_attribute_index(&program, "vel.y");
-    if (vely_index < 0) FAIL("Failed to find attribute \"vel.y\".");
-    velz_index = get_attribute_index(&program, "vel.z");
-    if (velz_index < 0) FAIL("Failed to find attribute \"vel.z\".");
-    colr_index = get_attribute_index(&program, "col.x");
-    if (colr_index < 0) FAIL("Failed to find attribute \"col.x\".");
-    colg_index = get_attribute_index(&program, "col.y");
-    if (colg_index < 0) FAIL("Failed to find attribute \"col.y\".");
-    colb_index = get_attribute_index(&program, "col.z");
-    if (colb_index < 0) FAIL("Failed to find attribute \"col.z\".");
-    time_index = get_attribute_index(&program, "time.x");
-    if (time_index < 0) FAIL("Failed to find attribute \"time.x\".");
+    particles.runtime = &runtime;
+    if (!create_particles(&particles, 300000))
+        FAIL("Failed to create particles: %s", runtime.error);
+    particles_init = true;
+    
+    if (!add_attribute(&particles, "pos.x", ATTR_FLOAT32, &posx_index))
+        FAIL("Failed to add pos.x attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "pos.y", ATTR_FLOAT32, &posy_index))
+        FAIL("Failed to add pos.y attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "pos.z", ATTR_FLOAT32, &posz_index))
+        FAIL("Failed to add pos.z attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "vel.x", ATTR_FLOAT32, &velx_index))
+        FAIL("Failed to add vel.x attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "vel.y", ATTR_FLOAT32, &vely_index))
+        FAIL("Failed to add vel.y attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "vel.z", ATTR_FLOAT32, &velz_index))
+        FAIL("Failed to add vel.z attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "col.x", ATTR_UINT8, &colr_index))
+        FAIL("Failed to add col.x attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "col.y", ATTR_UINT8, &colg_index))
+        FAIL("Failed to add col.y attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "col.z", ATTR_UINT8, &colb_index))
+        FAIL("Failed to add col.z attribute: %s", runtime.error);
+    if (!add_attribute(&particles, "time.x", ATTR_FLOAT32, &time_index))
+        FAIL("Failed to add time.x attribute: %s", runtime.error);
     
     particle_system.runtime = &runtime;
-    particle_system.pool_size = 300000;
+    particle_system.particles = &particles;
     particle_system.sim_program = &program;
-    particle_system.attribute_dtypes[posx_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[posy_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[posz_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[velx_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[vely_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[velz_index] = ATTR_FLOAT32;
-    particle_system.attribute_dtypes[colr_index] = ATTR_UINT8;
-    particle_system.attribute_dtypes[colg_index] = ATTR_UINT8;
-    particle_system.attribute_dtypes[colb_index] = ATTR_UINT8;
-    particle_system.attribute_dtypes[time_index] = ATTR_FLOAT32;
+    particle_system.emit_program = NULL;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
     
     for (size_t i = 0; i < 100000; i++) {
-        int index = spawn_particle(&particle_system);
+        int index = spawn_particle(&particles);
         if (index >= 0) init_particle(index);
         else FAIL("Failed to spawn particle: %s", runtime.error);
     }
@@ -371,13 +370,13 @@ int main() {
     glEnableVertexAttribArray(colg_loc);
     glEnableVertexAttribArray(colb_loc);
     glEnableVertexAttribArray(deleted_loc);
-    float* posx = particle_system.attributes[posx_index];
-    float* posy = particle_system.attributes[posy_index];
-    float* posz = particle_system.attributes[posz_index];
-    uint8_t* colr = particle_system.attributes[colr_index];
-    uint8_t* colg = particle_system.attributes[colg_index];
-    uint8_t* colb = particle_system.attributes[colb_index];
-    uint8_t* deleted = particle_system.deleted_flags;
+    float* posx = particles.attributes[posx_index];
+    float* posy = particles.attributes[posy_index];
+    float* posz = particles.attributes[posz_index];
+    uint8_t* colr = particles.attributes[colr_index];
+    uint8_t* colg = particles.attributes[colg_index];
+    uint8_t* colb = particles.attributes[colb_index];
+    uint8_t* deleted = particles.deleted_flags;
     glVertexAttribPointer(posx_loc, 1, GL_FLOAT, GL_FALSE, 0, posx);
     glVertexAttribPointer(posy_loc, 1, GL_FLOAT, GL_FALSE, 0, posy);
     glVertexAttribPointer(posz_loc, 1, GL_FLOAT, GL_FALSE, 0, posz);
@@ -402,7 +401,7 @@ int main() {
             angleb += radians(30.0f) * frametime;
         if (glfwGetKey(window, GLFW_KEY_S)) {
             for (size_t i = 0; i < 50000*frametime; i++) {
-                int index = spawn_particle(&particle_system);
+                int index = spawn_particle(&particles);
                 if (index >= 0) init_particle(index);
                 else {
                     WARN("Failed to spawn particle: %s", runtime.error);
@@ -432,7 +431,7 @@ int main() {
         loc = glGetUniformLocation(gl_program, "uProj");
         glUniformMatrix4fv(loc, 1, GL_FALSE, (const GLfloat*)&proj);
         
-        glDrawArrays(GL_POINTS, 0, particle_system.pool_size);
+        glDrawArrays(GL_POINTS, 0, particles.pool_size);
         
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -441,9 +440,9 @@ int main() {
         
         char title[256];
         frametime = end - begin;
-        float usage = (double)particle_system.pool_usage/particle_system.pool_size;
-        float nspp = (sim_end-sim_begin)*1000000000.0/particle_system.pool_usage;
-        float ppms = particle_system.pool_usage / ((sim_end-sim_begin)*1000.0);
+        float usage = (double)particles.pool_usage/particles.pool_size;
+        float nspp = (sim_end-sim_begin)*1000000000.0/particles.pool_usage;
+        float ppms = particles.pool_usage / ((sim_end-sim_begin)*1000.0);
         static const char* format = "Frametime: %.0f mspf - Pool usage: %.0f%c - Simulated in %.0f ms (%.0f nspp %.0f ppms)";
         snprintf(title, 256, format, frametime*1000.0f, usage*100.0, '%', (sim_end-sim_begin)*1000.0f, nspp, ppms);
         glfwSetWindowTitle(window, title);

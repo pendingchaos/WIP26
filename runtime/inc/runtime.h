@@ -25,7 +25,8 @@ typedef enum bc_op_t {
     BC_OP_WHILE_BEGIN = 17,
     BC_OP_WHILE_END_COND = 18,
     BC_OP_WHILE_END = 19,
-    BC_OP_END = 20
+    BC_OP_END = 20,
+    BC_OP_EMIT = 21
 } bc_op_t;
 
 typedef enum program_type_t {
@@ -47,6 +48,7 @@ typedef enum attr_dtype_t {
 typedef struct runtime_t runtime_t;
 typedef struct backend_t backend_t;
 typedef struct program_t program_t;
+typedef struct particles_t particles_t;
 typedef struct system_t system_t;
 
 struct backend_t {
@@ -80,19 +82,32 @@ struct program_t {
     void* backend_internal;
 };
 
-struct system_t {
+struct particles_t {
     runtime_t* runtime;
-    program_t* sim_program;
+    
     size_t pool_size;
     size_t pool_usage;
     int* nexts;
     int next_particle;
     
-    void* attributes[256];
+    char* attribute_names[256];
     attr_dtype_t attribute_dtypes[256];
+    void* attributes[256];
     uint8_t* deleted_flags;
+};
+
+struct system_t {
+    runtime_t* runtime;
+    program_t* sim_program;
+    program_t* emit_program;
+    
+    particles_t* particles;
     
     float sim_uniforms[256];
+    uint8_t sim_attribute_indices[256];
+    
+    float emit_uniforms[256];
+    uint8_t emit_attribute_indices[256];
 };
 
 bool create_runtime(runtime_t* runtime, const char* backend);
@@ -106,9 +121,13 @@ bool validate_program(const program_t* program);
 int get_attribute_index(const program_t* program, const char* name);
 int get_uniform_index(const program_t* program, const char* name);
 
+bool create_particles(particles_t* particles, size_t pool_size);
+bool destroy_particles(particles_t* particles);
+bool add_attribute(particles_t* particles, const char* name, attr_dtype_t dtype, int* index);
+
 bool create_system(system_t* system);
 bool destroy_system(system_t* system);
 bool simulate_system(system_t* system);
-int spawn_particle(system_t* system);
-bool delete_particle(system_t* system, int index);
+int spawn_particle(particles_t* particles);
+bool delete_particle(particles_t* particles, int index);
 #endif
