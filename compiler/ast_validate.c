@@ -274,6 +274,8 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         else if (!strcmp(call->func, "__emit") && call->arg_count==0/* &&
                  state->ptype == PROGT_EMIT*/)
             return DTYPE_VOID;
+        else if (!strcmp(call->func, "__rand") && call->arg_count==0)
+            return DTYPE_FLOAT;
         
         for (size_t i = 0; i < state->func_count; i++)
             if (!strcmp(state->funcs[i]->name, call->func)) {

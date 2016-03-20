@@ -321,3 +321,19 @@ func del():void {
 func emit():void {
     __emit();
 }
+
+func rand1():float {
+    return __rand();
+}
+
+func rand2():vec2 {
+    return vec2(rand1(), rand1());
+}
+
+func rand3():vec3 {
+    return vec3(rand1(), rand1(), rand1());
+}
+
+func rand4():vec4 {
+    return vec4(rand1(), rand1(), rand1(), rand1());
+}

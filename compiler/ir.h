@@ -28,6 +28,7 @@ typedef enum {
     IR_OP_BOOL_OR,
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
+    IR_OP_RAND,
     IR_OP_STORE_ATTR, //Must be at the end for simulation programs
     IR_OP_SEL,
     IR_OP_BEGIN_IF,

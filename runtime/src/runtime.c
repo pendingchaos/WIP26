@@ -142,6 +142,7 @@ bool validate_program(const program_t* program) { //TODO: Validate conditional b
         bc_op_t op = *bc++;
         size_t required = 0;
         switch (op) {
+        case BC_OP_RAND: required = 1; break;
         case BC_OP_MOVF: required = 5; break;
         case BC_OP_ADD:
         case BC_OP_SUB:

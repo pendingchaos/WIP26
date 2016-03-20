@@ -133,6 +133,7 @@ static bool is_builtin_func(call_node_t* call, ir_var_decl_t** args) {
     else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0]->comp==args[1]->comp && args[2]->comp==args[0]->comp) return true;
     else if (!strcmp(call->func, "__del") && call->arg_count==0) return true;
     else if (!strcmp(call->func, "__emit") && call->arg_count==0) return true;
+    else if (!strcmp(call->func, "__rand") && call->arg_count==0) return true;
     return false;
 }
 
@@ -193,6 +194,14 @@ static ir_var_decl_t* gen_builtin_func(ir_t* ir, call_node_t* call, ir_var_decl_
         inst.operand_count = 0;
         add_inst(ir, &inst);
         return gen_temp_var(ir, 0, call_id);
+    } else if (!strcmp(call->func, "__rand")) {
+        ir_var_decl_t* dest = gen_temp_var(ir, 1, call_id);
+        ir_inst_t inst;
+        inst.op = IR_OP_RAND;
+        inst.operand_count = 1;
+        inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
+        add_inst(ir, &inst);
+        return dest;
     }
     
     assert(false);

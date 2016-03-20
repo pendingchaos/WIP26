@@ -168,6 +168,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_BOOL_OR: printf("boolor "); break;
     case IR_OP_BOOL_NOT: printf("boolnot "); break;
     case IR_OP_SQRT: printf("sqrt "); break;
+    case IR_OP_RAND: printf("rand "); break;
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_SEL: printf("sel "); break;
     case IR_OP_BEGIN_IF: printf("beginif "); break;
@@ -269,6 +270,10 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             }
             break;
         }
+        case BC_OP_RAND: {
+            printf("rand r%u\n", *bc++);
+            break;
+        }
         case BC_OP_DELETE: {
             printf("delete\n");
             break;
@@ -305,7 +310,7 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             uint8_t bregmin = *bc++;
             uint8_t bregmax = *bc++;
             printf("beginwhile r%u (endcond at %u) (cond registers %u-%u) (endwhile at %u) (body registers %u-%u)\n",
-                   c, (unsigned int)(bc-begin) + cond_count, cregmin, cregmax, (unsigned int)(bc-begin)+cond_count+body_count,
+                   c, (unsigned int)(bc-begin)+cond_count-1, cregmin, cregmax, (unsigned int)(bc-begin)+cond_count+body_count,
                    bregmin, bregmax);
             break;
         }

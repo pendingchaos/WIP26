@@ -323,7 +323,7 @@ int main() {
     particle_system.runtime = &runtime;
     particle_system.particles = &particles;
     particle_system.sim_program = &sim_program;
-    particle_system.emit_program = /*&emit_program*/NULL;
+    particle_system.emit_program = &emit_program;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;
@@ -381,16 +381,9 @@ int main() {
             angleb -= radians(30.0f) * frametime;
         if (glfwGetKey(window, GLFW_KEY_DOWN))
             angleb += radians(30.0f) * frametime;
-        if (glfwGetKey(window, GLFW_KEY_S)) {
-            for (size_t i = 0; i < 50000*frametime; i++) {
-                int index = spawn_particle(&particles);
-                if (index >= 0) init_particle(index);
-                else {
-                    WARN("Failed to spawn particle: %s", runtime.error);
-                    break;
-                }
-            }
-        }
+        
+        int index = get_uniform_index(&emit_program, "count.x");
+        particle_system.emit_uniforms[index] = glfwGetKey(window, GLFW_KEY_S) ? 50000*frametime : 0;
         
         double sim_begin = glfwGetTime();
         if (!simulate_system(&particle_system))

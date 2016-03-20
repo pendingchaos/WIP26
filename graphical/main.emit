@@ -5,13 +5,16 @@ attribute vel:vec3;
 attribute col:vec3;
 attribute time:float;
 
+uniform count:float;
+
 var i:float = 0;
 
-while i < 100 {
+while i < count {
     pos = vec3(0);
-    vel = normalize(vec3(1, i/50-1, 1)) * vec3(0.005);
+    vel = normalize(rand3()*vec3(2, 1, 2)-vec3(1, 0, 1)) * vec3(0.005);
     col = vec3(1);
     time = 0;
     emit();
     i = i + 1;
+    count = count + 0.0; #TODO: Workaround for bug
 }

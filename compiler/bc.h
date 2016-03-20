@@ -29,7 +29,8 @@ typedef enum {
     BC_OP_WHILE_END_COND = 18,
     BC_OP_WHILE_END = 19,
     BC_OP_END = 20,
-    BC_OP_EMIT = 21
+    BC_OP_EMIT = 21,
+    BC_OP_RAND = 22
 } bc_op_t;
 
 typedef struct {

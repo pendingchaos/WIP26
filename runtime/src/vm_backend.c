@@ -10,9 +10,14 @@
 #include <string.h>
 #include <math.h>
 #include <endian.h>
+#include <stdlib.h>
 #ifdef VM_AVX
 #include <immintrin.h>
 #endif
+
+float randf() {
+    return rand() / (float)RAND_MAX;
+}
 
 #ifdef VM_AVX
 typedef __m256 simd8f_t;
@@ -178,6 +183,10 @@ static void simd8f_get(simd8f_t v, float* dest) {
 }
 #endif
 
+static void simd8f_rand(simd8f_t *dest) {
+    for (uint_fast8_t i = 0; i < 8; i++) ((float*)dest)[i] = randf();
+}
+
 #ifdef VM_COMPUTED_GOTO
 #define DISPATCH goto* dispatch_table[*bc++]
 #define BEGIN_CASE(op) op: {
@@ -299,7 +308,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND};
     DISPATCH;
     #else
     while (true) {
@@ -399,8 +408,10 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             bc += 6;
             
             if (deleted_flags[index]) bc += le32toh(count);
-            else if (((uint32_t*)regs)[c]) vm_execute1(bc, deleted_flags, index, system, regs, true);
-            else bc += le32toh(count);
+            else if (((uint32_t*)regs)[c]) {
+                if (!vm_execute1(bc, deleted_flags, index, system, regs, true))
+                    return false;
+            } else bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
             if (cond) return true;
@@ -416,9 +427,11 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             
             if (!deleted_flags[index])
                 while (true) {
-                    vm_execute1(bc, deleted_flags, index, system, regs, true);
+                    if (!vm_execute1(bc, deleted_flags, index, system, regs, true))
+                        return false;
                     if (!((uint32_t*)regs)[c]) break;
-                    vm_execute1(body_bc, deleted_flags, index, system, regs, true);
+                    if (!vm_execute1(body_bc, deleted_flags, index, system, regs, true))
+                        return false;
                 }
             
             bc = body_bc + body_count;
@@ -435,6 +448,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
         BEGIN_CASE(BC_OP_EMIT)
             int particle_index = spawn_particle(system->particles);
             if (particle_index < 0) return false;
+            
             uint8_t count = *bc++;
             for (size_t i = 0; i < count; i++) {
                 int attr_index = system->sim_attribute_indices[i];
@@ -443,6 +457,9 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
                             particle_index);
             }
         END_CASE
+        BEGIN_CASE(BC_OP_RAND)
+            regs[*bc++] = randf();
+        END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
         }
@@ -450,7 +467,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
     #endif
 }
 
-static bool vm_execute8(const program_t* program, size_t offset, system_t* system) {
+static bool vm_execute8(const program_t* program, size_t offset, system_t* system, uint8_t* attr_indices, float* uniforms) {
     bool deleted = true;
     for (uint_fast8_t i = 0; i < 8; i++)
         deleted = deleted && system->particles->deleted_flags[offset+i];
@@ -461,14 +478,14 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     
     for (size_t i = 0; i < program->attribute_count; i++) {
         float val[8];
-        int index = system->sim_attribute_indices[i];
+        int index = attr_indices[i];
         load_attr(val, system->particles->attributes[index],
                   system->particles->attribute_dtypes[index], offset);
         simd8f_init(regs+program->attribute_load_regs[i], val);
     }
     
     for (size_t i = 0; i < program->uniform_count; i++)
-        simd8f_init1(regs+program->uniform_regs[i], system->sim_uniforms[i]);
+        simd8f_init1(regs+program->uniform_regs[i], uniforms[i]);
     
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
@@ -478,7 +495,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND};
     DISPATCH;
     #else
     while (true) {
@@ -652,6 +669,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         BEGIN_CASE(BC_OP_EMIT)
             //TODO: Not implemented
         END_CASE
+        BEGIN_CASE(BC_OP_RAND)
+            simd8f_rand(regs + *bc++);
+        END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
         }
@@ -660,7 +680,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     
     end:
     for (size_t i = 0; i < program->attribute_count; i++) {
-        int index = system->sim_attribute_indices[i];
+        int index = attr_indices[i];
         store_attr((const float*)(regs+program->attribute_store_regs[i]),
                    system->particles->attributes[index],
                    system->particles->attribute_dtypes[index], offset);
@@ -699,6 +719,9 @@ static bool vm_simulate_system(system_t* system) {
     if (p) {
         uint8_t d = 0;
         float regs[256];
+        for (size_t i = 0; i < p->uniform_count; i++) {
+            regs[p->uniform_regs[i]] = system->emit_uniforms[i];
+        }
         if (!vm_execute1(p->bc, &d, 0, system, regs, false))
             return false;
     }
@@ -706,7 +729,7 @@ static bool vm_simulate_system(system_t* system) {
     p = system->sim_program;
     if (p)
         for (size_t i = 0; i < system->particles->pool_size; i += 8)
-            if (!vm_execute8(p, i, system))
+            if (!vm_execute8(p, i, system, system->sim_attribute_indices, system->sim_uniforms))
                 return false;
     
     return true;

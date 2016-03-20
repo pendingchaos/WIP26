@@ -301,6 +301,13 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             if (!write_unary(state, inst)) goto error;
             break;
         }
+        case IR_OP_RAND: {
+            int dest_reg = get_reg(state, inst->operands[0].var);
+            if (dest_reg < 0) goto error;
+            WRITEB(BC_OP_RAND);
+            WRITEB(dest_reg);
+            break;
+        }
         case IR_OP_DELETE: {
             WRITEB(BC_OP_DELETE);
             break;
