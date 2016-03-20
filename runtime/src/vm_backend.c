@@ -261,6 +261,35 @@ void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t of
     }
 }
 
+void store_attr1(float val, void* attribute, attr_dtype_t dtype, size_t index) {
+    switch (dtype) {
+    case ATTR_UINT8:
+        ((uint8_t*)attribute)[index] = val * 255.0f;
+        break;
+    case ATTR_INT8:
+        ((int8_t*)attribute)[index] = val * 127.0f;
+        break;
+    case ATTR_UINT16:
+        ((uint16_t*)attribute)[index] = val * 65535.0f;
+        break;
+    case ATTR_INT16:
+        ((int16_t*)attribute)[index] = val * 32767.0f;
+        break;
+    case ATTR_UINT32:
+        ((uint32_t*)attribute)[index] = val * 4294967295.0;
+        break;
+    case ATTR_INT32:
+        ((int32_t*)attribute)[index] = val * 2147483647.0;
+        break;
+    case ATTR_FLOAT32:
+        ((float*)attribute)[index] = val;
+        break;
+    case ATTR_FLOAT64:
+        ((double*)attribute)[index] = val;
+        break;
+    }
+}
+
 static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t index, system_t* system, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
     static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
@@ -270,7 +299,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT};
     DISPATCH;
     #else
     while (true) {
@@ -385,7 +414,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             
             const uint8_t* body_bc = bc + cond_count;
             
-            if (deleted_flags[index])
+            if (!deleted_flags[index])
                 while (true) {
                     vm_execute1(bc, deleted_flags, index, system, regs, true);
                     if (!((uint32_t*)regs)[c]) break;
@@ -402,6 +431,17 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
         END_CASE
         BEGIN_CASE(BC_OP_END)
             return true;
+        END_CASE
+        BEGIN_CASE(BC_OP_EMIT)
+            int particle_index = spawn_particle(system->particles);
+            if (particle_index < 0) return false;
+            uint8_t count = *bc++;
+            for (size_t i = 0; i < count; i++) {
+                int attr_index = system->sim_attribute_indices[i];
+                store_attr1(regs[*bc++], system->particles->attributes[attr_index],
+                            system->particles->attribute_dtypes[attr_index],
+                            particle_index);
+            }
         END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
@@ -438,7 +478,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT};
     DISPATCH;
     #else
     while (true) {
@@ -609,6 +649,9 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         BEGIN_CASE(BC_OP_END)
             goto end;
         END_CASE
+        BEGIN_CASE(BC_OP_EMIT)
+            //TODO: Not implemented
+        END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
         }
@@ -652,10 +695,19 @@ static bool vm_destroy_program(program_t* program) {
 }
 
 static bool vm_simulate_system(system_t* system) {
-    const program_t* p = system->sim_program;
-    for (size_t i = 0; i < system->particles->pool_size; i += 8)
-        if (!vm_execute8(p, i, system))
+    const program_t* p = system->emit_program;
+    if (p) {
+        uint8_t d = 0;
+        float regs[256];
+        if (!vm_execute1(p->bc, &d, 0, system, regs, false))
             return false;
+    }
+    
+    p = system->sim_program;
+    if (p)
+        for (size_t i = 0; i < system->particles->pool_size; i += 8)
+            if (!vm_execute8(p, i, system))
+                return false;
     
     return true;
 }

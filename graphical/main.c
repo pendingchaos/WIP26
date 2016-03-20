@@ -52,14 +52,16 @@ static const char* fragment_source = "#version 120\n"
 
 static bool glfw_init = false;
 static bool runtime_init = false;
-static bool program_init = false;
+static bool sim_program_init = false;
+static bool emit_program_init = false;
 static bool particles_init = false;
 static bool system_init = false;
 static bool gl_program_init = false;
 
 static GLFWwindow* window;
 static runtime_t runtime;
-static program_t program;
+static program_t sim_program;
+static program_t emit_program;
 static particles_t particles;
 static system_t particle_system;
 static int posx_index;
@@ -179,7 +181,8 @@ static void deinit() {
     if (gl_program_init) glDeleteProgram(gl_program);
     if (system_init) destroy_system(&particle_system);
     if (particles_init) destroy_particles(&particles);
-    if (program_init) destroy_program(&program);
+    if (emit_program_init) destroy_program(&emit_program);
+    if (sim_program_init) destroy_program(&sim_program);
     if (runtime_init) destroy_runtime(&runtime);
     if (glfw_init) glfwTerminate();
 }
@@ -307,10 +310,15 @@ int main() {
         FAIL("Failed to create runtime: %s", runtime.error);
     runtime_init = true;
     
-    program.runtime = &runtime;
-    if (!open_program("main.sim.bin", &program))
+    sim_program.runtime = &runtime;
+    if (!open_program("main.sim.bin", &sim_program))
         FAIL("Failed to open main.sim.bin: %s", runtime.error);
-    program_init = true;
+    sim_program_init = true;
+    
+    emit_program.runtime = &runtime;
+    if (!open_program("main.emit.bin", &emit_program))
+        FAIL("Failed to open main.emit.bin: %s", runtime.error);
+    emit_program_init = true;
     
     particles.runtime = &runtime;
     if (!create_particles(&particles, 300000))
@@ -340,8 +348,8 @@ int main() {
     
     particle_system.runtime = &runtime;
     particle_system.particles = &particles;
-    particle_system.sim_program = &program;
-    particle_system.emit_program = NULL;
+    particle_system.sim_program = &sim_program;
+    particle_system.emit_program = /*&emit_program*/NULL;
     if (!create_system(&particle_system))
         FAIL("Failed to create particle system: %s", runtime.error);
     system_init = true;

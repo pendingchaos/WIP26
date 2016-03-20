@@ -269,7 +269,10 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             }
             break;
         }
-        case BC_OP_DELETE: {printf("delete\n"); break;}
+        case BC_OP_DELETE: {
+            printf("delete\n");
+            break;
+        }
         case BC_OP_SEL: {
             uint8_t d = *bc++;
             uint8_t a = *bc++;
@@ -306,6 +309,10 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
                    bregmin, bregmax);
             break;
         }
+        case BC_OP_WHILE_END_COND: {
+            printf("endwhilecond\n");
+            break;
+        }
         case BC_OP_WHILE_END: {
             printf("endwhile\n");
             break;
@@ -318,6 +325,9 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             uint8_t count = *bc++;
             for (size_t i = 0; i < count; i++) printf("%u ", *bc++);
             putchar('\n');
+            break;
+        default:
+            printf("(error)\n");
             break;
         }
     }

@@ -275,7 +275,7 @@ bool create_system(system_t* system) {
     if (system->sim_program && system->sim_program->type != PROGRAM_TYPE_SIMULATION)
         return set_error(system->runtime, "Simulation program is not a simulation program");
     if (system->emit_program && system->emit_program->type != PROGRAM_TYPE_EMITTER)
-        return set_error(system->runtime, "Simulation program is not a simulation program");
+        return set_error(system->runtime, "Emitter program is not a emitter program");
     
     memset(system->sim_uniforms, 0, sizeof(system->sim_uniforms));
     memset(system->emit_uniforms, 0, sizeof(system->emit_uniforms));
