@@ -193,16 +193,13 @@ static void _fail(int status) {
 }
 
 static void init_particle(unsigned int index) {
-    float velx=0.0f, vely=0.0f, velz=0.0f, vlen=-1.0f;
-    while ((vlen <= 0.0f) || (vely<0.0f)) {
-        velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        vely = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        vlen = sqrt(velx*velx + vely*vely + velz*velz);
-        velx /= vlen;
-        vely /= vlen;
-        velz /= vlen;
-    }
+    float velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
+    float vely = rand() / (double)RAND_MAX;
+    float velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
+    float vlen = sqrt(velx*velx + vely*vely + velz*velz);
+    velx /= vlen;
+    vely /= vlen;
+    velz /= vlen;
     
     ((float*)particles.attributes[posx_index])[index] = 0.0f;
     ((float*)particles.attributes[posy_index])[index] = 0.0f;
@@ -214,29 +211,6 @@ static void init_particle(unsigned int index) {
     ((uint8_t*)particles.attributes[colg_index])[index] = 0;
     ((uint8_t*)particles.attributes[colb_index])[index] = 0;
     ((float*)particles.attributes[time_index])[index] = 0.0;
-    /*float posx = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    float posy = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    float posz = rand() / (double)RAND_MAX * 2.0 - 1.0;
-    
-    float velx, vely, velz, vlen=-1.0f;
-    while (vlen <= 0.0f) {
-        velx = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        vely = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        velz = rand() / (double)RAND_MAX * 2.0 - 1.0;
-        vlen = sqrt(velx*velx + vely*vely + velz*velz);
-    }
-    
-    float plen = sqrt(posx*posx + posy*posy + posz*posz);
-    float dist = 0.0f; //rand() / (double)RAND_MAX;
-    ((float*)particles.attributes[posx_index])[index] = posx/plen*dist;
-    ((float*)particles.attributes[posy_index])[index] = posy/plen*dist;
-    ((float*)particles.attributes[posz_index])[index] = posz/plen*dist;
-    ((float*)particles.attributes[velx_index])[index] = velx/vlen*0.005f;
-    ((float*)particles.attributes[vely_index])[index] = vely/vlen*0.005f;
-    ((float*)particles.attributes[velz_index])[index] = velz/vlen*0.005f;
-    ((uint8_t*)particles.attributes[colr_index])[index] = 0;
-    ((uint8_t*)particles.attributes[colg_index])[index] = 0;
-    ((uint8_t*)particles.attributes[colb_index])[index] = 0;*/
 }
 
 static void create_gl_program() {
