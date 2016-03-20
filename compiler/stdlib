@@ -317,3 +317,7 @@ func all(v:bvec4):bool {
 func del():void {
     __del();
 }
+
+func emit():void {
+    __emit();
+}

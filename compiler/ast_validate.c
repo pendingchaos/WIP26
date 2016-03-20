@@ -30,6 +30,7 @@ typedef struct var_t {
 
 typedef struct state_t {
     ast_t* ast;
+    prog_type_t ptype;
     
     size_t func_count;
     func_decl_node_t** funcs;
@@ -266,7 +267,12 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
                  get_comp(arg_types[0])==get_comp(arg_types[2]) &&
                  get_base_type(arg_types[2])==DTYPE_BOOL)
             return arg_types[0];
-        else if (!strcmp(call->func, "__del") && call->arg_count==0)
+        //TODO: These should only be valid for the correct programs
+        else if (!strcmp(call->func, "__del") && call->arg_count==0/* &&
+                 state->ptype == PROGT_SIM*/)
+            return DTYPE_VOID;
+        else if (!strcmp(call->func, "__emit") && call->arg_count==0/* &&
+                 state->ptype == PROGT_EMIT*/)
             return DTYPE_VOID;
         
         for (size_t i = 0; i < state->func_count; i++)
@@ -377,9 +383,10 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
     }
 }
 
-bool validate_ast(ast_t* ast) {
+bool validate_ast(ast_t* ast, prog_type_t ptype) {
     state_t state;
     memset(&state, 0, sizeof(state_t));
+    state.ptype = ptype;
     state.ast = ast;
     
     bool res = true;

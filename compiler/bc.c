@@ -305,6 +305,17 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             WRITEB(BC_OP_DELETE);
             break;
         }
+        case IR_OP_EMIT: {
+            WRITEB(BC_OP_EMIT);
+            size_t count = 0;
+            for (size_t i = 0; i < state->res_bc->ir->attr_count; i++)
+                count += state->res_bc->ir->attrs[i]->comp;
+            WRITEB(count);
+            for (size_t i = 0; i < state->res_bc->ir->attr_count; i++)
+                for (size_t j = 0; j < state->res_bc->ir->attrs[i]->comp; j++)
+                    WRITEB(state->res_bc->attr_store_regs[i*4+j]);
+            break;
+        }
         case IR_OP_DROP: {
             drop_var(state, inst->operands[0].var);
             break;
@@ -474,10 +485,10 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
         return false;
 }
 
-bool gen_bc(bc_t* bc, bool simulation) {
+bool gen_bc(bc_t* bc) {
     bc->error[0] = 0;
     
-    bc->simulation = simulation;
+    bc->ptype = bc->ir->ptype;
     
     bc->attr_load_regs = alloc_mem(bc->ir->attr_count*4);
     bc->attr_store_regs = alloc_mem(bc->ir->attr_count*4);
@@ -532,7 +543,7 @@ bool gen_bc(bc_t* bc, bool simulation) {
 }
 
 bool write_bc(FILE* dest, const bc_t* bc) {
-    if (bc->simulation) fwrite("SIMv0.0 ", 8, 1, dest);
+    if (bc->ptype == PROGT_SIM) fwrite("SIMv0.0 ", 8, 1, dest);
     else fwrite("EMTv0.0 ", 8, 1, dest);
     
     uint8_t attr_count = 0;
@@ -555,10 +566,12 @@ bool write_bc(FILE* dest, const bc_t* bc) {
             fwrite(bc->ir->attrs[i]->name.name, name_len-2, 1, dest);
             fwrite(".", 1, 1, dest);
             fwrite("xyzw"+j, 1, 1, dest);
-            uint8_t lreg = bc->attr_load_regs[i*4+j];
-            uint8_t sreg = bc->attr_store_regs[i*4+j];
-            fwrite(&lreg, 1, 1, dest);
-            fwrite(&sreg, 1, 1, dest);
+            if (bc->ptype == PROGT_SIM) {
+                uint8_t lreg = bc->attr_load_regs[i*4+j];
+                uint8_t sreg = bc->attr_store_regs[i*4+j];
+                fwrite(&lreg, 1, 1, dest);
+                fwrite(&sreg, 1, 1, dest);
+            }
         }
     }
     

@@ -1,5 +1,7 @@
 #ifndef IR_H
 #define IR_H
+#include "shared.h"
+
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,6 +19,7 @@ typedef enum {
     IR_OP_POW,
     IR_OP_NEG,
     IR_OP_DELETE,
+    IR_OP_EMIT,
     IR_OP_DROP,
     IR_OP_LESS,
     IR_OP_GREATER,
@@ -25,7 +28,7 @@ typedef enum {
     IR_OP_BOOL_OR,
     IR_OP_BOOL_NOT,
     IR_OP_SQRT,
-    IR_OP_STORE_ATTR, //Must be at the end
+    IR_OP_STORE_ATTR, //Must be at the end for simulation programs
     IR_OP_SEL,
     IR_OP_BEGIN_IF,
     IR_OP_END_IF,
@@ -91,6 +94,8 @@ struct ir_inst_t {
 };
 
 typedef struct {
+    prog_type_t ptype;
+    
     unsigned int inst_count;
     ir_inst_t* insts;
     char error[1024];
@@ -112,7 +117,7 @@ typedef struct {
     unsigned int next_call_id;
 } ir_t;
 
-bool create_ir(const ast_t* ast, ir_t* ir); //AST should be validated
+bool create_ir(const ast_t* ast, prog_type_t ptype, ir_t* ir); //AST should be validated
 void free_ir(ir_t* ir);
 void remove_redundant_moves(ir_t* ir);
 void add_drop_insts(ir_t* ir);

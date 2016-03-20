@@ -132,6 +132,7 @@ static bool is_builtin_func(call_node_t* call, ir_var_decl_t** args) {
     if (!strcmp(call->func, "__sqrt") && call->arg_count==1) return true;
     else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0]->comp==args[1]->comp && args[2]->comp==args[0]->comp) return true;
     else if (!strcmp(call->func, "__del") && call->arg_count==0) return true;
+    else if (!strcmp(call->func, "__emit") && call->arg_count==0) return true;
     return false;
 }
 
@@ -163,6 +164,32 @@ static ir_var_decl_t* gen_builtin_func(ir_t* ir, call_node_t* call, ir_var_decl_
     } else if (!strcmp(call->func, "__del")) {
         ir_inst_t inst;
         inst.op = IR_OP_DELETE;
+        inst.operand_count = 0;
+        add_inst(ir, &inst);
+        return gen_temp_var(ir, 0, call_id);
+    } else if (!strcmp(call->func, "__emit")) {
+        for (size_t i = 0; i < ir->attr_count; i++) {
+            ir_var_decl_t* var = NULL;
+            for (size_t j = 0; j < ir->var_count; j++)
+                if (ir->vars[j]->name.func_count==0 &&
+                    !strcmp(ir->vars[j]->name.name, ir->attrs[i]->name.name)) {
+                    var = ir->vars[j];
+                    break;
+                }
+            assert(var);
+            
+            ir_inst_t inst;
+            inst.op = IR_OP_STORE_ATTR;
+            inst.operand_count = 2;
+            for (size_t j = 0; j < ir->attrs[i]->comp; j++) {
+                inst.operands[0] = create_attr_operand(i, j);
+                inst.operands[1] = create_var_operand(get_var_comp(var, j));
+                add_inst(ir, &inst);
+            }
+        }
+        
+        ir_inst_t inst;
+        inst.op = IR_OP_EMIT;
         inst.operand_count = 0;
         add_inst(ir, &inst);
         return gen_temp_var(ir, 0, call_id);
@@ -239,6 +266,8 @@ static ir_var_decl_t* gen_func_call(ir_t* ir, call_node_t* call, size_t func_cou
             return res;
         }
     }
+    
+    free(new_funcs);
     
     return gen_temp_var(ir, get_dtype_comp(func->ret_type), call_id);
 }
@@ -558,8 +587,9 @@ void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t**
     }
 }
 
-bool create_ir(const ast_t* ast, ir_t* ir) {
+bool create_ir(const ast_t* ast, prog_type_t ptype, ir_t* ir) {
     memset(ir, 0, sizeof(ir_t));
+    ir->ptype = ptype;
     
     bool returned = false;
     ir->next_call_id = 1;
@@ -575,25 +605,26 @@ bool create_ir(const ast_t* ast, ir_t* ir) {
         }
     }
     
-    for (size_t i = 0; i < ir->attr_count; i++) {
-        ir_var_decl_t* var = NULL;
-        for (size_t j = 0; j < ir->var_count; j++)
-            if (ir->vars[j]->name.func_count==0 &&
-                !strcmp(ir->vars[j]->name.name, ir->attrs[i]->name.name)) {
-                var = ir->vars[j];
-                break;
+    if (ir->ptype == PROGT_SIM)
+        for (size_t i = 0; i < ir->attr_count; i++) {
+            ir_var_decl_t* var = NULL;
+            for (size_t j = 0; j < ir->var_count; j++)
+                if (ir->vars[j]->name.func_count==0 &&
+                    !strcmp(ir->vars[j]->name.name, ir->attrs[i]->name.name)) {
+                    var = ir->vars[j];
+                    break;
+                }
+            assert(var);
+            
+            ir_inst_t inst;
+            inst.op = IR_OP_STORE_ATTR;
+            inst.operand_count = 2;
+            for (size_t j = 0; j < ir->attrs[i]->comp; j++) {
+                inst.operands[0] = create_attr_operand(i, j);
+                inst.operands[1] = create_var_operand(get_var_comp(var, j));
+                add_inst(ir, &inst);
             }
-        assert(var);
-        
-        ir_inst_t inst;
-        inst.op = IR_OP_STORE_ATTR;
-        inst.operand_count = 2;
-        for (size_t j = 0; j < ir->attrs[i]->comp; j++) {
-            inst.operands[0] = create_attr_operand(i, j);
-            inst.operands[1] = create_var_operand(get_var_comp(var, j));
-            add_inst(ir, &inst);
         }
-    }
     
     return true;
 }

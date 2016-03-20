@@ -177,6 +177,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_END_WHILE: printf("endloop "); break;
     case IR_OP_PHI: printf("phi "); break;
     case IR_OP_STORE_ATTR: printf("storep "); break;
+    case IR_OP_EMIT: printf("emit "); break;
     }
     
     for (size_t i = 0; i < inst.operand_count; i++) {
@@ -312,6 +313,12 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
         case BC_OP_END:
             printf("end\n");
             break;
+        case BC_OP_EMIT:
+            printf("emit ");
+            uint8_t count = *bc++;
+            for (size_t i = 0; i < count; i++) printf("%u ", *bc++);
+            putchar('\n');
+            break;
         }
     }
     assert(bc == end);
@@ -383,7 +390,9 @@ int main(int argc, char** argv) {
     }
     free(source);
     
-    if (!validate_ast(&ast)) {
+    prog_type_t ptype = strcmp(type, "sim") ? PROGT_EMIT : PROGT_SIM;
+    
+    if (!validate_ast(&ast, ptype)) {
         fprintf(stderr, "Error: %s\n", ast.error);
         free_ast(&ast);
         goto error;
@@ -400,7 +409,7 @@ int main(int argc, char** argv) {
             print_node(ast.stmts[i], 0);
     
     ir_t ir;
-    if (!create_ir(&ast, &ir)) {
+    if (!create_ir(&ast, ptype, &ir)) {
         fprintf(stderr, "Error: %s\n", ir.error);
         free_ast(&ast);
         free_ir(&ir);
@@ -420,7 +429,7 @@ int main(int argc, char** argv) {
     
     bc_t bc;
     bc.ir = &ir;
-    if (!gen_bc(&bc, !strcmp(type, "sim"))) {
+    if (!gen_bc(&bc)) {
         fprintf(stderr, "Error: %s\n", bc.error);
         free_bc(&bc);
         free_ir(&ir);

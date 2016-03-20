@@ -2,6 +2,11 @@
 #define SHARED_H
 #include <stddef.h>
 
+typedef enum {
+    PROGT_SIM,
+    PROGT_EMIT
+} prog_type_t;
+
 typedef struct {
     size_t count;
     void** allocs;

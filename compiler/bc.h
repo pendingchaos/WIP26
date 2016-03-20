@@ -1,6 +1,7 @@
 #ifndef BC_H
 #define BC_H
 #include "ir.h"
+#include "shared.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -27,13 +28,14 @@ typedef enum {
     BC_OP_WHILE_BEGIN = 17,
     BC_OP_WHILE_END_COND = 18,
     BC_OP_WHILE_END = 19,
-    BC_OP_END = 20
+    BC_OP_END = 20,
+    BC_OP_EMIT = 21
 } bc_op_t;
 
 typedef struct {
     ir_t* ir;
+    prog_type_t ptype;
     
-    bool simulation;
     size_t bc_size;
     uint8_t* bc;
     uint8_t* attr_load_regs;
@@ -42,7 +44,7 @@ typedef struct {
     char error[1024];
 } bc_t;
 
-bool gen_bc(bc_t* bc, bool simulation);
+bool gen_bc(bc_t* bc);
 bool write_bc(FILE* dest, const bc_t* bc);
 void free_bc(bc_t* bc);
 #endif
