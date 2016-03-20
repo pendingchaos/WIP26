@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 #define MAX_DIFF 0.0001f
@@ -33,7 +34,7 @@ static bool float_equal(float a, float b) {
 int main(int argc, char** argv) {
     runtime_t runtime;
     if (!create_runtime(&runtime, "vm")) {
-        fprintf(stderr, "Unable to create runtime: %s\n", runtime.error);
+        fprintf(stderr, "Failed to create runtime: %s\n", runtime.error);
         return 1;
     }
     
@@ -49,21 +50,16 @@ int main(int argc, char** argv) {
     program_t program;
     program.runtime = &runtime;
     if (!open_program(prog, &program)) {
-        fprintf(stderr, "Unable to open %s: %s\n", prog, runtime.error);
+        fprintf(stderr, "Failed to open %s: %s\n", prog, runtime.error);
         return 1;
     }
     
-    system_t system;
-    system.runtime = &runtime;
-    system.pool_size = count;
-    system.sim_program = &program;
-    for (size_t i = 0; i < 256; i++) system.attribute_dtypes[i] = ATTR_FLOAT32;
-    create_system(&system);
-    for (size_t i = 0; i < count; i++)
-        if (spawn_particle(&system) < 0) {
-            fprintf(stderr, "Unable to spawn particle: %s\n", runtime.error);
-            return 1;
-        }
+    particles_t particles;
+    particles.runtime = &runtime;
+    if (!create_particles(&particles, count)) {
+        fprintf(stderr, "Failed to create particles: %s\n", runtime.error);
+        return 1;
+    }
     
     for (int i = 3; i<argc;) {
         if (argv[i][0] == 'p') {
@@ -72,22 +68,48 @@ int main(int argc, char** argv) {
             const char* input = argv[i+1];
             int particle_index = atoi(argv[i+3]);
             
-            int index = get_attribute_index(&program, name);
-            if (index < 0) {
-                fprintf(stderr, "Unable to find attribute \"%s\"\n", name);
-                return 1;
-            }
+            int index = -1;
+            for (size_t i = 0; i < 256; i++)
+                if (particles.attribute_names[i] && !strcmp(particles.attribute_names[i], name)) {
+                    index = i;
+                    break;
+                }
+            if (index < 0)
+                if (!add_attribute(&particles, name, ATTR_FLOAT32, &index)) {
+                    fprintf(stderr, "Failed to add attribute \"%s\"\n", name);
+                    return 1;
+                }
             
-            ((float*)system.attributes[index])[particle_index] = atof(input);
+            ((float*)particles.attributes[index])[particle_index] = atof(input);
             i += 4;
-        } else if (argv[i][0] == 'u') {
+        } else if (argv[i][0] == 'u') i += 3;
+    }
+    
+    for (size_t i = 0; i < count; i++)
+        if (spawn_particle(&particles) < 0) {
+            fprintf(stderr, "Failed to spawn particle: %s\n", runtime.error);
+            return 1;
+        }
+    
+    system_t system;
+    system.runtime = &runtime;
+    system.particles = &particles;
+    system.sim_program = &program;
+    system.emit_program = NULL;
+    if (!create_system(&system)) {
+        fprintf(stderr, "Failed to create particle system: %s\n", runtime.error);
+        return 1;
+    }
+    for (int i = 3; i<argc;) {
+        if (argv[i][0] == 'p') i += 5;
+        else if (argv[i][0] == 'u') {
             i++;
             const char* name = argv[i];
             const char* input = argv[i+1];
             
             int index = get_uniform_index(&program, name);
             if (index < 0) {
-                fprintf(stderr, "Unable to find uniform \"%s\"\n", name);
+                fprintf(stderr, "Failed to find uniform \"%s\"\n", name);
                 return 1;
             }
             
@@ -97,7 +119,7 @@ int main(int argc, char** argv) {
     }
     
     if (!simulate_system(&system)) {
-        fprintf(stderr, "Unable to execute program: %s\n", runtime.error);
+        fprintf(stderr, "Failed to execute program: %s\n", runtime.error);
         destroy_program(&program);
         return 1;
     }
@@ -109,13 +131,14 @@ int main(int argc, char** argv) {
             const char* expected = argv[i+2];
             int particle_index = atoi(argv[i+3]);
             
-            int index = get_attribute_index(&program, name);
-            if (index < 0) {
-                fprintf(stderr, "Unable to find attribute \"%s\"\n", name);
-                return 1;
-            }
+            int index = 0;
+            for (size_t i = 0; i < 256; i++)
+                if (particles.attribute_names[i] && !strcmp(particles.attribute_names[i], name)) {
+                    index = i;
+                    break;
+                }
             
-            float val = ((float*)system.attributes[index])[particle_index];
+            float val = ((float*)particles.attributes[index])[particle_index];
             if (!float_equal(val, atof(expected))) {
                 fprintf(stderr, "Incorrect value for attribute \"%s\" for particle %d. Expected %f. Got %f\n",
                         name, particle_index, atof(expected), val);
@@ -125,17 +148,22 @@ int main(int argc, char** argv) {
         } else if (argv[i][0] == 'u') i += 3;
     
     if (!destroy_system(&system)) {
-        fprintf(stderr, "Unable to destroy program: %s\n", runtime.error);
+        fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);
+        return 1;
+    }
+    
+    if (!destroy_particles(&particles)) {
+        fprintf(stderr, "Failed to destroy particles: %s\n", runtime.error);
         return 1;
     }
     
     if (!destroy_program(&program)) {
-        fprintf(stderr, "Unable to destroy program: %s\n", runtime.error);
+        fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);
         return 1;
     }
     
     if (!destroy_runtime(&runtime)) {
-        fprintf(stderr, "Unable to destroy runtime: %s\n", runtime.error);
+        fprintf(stderr, "Failed to destroy runtime: %s\n", runtime.error);
         return 1;
     }
     

@@ -81,6 +81,10 @@ int main() {
         fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);
         return 1;
     }
+    if (!destroy_particles(&particles)) {
+        fprintf(stderr, "Failed to destroy particles: %s\n", runtime.error);
+        return 1;
+    }
     if (!destroy_program(&program)) {
         fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);
         return 1;

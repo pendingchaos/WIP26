@@ -6,7 +6,7 @@
     "expected": {}
 },
 {
-    'name': 'passthough',
+    'name': 'test passthough',
     'source': 'attribute v:float;',
     'count': 3,
     'attributes': {'v.x': [1.0, 2.0, 3.0]},

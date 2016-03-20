@@ -618,7 +618,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     end:
     for (size_t i = 0; i < program->attribute_count; i++) {
         int index = system->sim_attribute_indices[i];
-        store_attr((const float*)(regs+program->attribute_store_regs[index]),
+        store_attr((const float*)(regs+program->attribute_store_regs[i]),
                    system->particles->attributes[index],
                    system->particles->attribute_dtypes[index], offset);
     }

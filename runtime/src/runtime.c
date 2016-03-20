@@ -216,17 +216,19 @@ bool create_particles(particles_t* particles, size_t pool_size) {
     particles->pool_size = pool_size;
     particles->pool_usage = 0;
     particles->nexts = malloc(pool_size*sizeof(int));
-    if (!particles->nexts) return set_error(particles->runtime, "Failed to allocate next indices");
-    for (size_t i = 0; i < particles->pool_size-1; i++)
-        particles->nexts[i] = i + 1;
-    particles->nexts[pool_size-1] = -1;
+    if (!particles->nexts && pool_size) return set_error(particles->runtime, "Failed to allocate next indices");
+    if (pool_size) {
+        for (int i = 0; i < particles->pool_size-1; i++)
+            particles->nexts[i] = i + 1;
+        particles->nexts[pool_size-1] = -1;
+    }
     particles->next_particle = 0;
     
     memset(particles->attribute_names, 0, sizeof(particles->attribute_names));
     memset(particles->attributes, 0, sizeof(particles->attributes));
     
     particles->deleted_flags = malloc(pool_size);
-    if (!particles->deleted_flags) {
+    if (!particles->deleted_flags && pool_size) {
         free(particles->nexts);
         particles->nexts = NULL;
         return set_error(particles->runtime, "Failed to allocate deleted flags");
