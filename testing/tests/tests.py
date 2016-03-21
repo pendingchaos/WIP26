@@ -490,7 +490,7 @@
     }
 },
 {
-    'name': 'test while',
+    'name': 'test loops',
     'source':
     '''attribute v:vec2;
     while v.x < 5 {
