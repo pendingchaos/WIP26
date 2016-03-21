@@ -104,6 +104,10 @@ static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
     *dest = _mm256_loadu_ps(destf);
 }
 
+static void simd8f_floor(simd8f_t* dest, simd8f_t a) {
+    *dest = _mm256_floor_ps(a);
+}
+
 static void simd8f_init1(simd8f_t* dest, float v) {
     *dest = _mm256_set1_ps(v);
 }
@@ -168,6 +172,10 @@ static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
 
 static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
     for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = cond.i[i] ? b.v[i] : a.v[i];
+}
+
+static void simd8f_floor(simd8f_t* dest, simd8f_t a) {
+    for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = floorf(a.v[i]);
 }
 
 static void simd8f_init1(simd8f_t* dest, float v) {
@@ -308,7 +316,8 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
+                                     &&BC_OP_FLOOR};
     DISPATCH;
     #else
     while (true) {
@@ -460,6 +469,11 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
         BEGIN_CASE(BC_OP_RAND)
             regs[*bc++] = randf();
         END_CASE
+        BEGIN_CASE(BC_OP_FLOOR)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            regs[d] = floorf(regs[a]);
+        END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
         }
@@ -495,7 +509,8 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                                      &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND};
+                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
+                                     &&BC_OP_FLOOR};
     DISPATCH;
     #else
     while (true) {
@@ -671,6 +686,11 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         END_CASE
         BEGIN_CASE(BC_OP_RAND)
             simd8f_rand(regs + *bc++);
+        END_CASE
+        BEGIN_CASE(BC_OP_FLOOR)
+            uint8_t d = *bc++;
+            uint8_t a = *bc++;
+            simd8f_floor(regs+d, regs[a]);
         END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}

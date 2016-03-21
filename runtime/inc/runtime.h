@@ -27,7 +27,8 @@ typedef enum bc_op_t {
     BC_OP_WHILE_END = 19,
     BC_OP_END = 20,
     BC_OP_EMIT = 21,
-    BC_OP_RAND = 22
+    BC_OP_RAND = 22,
+    BC_OP_FLOOR = 23
 } bc_op_t;
 
 typedef enum program_type_t {

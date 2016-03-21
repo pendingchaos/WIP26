@@ -155,7 +155,8 @@ bool validate_program(const program_t* program) { //TODO: Validate conditional b
         case BC_OP_BOOL_AND:
         case BC_OP_BOOL_OR: required = 3; break;
         case BC_OP_SQRT:
-        case BC_OP_BOOL_NOT: required = 2; break;
+        case BC_OP_BOOL_NOT:
+        case BC_OP_FLOOR: required = 2; break;
         case BC_OP_SEL: required = 4; break;
         case BC_OP_COND_BEGIN: required = 7; break;
         case BC_OP_WHILE_BEGIN: required = 13; break;
