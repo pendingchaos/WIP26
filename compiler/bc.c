@@ -466,7 +466,7 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             
             WRITEB(BC_OP_WHILE_END);
             
-            i += (end-insts)+1; //Skip instructions and endwhile
+            i = (end-insts)+1; //Skip instructions and endwhile
             break;
         }
         case IR_OP_END_IF:

@@ -492,22 +492,28 @@
 {
     'name': 'test loops',
     'source':
-    '''attribute v:vec2;
+    '''attribute v:vec3;
     while v.x < 5 {
         v.x = v.x + 1;
     }
     for var i:float; i<5; i=i+1 {
         v.y = v.y + 1;
     }
+    var c:float = 5;
+    while v.z < c {
+        v.z = v.z + 1;
+    }
     ''',
     'count': 1,
     'attributes': {
         'v.x': [1.0],
-        'v.y': [1.0]
+        'v.y': [1.0],
+        'v.z': [1.0]
     },
     'expected': {
         'v.x': [5.0],
-        'v.y': [5.0]
+        'v.y': [5.0],
+        'v.z': [5.0]
     }
 },
 {
