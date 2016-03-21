@@ -504,4 +504,25 @@
     'expected': {
         'v.x': [5.0]
     }
+},
+{
+    'name': 'test floor, ceil, fract',
+    'source':
+    '''include stdlib;
+    attribute v:vec3;
+    v.x = floor(v.x);
+    v.y = ceil(v.y);
+    v.z = fract(v.z);
+    ''',
+    'count': 1,
+    'attributes': {
+        'v.x': [1.5],
+        'v.y': [1.5],
+        'v.z': [1.5]
+    },
+    'expected': {
+        'v.x': [1.0],
+        'v.y': [2.0],
+        'v.z': [0.5]
+    }
 }
