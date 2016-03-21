@@ -443,6 +443,51 @@ static node_t* parse_cond(tokens_t* toks, size_t inc_dir_count, char** inc_dirs)
     return res;
 }
 
+static node_t* parse_for(tokens_t* toks, size_t* stmt_count, node_t*** stmts, size_t inc_dir_count, char** inc_dirs) {
+    token_t for_tok;
+    if (!get_token(toks, &for_tok)) return NULL;
+    
+    bool _1;
+    size_t _2 = 0;
+    node_t** _3 = NULL;
+    node_t* init = parse_stmt(toks, &_1, &_2, &_3, inc_dir_count, inc_dirs);
+    if (!init) return NULL;
+    if (_2)
+        return set_error(toks->ast, "%u:%u: Invalid for loop initialization", for_tok.loc.line, for_tok.loc.column), NULL;
+    *stmts = append_mem(*stmts, (*stmt_count)++, sizeof(node_t*), &init);
+    
+    token_t semicolon_tok;
+    if (!expect_token(toks, TOKT_SEMICOLON, &semicolon_tok)) return NULL;
+    
+    node_t* cond = parse_stmt(toks, &_1, &_2, &_3, inc_dir_count, inc_dirs);
+    if (!cond) return NULL;
+    if (_2)
+        return set_error(toks->ast, "%u:%u: Invalid for loop condition", for_tok.loc.line, for_tok.loc.column), NULL;
+    
+    if (!expect_token(toks, TOKT_SEMICOLON, &semicolon_tok)) return NULL;
+    
+    node_t* after = parse_stmt(toks, &_1, &_2, &_3, inc_dir_count, inc_dirs);
+    if (!after) return NULL;
+    if (_2)
+        return set_error(toks->ast, "%u:%u: Invalid for loop afterthought", for_tok.loc.line, for_tok.loc.column), NULL;
+    
+    if (peek_token(toks, &semicolon_tok))
+        if (semicolon_tok.type == TOKT_SEMICOLON)
+            get_token(toks, &semicolon_tok);
+    
+    token_t left_brace_tok;
+    if (!expect_token(toks, TOKT_LEFT_BRACE, &left_brace_tok)) return NULL;
+    
+    unsigned int body_stmt_count = 0;
+    node_t** body_stmts = NULL;
+    if (!parse_stmts(toks, &body_stmt_count, &body_stmts, true, inc_dir_count, inc_dirs)) return NULL;
+    body_stmts = append_mem(body_stmts, body_stmt_count++, sizeof(node_t*), &after);
+    
+    node_t* res = (node_t*)create_cond_node(toks->ast, for_tok.loc, NODET_WHILE, body_stmt_count, body_stmts, cond);
+    free(body_stmts);
+    return res;
+}
+
 static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_count, node_t*** stmts, size_t inc_dir_count, char** inc_dirs) {
     *semicolon_req = true;
     token_t tok;
@@ -457,6 +502,7 @@ static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_coun
     case TOKT_RETURN: return parse_return(toks);
     case TOKT_IF:
     case TOKT_WHILE: return *semicolon_req=false, parse_cond(toks, inc_dir_count, inc_dirs);
+    case TOKT_FOR: return *semicolon_req=false, parse_for(toks, stmt_count, stmts, inc_dir_count, inc_dirs);
     case TOKT_ID:
         if (!strncmp(tok.begin, "include", 7) && (tok.end-tok.begin)==7)
             return parse_include(toks, stmt_count, stmts, inc_dir_count, inc_dirs);

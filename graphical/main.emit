@@ -7,13 +7,11 @@ attribute time:float;
 
 uniform count:float;
 
-var i:float = 0;
-while i < count {
+for var i:float=0; i<count; i=i+1 {
     pos = vec3(0);
     vel = normalize(rand3()*vec3(2, 1, 2)-vec3(1, 0, 1)) * vec3(0.005);
     col = vec3(1);
     time = 0;
     emit();
-    i = i + 1;
     count = count + 0.0; #TODO: Workaround for bug
 }
