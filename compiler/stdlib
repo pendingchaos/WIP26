@@ -401,3 +401,19 @@ func fract(v:vec3):vec3 {
 func fract(v:vec4):vec4 {
     return v - floor(v);
 }
+
+func round(v:float):float {
+    return sel(floor(v), ceil(v), fract(v)<0.5);
+}
+
+func round(v:vec2):vec2 {
+    return sel(floor(v), ceil(v), fract(v)<vec2(0.5));
+}
+
+func round(v:vec3):vec3 {
+    return sel(floor(v), ceil(v), fract(v)<vec3(0.5));
+}
+
+func round(v:vec4):vec4 {
+    return sel(floor(v), ceil(v), fract(v)<vec4(0.5));
+}

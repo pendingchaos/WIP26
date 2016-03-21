@@ -546,4 +546,25 @@
         'v.y': [5.0],
         'v.z': [7.0]
     }
+},
+{
+    'name': 'test round',
+    'source':
+    '''include stdlib;
+    attribute v:vec3;
+    v.x = round(v.x);
+    v.y = round(v.y);
+    v.z = round(v.z);
+    ''',
+    'count': 1,
+    'attributes': {
+        'v.x': [1.6],
+        'v.y': [1.3],
+        'v.z': [9.0]
+    },
+    'expected': {
+        'v.x': [2.0],
+        'v.y': [1.0],
+        'v.z': [9.0]
+    }
 }
