@@ -282,6 +282,22 @@ func saturate(x:vec4):vec4 {
     return min(max(x, vec4(0.0)), vec4(1.0));
 }
 
+func clamp(x:float, lo:float, hi:float):float {
+    return min(max(x, lo), hi);
+}
+
+func clamp(x:vec2, lo:vec2, hi:vec2):vec2 {
+    return min(max(x, lo), hi);
+}
+
+func clamp(x:vec3, lo:vec3, hi:vec3):vec3 {
+    return min(max(x, lo), hi);
+}
+
+func clamp(x:vec4, lo:vec4, hi:vec4):vec4 {
+    return min(max(x, lo), hi);
+}
+
 func any(v:bool):bool {
     return v;
 }

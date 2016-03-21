@@ -506,7 +506,7 @@
     }
 },
 {
-    'name': 'test floor, ceil, fract',
+    'name': 'test floor, ceil and fract',
     'source':
     '''include stdlib;
     attribute v:vec3;
@@ -524,5 +524,26 @@
         'v.x': [1.0],
         'v.y': [2.0],
         'v.z': [0.5]
+    }
+},
+{
+    'name': 'test clamp',
+    'source':
+    '''include stdlib;
+    attribute v:vec3;
+    v.x = clamp(v.x, 3, 7);
+    v.y = clamp(v.y, 3, 7);
+    v.z = clamp(v.z, 3, 7);
+    ''',
+    'count': 1,
+    'attributes': {
+        'v.x': [1.0],
+        'v.y': [5.0],
+        'v.z': [9.0]
+    },
+    'expected': {
+        'v.x': [3.0],
+        'v.y': [5.0],
+        'v.z': [7.0]
     }
 }
