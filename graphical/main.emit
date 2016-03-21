@@ -8,7 +8,6 @@ attribute time:float;
 uniform count:float;
 
 var i:float = 0;
-
 while i < count {
     pos = vec3(0);
     vel = normalize(rand3()*vec3(2, 1, 2)-vec3(1, 0, 1)) * vec3(0.005);

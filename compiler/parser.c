@@ -449,6 +449,7 @@ static node_t* parse_stmt(tokens_t* toks, bool* semicolon_req, size_t* stmt_coun
     if (!peek_token(toks, &tok)) return NULL;
     switch (tok.type) {
     case TOKT_EOF: return (node_t*)create_nop_node(toks->ast);
+    case TOKT_SEMICOLON: return (node_t*)create_nop_node(toks->ast);
     case TOKT_VAR: return parse_var_decl(toks);
     case TOKT_ATTR: return parse_attr_decl(toks);
     case TOKT_UNI: return parse_uni_decl(toks);
