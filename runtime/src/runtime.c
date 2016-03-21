@@ -162,10 +162,16 @@ bool validate_program(const program_t* program) { //TODO: Validate conditional b
         case BC_OP_WHILE_BEGIN: required = 13; break;
         case BC_OP_COND_END:
         case BC_OP_WHILE_END:
-        case BC_OP_WHILE_END_COND:
-        case BC_OP_DELETE: required = 0; break;
+        case BC_OP_WHILE_END_COND: required = 0; break;
+        case BC_OP_DELETE: 
+            if (program->type != PROGRAM_TYPE_SIMULATION)
+                return set_error(program->runtime, "BC_OP_DELETE only allowed for simulation programs");
+            required = 0;
+            break;
         case BC_OP_END: required = 0; has_end_inst = true; break;
         case BC_OP_EMIT:
+            if (program->type != PROGRAM_TYPE_EMITTER)
+                return set_error(program->runtime, "BC_OP_EMIT only allowed for emitter programs");
             if (!(end-bc))
                 return set_error(program->runtime, "Unexpected end of bytecode");
             required = *bc++;
