@@ -276,6 +276,8 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
             return DTYPE_VOID;
         else if (!strcmp(call->func, "__rand") && call->arg_count==0)
             return DTYPE_FLOAT;
+        else if (!strcmp(call->func, "__floor") && call->arg_count==1 &&
+            get_base_type(arg_types[0])==DTYPE_FLOAT) return arg_types[0];
         
         for (size_t i = 0; i < state->func_count; i++)
             if (!strcmp(state->funcs[i]->name, call->func)) {

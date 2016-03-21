@@ -197,6 +197,7 @@ static bool write_unary(gen_bc_state_t* state, const ir_inst_t* inst) {
     switch (inst->op) {
     case IR_OP_BOOL_NOT: WRITEB(BC_OP_BOOL_NOT); break;
     case IR_OP_SQRT: WRITEB(BC_OP_SQRT); break;
+    case IR_OP_FLOOR: WRITEB(BC_OP_FLOOR); break;
     default: assert(false); break;
     }
     
@@ -297,7 +298,8 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             break;
         }
         case IR_OP_BOOL_NOT:
-        case IR_OP_SQRT: {
+        case IR_OP_SQRT:
+        case IR_OP_FLOOR: {
             if (!write_unary(state, inst)) goto error;
             break;
         }

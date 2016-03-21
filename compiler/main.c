@@ -168,6 +168,7 @@ static void print_inst(ir_t* ir, ir_inst_t inst) {
     case IR_OP_BOOL_OR: printf("boolor "); break;
     case IR_OP_BOOL_NOT: printf("boolnot "); break;
     case IR_OP_SQRT: printf("sqrt "); break;
+    case IR_OP_FLOOR: printf("floor "); break;
     case IR_OP_RAND: printf("rand "); break;
     case IR_OP_DROP: printf("drop "); break;
     case IR_OP_SEL: printf("sel "); break;
@@ -261,12 +262,14 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             break;
         }
         case BC_OP_SQRT:
-        case BC_OP_BOOL_NOT: {
+        case BC_OP_BOOL_NOT:
+        case BC_OP_FLOOR: {
             uint8_t d = *bc++;
             uint8_t v = *bc++;
             switch (op) {
             case BC_OP_SQRT: printf("sqrt r%u r%u\n", d, v); break;
             case BC_OP_BOOL_NOT: printf("boolnot r%u r%u\n", d, v); break;
+            case BC_OP_FLOOR: printf("floor r%u r%u\n", d, v); break;
             }
             break;
         }

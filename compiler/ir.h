@@ -36,7 +36,8 @@ typedef enum {
     IR_OP_BEGIN_WHILE,
     IR_OP_END_WHILE_COND,
     IR_OP_END_WHILE,
-    IR_OP_PHI
+    IR_OP_PHI,
+    IR_OP_FLOOR
 } ir_opcode_t;
 
 typedef enum {

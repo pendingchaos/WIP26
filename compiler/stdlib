@@ -337,3 +337,51 @@ func rand3():vec3 {
 func rand4():vec4 {
     return vec4(rand1(), rand1(), rand1(), rand1());
 }
+
+func floor(v:float):float {
+    return __floor(v);
+}
+
+func floor(v:vec2):vec2 {
+    return __floor(v);
+}
+
+func floor(v:vec3):vec3 {
+    return __floor(v);
+}
+
+func floor(v:vec4):vec4 {
+    return __floor(v);
+}
+
+func ceil(v:float):float {
+    return floor(v) + 1;
+}
+
+func ceil(v:vec2):vec2 {
+    return floor(v) + vec2(1);
+}
+
+func ceil(v:vec3):vec3 {
+    return floor(v) + vec3(1);
+}
+
+func ceil(v:vec4):vec4 {
+    return floor(v) + vec4(1);
+}
+
+func fract(v:float):float {
+    return v - floor(v);
+}
+
+func fract(v:vec2):vec2 {
+    return v - floor(v);
+}
+
+func fract(v:vec3):vec3 {
+    return v - floor(v);
+}
+
+func fract(v:vec4):vec4 {
+    return v - floor(v);
+}
