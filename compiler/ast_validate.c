@@ -377,8 +377,7 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
         
         return a;
     }
-    case NODET_NOP:
-    case NODET_DROP: {
+    case NODET_NOP: {
         return DTYPE_VOID;
     }
     default: {

@@ -502,9 +502,6 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         }
         return dest;
     }
-    case NODET_DROP: {
-        return gen_temp_var(ir, 0, call_id);
-    }
     case NODET_NOP: {return gen_temp_var(ir, 0, call_id);}
     case NODET_IF: {
         cond_node_t* if_ = (cond_node_t*)node;

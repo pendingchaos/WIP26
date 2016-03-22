@@ -13,5 +13,4 @@ for var i:float=0; i<count; i=i+1 {
     col = vec3(1);
     time = 0;
     emit();
-    count = count + 0.0; #TODO: Workaround for bug
 }

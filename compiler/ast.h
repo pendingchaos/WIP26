@@ -24,7 +24,6 @@ typedef enum node_type_t {
     NODET_FUNC_DECL,
     NODET_NOP,
     NODET_NEG,
-    NODET_DROP,
     NODET_IF,
     NODET_WHILE,
     NODET_LESS,
@@ -123,5 +122,4 @@ void free_node(node_t* node);
 bool free_ast(ast_t* ast);
 bool set_error(ast_t* ast, const char* format, ...);
 bool validate_ast(ast_t* ast, prog_type_t ptype);
-bool add_drop_vars(ast_t* ast);
 #endif

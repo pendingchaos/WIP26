@@ -90,9 +90,6 @@ static void print_node(node_t* node, unsigned int indent) {
     case NODET_BOOL_NOT:
         printf("BOOL_NOT: ");
         goto unary;
-    case NODET_DROP:
-        printf("DROP: ");
-        goto unary;
     case NODET_IF:
         printf("IF: ");
         goto cond;
@@ -411,12 +408,6 @@ int main(int argc, char** argv) {
     prog_type_t ptype = strcmp(type, "sim") ? PROGT_EMIT : PROGT_SIM;
     
     if (!validate_ast(&ast, ptype)) {
-        fprintf(stderr, "Error: %s\n", ast.error);
-        free_ast(&ast);
-        goto error;
-    }
-    
-    if (!add_drop_vars(&ast)) {
         fprintf(stderr, "Error: %s\n", ast.error);
         free_ast(&ast);
         goto error;
