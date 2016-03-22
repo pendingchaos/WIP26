@@ -260,12 +260,6 @@ static bool write_sel(gen_bc_state_t* state, const ir_inst_t* inst) {
     return true;
 }
 
-static const ir_inst_t* find_by_id(const ir_inst_t* insts, size_t inst_count, size_t id) {
-    for (size_t i = 0; i < inst_count; i++)
-        if (insts[i].id == id) return insts + i;
-	return NULL;
-}
-
 static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_count, size_t* end_id) {
     for (size_t i = 0; i < inst_count; i++) {
         const ir_inst_t* inst = insts + i;
@@ -334,7 +328,7 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             break;
         }
         case IR_OP_BEGIN_IF: {
-            const ir_inst_t* end_if = find_by_id(insts, inst_count, inst->end);
+            const ir_inst_t* end_if = find_inst_by_id(insts, inst_count, inst->end);
             for (size_t j = end_if-insts+1; j < inst_count; j++) {
                 const ir_inst_t* phi = insts + j;
                 if (phi->op == IR_OP_PHI) {
@@ -386,8 +380,8 @@ static bool _gen_bc(gen_bc_state_t* state, const ir_inst_t* insts, size_t inst_c
             break;
         }
         case IR_OP_BEGIN_WHILE: {
-            const ir_inst_t* end_cond = find_by_id(insts, inst_count, inst->end_while_cond);
-            const ir_inst_t* end = find_by_id(insts, inst_count, end_cond->end_while);
+            const ir_inst_t* end_cond = find_inst_by_id(insts, inst_count, inst->end_while_cond);
+            const ir_inst_t* end = find_inst_by_id(insts, inst_count, end_cond->end_while);
             
             for (size_t j = end-insts+1; j < inst_count; j++) {
                 const ir_inst_t* phi = insts + j;

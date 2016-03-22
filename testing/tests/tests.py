@@ -496,7 +496,7 @@
     while v.x < 5 {
         v.x = v.x + 1;
     }
-    for var i:float; i<5; i=i+1 {
+    for var i:float=0; i<5; i=i+1 {
         v.y = v.y + 1;
     }
     var c:float = 5;
@@ -506,9 +506,9 @@
     ''',
     'count': 1,
     'attributes': {
-        'v.x': [1.0],
-        'v.y': [1.0],
-        'v.z': [1.0]
+        'v.x': [0.0],
+        'v.y': [0.0],
+        'v.z': [0.0]
     },
     'expected': {
         'v.x': [5.0],

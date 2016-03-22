@@ -575,6 +575,7 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
         
         size_t end_while = ir->insts[ir->inst_count-1].id;
         ir->insts[end_while_cond_idx].end_while = end_while;
+        ir->insts[ir->inst_count-1].begin_while = ir->insts[begin_while_idx].id;
         
         end_phi(ir, last_var_count, last_vers, end_while);
         
@@ -585,9 +586,15 @@ static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t 
     assert(false);
 }
 
-void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t** vars) {
+const ir_inst_t* find_inst_by_id(const ir_inst_t* insts, size_t inst_count, size_t id) {
+    for (size_t i = 0; i < inst_count; i++)
+        if (insts[i].id == id) return insts + i;
+	return NULL;
+}
+
+void get_vars(const ir_inst_t* ir_insts, size_t ir_inst_count, const ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t** vars) {
     for (size_t i = 0; i < inst_count; i++) {
-        ir_inst_t* inst = &insts[i];
+        const ir_inst_t* inst = &insts[i];
         for (size_t j = 0; j < inst->operand_count; j++) {
             if (inst->operands[j].type != IR_OPERAND_VAR) continue;
             ir_var_t var = inst->operands[j].var;
@@ -604,6 +611,11 @@ void get_vars(ir_inst_t* insts, size_t inst_count, size_t* var_count, ir_var_t**
                 *vars = append_mem(*vars, *var_count, sizeof(ir_var_t), &var);
                 (*var_count)++;
             }
+        }
+        
+        if (inst->op == IR_OP_END_WHILE) {
+            const ir_inst_t* begin = find_inst_by_id(ir_insts, ir_inst_count, inst->begin_while);
+            get_vars(ir_insts, ir_inst_count, begin, inst-begin, var_count, vars);
         }
     }
 }
@@ -728,11 +740,11 @@ void add_drop_insts(ir_t* ir) {
     for (size_t i = 0; i < inst_count; i++) {
         add_inst(ir, insts+i)->id = insts[i].id;
         
-        get_vars(insts+i, 1, &var_count, &vars);
+        get_vars(insts, inst_count, insts+i, 1, &var_count, &vars);
         
         size_t future_count = 0;
         ir_var_t* future = NULL;
-        get_vars(insts+i+1, inst_count-i-1, &future_count, &future);
+        get_vars(insts, inst_count, insts+i+1, inst_count-i-1, &future_count, &future);
         
         for (ptrdiff_t j = 0; j < var_count; j++) {
             for (size_t k = 0; k < future_count; k++)
