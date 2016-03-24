@@ -671,57 +671,6 @@ void free_ir(ir_t* ir) {
     free(ir->unis);
 }
 
-void remove_redundant_moves(ir_t* ir) {
-    size_t replace_count = 0;
-    ir_var_t* replace_keys = NULL;
-    ir_var_t* replace_vals = NULL;
-    
-    ir_inst_t* insts = ir->insts;
-    size_t inst_count = ir->inst_count;
-    ir->insts = NULL;
-    ir->inst_count = 0;
-    for (size_t i = 0; i < inst_count; i++) {
-        ir_inst_t inst = insts[i];
-        
-        if (inst.op==IR_OP_MOV && inst.operands[1].type == IR_OPERAND_VAR) {
-            replace_keys = append_mem(replace_keys, replace_count, sizeof(ir_var_t), &inst.operands[0].var);
-            
-            ir_var_t var = inst.operands[1].var;
-            
-            int idx = -1;
-            for (size_t j = 0; j < replace_count; j++)
-                if (replace_keys[j].decl==var.decl && replace_keys[j].ver==var.ver &&
-                    replace_keys[j].comp_idx==var.comp_idx) {
-                    idx = j;
-                    break;
-                }
-            
-            if (idx != -1) var = replace_vals[idx];
-            
-            replace_vals = append_mem(replace_vals, replace_count, sizeof(ir_var_t), &var);
-            replace_count++;
-        } else {
-            for (size_t j = 0; j < inst.operand_count; j++) {
-                if (inst.operands[j].type != IR_OPERAND_VAR) continue;
-                ir_var_t var = inst.operands[j].var;
-                int idx = -1;
-                for (size_t k = 0; k < replace_count; k++)
-                    if (replace_keys[k].decl==var.decl && replace_keys[k].ver==var.ver &&
-                        replace_keys[k].comp_idx==var.comp_idx) {
-                        idx = k;
-                        break;
-                    }
-                
-                if (idx != -1) inst.operands[j].var = replace_vals[idx];
-            }
-            add_inst(ir, &inst)->id = inst.id;
-        }
-    }
-    free(insts);
-    free(replace_keys);
-    free(replace_vals);
-}
-
 void add_drop_insts(ir_t* ir) {
     size_t var_count = 0;
     ir_var_t* vars = NULL;

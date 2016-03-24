@@ -425,7 +425,6 @@ int main(int argc, char** argv) {
         goto error;
     }
     
-    remove_redundant_moves(&ir);
     add_drop_insts(&ir);
     
     if (debug) {
