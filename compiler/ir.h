@@ -124,4 +124,5 @@ bool create_ir(const ast_t* ast, prog_type_t ptype, ir_t* ir); //AST should be v
 void free_ir(ir_t* ir);
 const ir_inst_t* find_inst_by_id(const ir_inst_t* insts, size_t inst_count, size_t id);
 void add_drop_insts(ir_t* ir);
+void remove_redundant_moves(ir_t* ir);
 #endif

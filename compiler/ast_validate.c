@@ -299,6 +299,9 @@ static dtype_t validate_node(state_t* state, const node_t* node, dtype_t ret_typ
     case NODET_FUNC_DECL: {
         func_decl_node_t* decl = (func_decl_node_t*)node;
         
+        if (strlen(decl->name)>=2 && !memcmp(decl->name, "__", 2))
+            return error(state, node, "Function names beginning with '__' are reserved for builtin functions");
+        
         dtype_t rtype = str_as_dtype(state, node, decl->ret_type);
         if (rtype == DTYPE_ERROR) return DTYPE_ERROR;
         

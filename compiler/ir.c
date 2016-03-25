@@ -9,12 +9,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-typedef struct {
-    size_t comp;
-    ir_var_t v[4];
-    ir_var_decl_t* d[4];
-} ir_swiz_t;
-
 static size_t get_comp_from_c(char c) {
     if (c=='x') return 0;
     else if (c=='y') return 1;
@@ -134,17 +128,9 @@ static ir_var_t get_var_comp(ir_var_decl_t* decl, size_t comp_idx) {
     return var;
 }
 
-static ir_swiz_t create_swiz(ir_var_decl_t* var) {
-    ir_swiz_t swiz;
-    swiz.comp = var->comp;
-    for (size_t i = 0; i < 4; i++) swiz.v[i] = get_var_comp(var, i);
-    for (size_t i = 0; i < 4; i++) swiz.d[i] = var;
-    return swiz;
-}
-
-static bool is_builtin_func(call_node_t* call, ir_swiz_t* args) {
+static bool is_builtin_func(call_node_t* call, ir_var_decl_t** args) {
     if (!strcmp(call->func, "__sqrt") && call->arg_count==1) return true;
-    else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0].comp==args[1].comp && args[2].comp==args[0].comp) return true;
+    else if (!strcmp(call->func, "__sel") && call->arg_count==3 && args[0]->comp==args[1]->comp && args[2]->comp==args[0]->comp) return true;
     else if (!strcmp(call->func, "__del") && call->arg_count==0) return true;
     else if (!strcmp(call->func, "__emit") && call->arg_count==0) return true;
     else if (!strcmp(call->func, "__rand") && call->arg_count==0) return true;
@@ -152,30 +138,28 @@ static bool is_builtin_func(call_node_t* call, ir_swiz_t* args) {
     return false;
 }
 
-static ir_swiz_t gen_builtin_func(ir_t* ir, call_node_t* call, ir_swiz_t* args, size_t call_id, const ir_swiz_t* destp) {
-    ir_swiz_t dest = destp ? *destp : (ir_swiz_t){}; 
-    
+static ir_var_decl_t* gen_builtin_func(ir_t* ir, call_node_t* call, ir_var_decl_t** args, size_t call_id) {
     if (!strcmp(call->func, "__sqrt")) {
-        if (!destp) dest = create_swiz(gen_temp_var(ir, args[0].comp, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, args[0]->comp, call_id);
         ir_inst_t inst;
         inst.op = IR_OP_SQRT;
         inst.operand_count = 2;
-        for (size_t i = 0; i < args[0].comp; i++) {
-            inst.operands[0] = create_var_operand(dest.v[i]);
-            inst.operands[1] = create_var_operand(args[0].v[i]);
+        for (size_t i = 0; i < args[0]->comp; i++) {
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(args[0], i));
             add_inst(ir, &inst);
         }
         return dest;
     } else if (!strcmp(call->func, "__sel")) {
-        if (!destp) dest = create_swiz(gen_temp_var(ir, args[0].comp, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, args[0]->comp, call_id);
         ir_inst_t inst;
         inst.op = IR_OP_SEL;
         inst.operand_count = 4;
-        for (size_t i = 0; i < args[0].comp; i++) {
-            inst.operands[0] = create_var_operand(dest.v[i]);
-            inst.operands[1] = create_var_operand(args[0].v[i]);
-            inst.operands[2] = create_var_operand(args[1].v[i]);
-            inst.operands[3] = create_var_operand(args[2].v[i]);
+        for (size_t i = 0; i < args[0]->comp; i++) {
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(args[0], i));
+            inst.operands[2] = create_var_operand(get_var_comp(args[1], i));
+            inst.operands[3] = create_var_operand(get_var_comp(args[2], i));
             add_inst(ir, &inst);
         }
         return dest;
@@ -184,7 +168,7 @@ static ir_swiz_t gen_builtin_func(ir_t* ir, call_node_t* call, ir_swiz_t* args, 
         inst.op = IR_OP_DELETE;
         inst.operand_count = 0;
         add_inst(ir, &inst);
-        return create_swiz(gen_temp_var(ir, 0, call_id));
+        return gen_temp_var(ir, 0, call_id);
     } else if (!strcmp(call->func, "__emit")) {
         for (size_t i = 0; i < ir->attr_count; i++) {
             ir_var_decl_t* var = NULL;
@@ -210,23 +194,23 @@ static ir_swiz_t gen_builtin_func(ir_t* ir, call_node_t* call, ir_swiz_t* args, 
         inst.op = IR_OP_EMIT;
         inst.operand_count = 0;
         add_inst(ir, &inst);
-        return create_swiz(gen_temp_var(ir, 0, call_id));
+        return gen_temp_var(ir, 0, call_id);
     } else if (!strcmp(call->func, "__rand")) {
-        if (!destp) dest = create_swiz(gen_temp_var(ir, 1, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, 1, call_id);
         ir_inst_t inst;
         inst.op = IR_OP_RAND;
         inst.operand_count = 1;
-        inst.operands[0] = create_var_operand(dest.v[0]);
+        inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
         add_inst(ir, &inst);
         return dest;
     } else if (!strcmp(call->func, "__floor")) {
-        if (!destp) dest = create_swiz(gen_temp_var(ir, args[0].comp, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, args[0]->comp, call_id);
         ir_inst_t inst;
         inst.op = IR_OP_FLOOR;
         inst.operand_count = 2;
-        for (size_t i = 0; i < args[0].comp; i++) {
-            inst.operands[0] = create_var_operand(dest.v[i]);
-            inst.operands[1] = create_var_operand(args[0].v[i]);
+        for (size_t i = 0; i < args[0]->comp; i++) {
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(args[0], i));
             add_inst(ir, &inst);
         }
         return dest;
@@ -235,20 +219,22 @@ static ir_swiz_t gen_builtin_func(ir_t* ir, call_node_t* call, ir_swiz_t* args, 
     assert(false);
 }
 
-static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swiz_t* destp,
-                            size_t func_count, char** funcs, size_t call_id);
+static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t func_count, char** funcs, size_t call_id);
 
-static ir_swiz_t gen_func_call(ir_t* ir, call_node_t* call, size_t func_count, char** funcs, size_t call_id, const ir_swiz_t* destp) {
-    ir_swiz_t dest = destp ? *destp : (ir_swiz_t){}; 
-    
-    ir_swiz_t* args = alloc_mem(call->arg_count*sizeof(ir_swiz_t));
+static ir_var_decl_t* gen_func_call(ir_t* ir, call_node_t* call, size_t func_count, char** funcs, size_t call_id) {
+    ir_var_decl_t** args = alloc_mem(call->arg_count*sizeof(ir_var_decl_t*));
     for (size_t i = 0; i < call->arg_count; i++) {
         bool _;
-        args[i] = node_to_ir(call->args[i], ir, &_, NULL, func_count, funcs, call_id);
+        ir_var_decl_t* arg = node_to_ir(call->args[i], ir, &_, func_count, funcs, call_id);
+        if (!arg) {
+            free(args);
+            return NULL;
+        }
+        args[i] = arg;
     }
     
     if (is_builtin_func(call, args)) {
-        ir_swiz_t res = gen_builtin_func(ir, call, args, call_id, destp);
+        ir_var_decl_t* res = gen_builtin_func(ir, call, args, call_id);
         free(args);
         return res;
     }
@@ -259,14 +245,12 @@ static ir_swiz_t gen_func_call(ir_t* ir, call_node_t* call, size_t func_count, c
             ir->funcs[i]->arg_count==call->arg_count) {
             bool compat = true;
             for (size_t j = 0; j < call->arg_count; j++)
-                if (args[j].comp != get_dtype_comp(ir->funcs[i]->arg_types[j]))
+                if (args[j]->comp != get_dtype_comp(ir->funcs[i]->arg_types[j]))
                     compat = false;
             if (!compat) continue;
             func = ir->funcs[i];
             break;
         }
-    
-    if (!destp) dest = create_swiz(gen_temp_var(ir, get_dtype_comp(func->ret_type), call_id));
     
     size_t new_func_count = func_count + 1;
     char** new_funcs = alloc_mem(sizeof(char*)*new_func_count);
@@ -284,7 +268,7 @@ static ir_swiz_t gen_func_call(ir_t* ir, call_node_t* call, size_t func_count, c
         inst.operand_count = 2;
         for (size_t j = 0; j < dest->comp; j++) {
             inst.operands[0] = create_var_operand(get_var_comp(dest, j));
-            inst.operands[1] = create_var_operand(args[i].v[j]);
+            inst.operands[1] = create_var_operand(get_var_comp(args[i], j));
             add_inst(ir, &inst);
         }
     }
@@ -292,23 +276,21 @@ static ir_swiz_t gen_func_call(ir_t* ir, call_node_t* call, size_t func_count, c
     
     for (size_t i = 0; i < func->stmt_count; i++) {
         bool ret = false;
-        ir_swiz_t res = node_to_ir(func->stmts[i], ir, &ret, NULL, new_func_count, new_funcs, new_call_id);
+        ir_var_decl_t* res = node_to_ir(func->stmts[i], ir, &ret, new_func_count, new_funcs, new_call_id);
+        if (!res) {
+            free(new_funcs);
+            return NULL;
+        }
+        
         if (ret) {
-            ir_inst_t inst;
-            inst.op = IR_OP_MOV;
-            inst.operand_count = 2;
-            for (size_t j = 0; j < dest.comp; j++) {
-                inst.operands[0] = create_var_operand(dest.v[j]);
-                inst.operands[1] = create_var_operand(res.v[j]);
-            }
-            add_inst(ir, &inst);
             free(new_funcs);
             return res;
         }
     }
     
     free(new_funcs);
-    return create_swiz(gen_temp_var(ir, get_dtype_comp(func->ret_type), call_id));
+    
+    return gen_temp_var(ir, get_dtype_comp(func->ret_type), call_id);
 }
 
 static void begin_phi(ir_t* ir, size_t* last_var_count, unsigned int** last_vers) {
@@ -339,16 +321,14 @@ static void end_phi(ir_t* ir, size_t last_var_count, unsigned int* last_vers, si
     free(last_vers);
 }
 
-static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swiz_t* destp,
-                            size_t func_count, char** funcs, size_t call_id) {
-    ir_swiz_t dest = destp ? *destp : (ir_swiz_t){}; 
+static ir_var_decl_t* node_to_ir(node_t* node, ir_t* ir, bool* returned, size_t func_count, char** funcs, size_t call_id) {
     switch (node->type) {
     case NODET_NUM: {
-        if (!destp) dest = create_swiz(gen_temp_var(ir, 1, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, 1, call_id);
         ir_inst_t inst;
         inst.op = IR_OP_MOV;
         inst.operand_count = 2;
-        inst.operands[0] = create_var_operand(dest.v[0]);
+        inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
         inst.operands[1] = create_num_operand(((num_node_t*)node)->val);
         add_inst(ir, &inst);
         return dest;
@@ -361,8 +341,8 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
             ir_inst_t inst;
             inst.op = IR_OP_MOV;
             inst.operand_count = 2;
-            if (!destp) dest = create_swiz(gen_temp_var(ir, 1, call_id));
-            inst.operands[0] = create_var_operand(dest.v[0]);
+            ir_var_decl_t* dest = gen_temp_var(ir, 1, call_id);
+            inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
             inst.operands[1] = create_num_operand(truef);
             add_inst(ir, &inst);
             return dest;
@@ -372,37 +352,53 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
             ir_inst_t inst;
             inst.op = IR_OP_MOV;
             inst.operand_count = 2;
-            if (!destp) dest = create_swiz(gen_temp_var(ir, 1, call_id));
-            inst.operands[0] = create_var_operand(dest.v[0]);
+            ir_var_decl_t* dest = gen_temp_var(ir, 1, call_id);
+            inst.operands[0] = create_var_operand(get_var_comp(dest, 0));
             inst.operands[1] = create_num_operand(falsef);
             add_inst(ir, &inst);
             return dest;
         } else {
-            ir_swiz_t src = create_swiz(get_id_var_decl(ir, id, func_count, funcs, call_id));
-            if (destp) {
-                ir_inst_t inst;
-                inst.op = IR_OP_MOV;
-                inst.operand_count = 2;
-                for (size_t i = 0; i < src.comp; i++) {
-                    inst.operands[0] = create_var_operand(dest.v[i]);
-                    inst.operands[1] = create_var_operand(src.v[i]);
-                    add_inst(ir, &inst);
-                }
-                return dest;
-            } else {
-                return src;
-            }
+            return get_id_var_decl(ir, id, func_count, funcs, call_id);
         }
     }
     case NODET_ASSIGN: {
         bin_node_t* bin = (bin_node_t*)node;
         
-        if (!destp) dest = node_to_ir(bin->lhs, ir, returned, NULL, func_count, funcs, call_id);
-        for (size_t i = 0; i < dest.comp; i++) dest.v[i].ver++;
-        node_to_ir(bin->rhs, ir, returned, &dest, func_count, funcs, call_id);
-        for (size_t i = 0; i < dest.comp; i++) dest.d[i]->current_ver[dest.v[i].comp_idx]++;
+        ir_var_decl_t* dest_var;
+        if (bin->lhs->type == NODET_VAR_DECL || bin->lhs->type == NODET_ATTR_DECL) {
+            dest_var = node_to_ir(bin->lhs, ir, returned, func_count, funcs, call_id);
+            if (!dest_var) return NULL;
+        } else {
+            node_t* dest = bin->lhs;
+            while (dest->type == NODET_MEMBER) dest = ((bin_node_t*)dest)->lhs;
+            dest_var = get_id_var_decl(ir, (id_node_t*)dest, func_count, funcs, call_id);
+        }
         
-        return dest;
+        size_t dest_swizzle[4] = {0, 1, 2, 3};
+        size_t dest_comp = dest_var->comp;
+        node_t* lhs = bin->lhs;
+        while (lhs->type == NODET_MEMBER) {
+            char* swizzle = ((id_node_t*)((bin_node_t*)lhs)->rhs)->name;
+            dest_comp = strlen(swizzle);
+            for (size_t i = 0; i < dest_comp; i++)
+                dest_swizzle[i] = get_comp_from_c(swizzle[i]);
+            lhs = ((bin_node_t*)lhs)->lhs;
+        }
+        
+        ir_var_decl_t* src_var = node_to_ir(bin->rhs, ir, returned, func_count, funcs, call_id);
+        if (!src_var) return NULL;
+        
+        ir_inst_t inst;
+        inst.op = IR_OP_MOV;
+        inst.operand_count = 2;
+        for (size_t i = 0; i < src_var->comp; i++) {
+            inst.operands[0] = create_var_operand(get_var_comp(dest_var, dest_swizzle[i]));
+            inst.operands[0].var.ver++;
+            inst.operands[1] = create_var_operand(get_var_comp(src_var, i));
+            add_inst(ir, &inst);
+            dest_var->current_ver[dest_swizzle[i]]++;
+        }
+        return gen_temp_var(ir, 0, call_id);
     }
     case NODET_ADD:
     case NODET_SUB:
@@ -416,10 +412,11 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
     case NODET_BOOL_OR: {
         bin_node_t* bin = (bin_node_t*)node;
         
-        ir_swiz_t lhs = node_to_ir(bin->lhs, ir, returned, NULL, func_count, funcs, call_id);
-        ir_swiz_t rhs = node_to_ir(bin->rhs, ir, returned, NULL, func_count, funcs, call_id);
+        ir_var_decl_t* lhs = node_to_ir(bin->lhs, ir, returned, func_count, funcs, call_id);
+        ir_var_decl_t* rhs = node_to_ir(bin->rhs, ir, returned, func_count, funcs, call_id);
+        if (!lhs || !rhs) return NULL;
         
-        if (!destp) dest = create_swiz(gen_temp_var(ir, lhs.comp, call_id));
+        ir_var_decl_t* dest = gen_temp_var(ir, lhs->comp, call_id);
         
         ir_inst_t inst;
         switch (node->type) {
@@ -436,39 +433,33 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         default: assert(false);
         }
         inst.operand_count = 3;
-        for (size_t i = 0; i < lhs.comp; i++) {
-            inst.operands[0] = create_var_operand(dest.v[i]);
-            inst.operands[1] = create_var_operand(lhs.v[i]);
-            inst.operands[2] = create_var_operand(rhs.v[i]);
+        for (size_t i = 0; i < lhs->comp; i++) {
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(lhs, i));
+            inst.operands[2] = create_var_operand(get_var_comp(rhs, i));
             add_inst(ir, &inst);
         }
         return dest;
     }
     case NODET_MEMBER: {
         bin_node_t* bin = (bin_node_t*)node;
-        ir_swiz_t src = node_to_ir(bin->lhs, ir, returned, NULL, func_count, funcs, call_id);
+        
+        ir_var_decl_t* src = node_to_ir(bin->lhs, ir, returned, func_count, funcs, call_id);
+        if (!src) return NULL;
         char* swizzle = ((id_node_t*)bin->rhs)->name;
         
-        if (destp) {
-            ir_inst_t inst;
-            inst.op = IR_OP_MOV;
-            inst.operand_count = 2;
-            for (size_t i = 0; i < dest.comp; i++) {
-                char mem = swizzle[i];
-                inst.operands[0] = create_var_operand(dest.v[i]);
-                inst.operands[1] = create_var_operand(src.v[get_comp_from_c(mem)]);
-                add_inst(ir, &inst);
-            }
-            return dest;
-        } else {
-            ir_swiz_t res;
-            res.comp = strlen(swizzle);
-            for (size_t i = 0; i < strlen(swizzle); i++) {
-                res.v[i] = src.v[get_comp_from_c(swizzle[i])];
-                res.d[i] = src.d[i];
-            }
-            return res;
+        ir_var_decl_t* dest = gen_temp_var(ir, strlen(swizzle), call_id);
+        
+        ir_inst_t inst;
+        inst.op = IR_OP_MOV;
+        inst.operand_count = 2;
+        for (size_t i = 0; i < dest->comp; i++) {
+            char mem = swizzle[i];
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(src, get_comp_from_c(mem)));
+            add_inst(ir, &inst);
         }
+        return dest;
     }
     case NODET_VAR_DECL:
     case NODET_ATTR_DECL:
@@ -479,47 +470,48 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
             ir->attrs = append_mem(ir->attrs, ir->attr_count++, sizeof(ir_var_decl_t*), &var);
         else if (node->type == NODET_UNI_DECL)
             ir->unis = append_mem(ir->unis, ir->uni_count++, sizeof(ir_var_decl_t*), &var);
-        return create_swiz(var);
+        return var;
     }
     case NODET_RETURN: {
         *returned = true;
-        return node_to_ir(((unary_node_t*)node)->val, ir, returned, NULL, func_count, funcs, call_id);
+        return node_to_ir(((unary_node_t*)node)->val, ir, returned, func_count, funcs, call_id);
     }
     case NODET_CALL: {
         call_node_t* call = (call_node_t*)node;
-        return gen_func_call(ir, call, func_count, funcs, call_id, destp);
+        return gen_func_call(ir, call, func_count, funcs, call_id);
     }
     case NODET_FUNC_DECL: {
         ir->funcs = append_mem(ir->funcs, ir->func_count++, sizeof(node_t*), &node);
-        return create_swiz(gen_temp_var(ir, 0, call_id));
+        return gen_temp_var(ir, 0, call_id);
     }
     case NODET_NEG:
     case NODET_BOOL_NOT: {
         unary_node_t* unary = (unary_node_t*)node;
         
-        ir_swiz_t src = node_to_ir(unary->val, ir, returned, NULL, func_count, funcs, call_id);
-        if (!destp) dest = create_swiz(gen_temp_var(ir, src.comp, call_id));
+        ir_var_decl_t* src = node_to_ir(unary->val, ir, returned, func_count, funcs, call_id);
+        if (!src) return NULL;
+        ir_var_decl_t* dest = gen_temp_var(ir, src->comp, call_id);
         
         ir_inst_t inst;
         inst.op = node->type==NODET_NEG ? IR_OP_NEG : IR_OP_BOOL_NOT;
-        for (size_t i = 0; i < src.comp; i++) {
+        for (size_t i = 0; i < src->comp; i++) {
             inst.operand_count = 2;
-            inst.operands[0] = create_var_operand(dest.v[i]);
-            inst.operands[1] = create_var_operand(src.v[i]);
+            inst.operands[0] = create_var_operand(get_var_comp(dest, i));
+            inst.operands[1] = create_var_operand(get_var_comp(src, i));
             add_inst(ir, &inst);
         }
         return dest;
     }
-    case NODET_NOP: {return create_swiz(gen_temp_var(ir, 0, call_id));}
+    case NODET_NOP: {return gen_temp_var(ir, 0, call_id);}
     case NODET_IF: {
         cond_node_t* if_ = (cond_node_t*)node;
         
-        ir_swiz_t cond = node_to_ir(if_->condition, ir, returned, NULL, func_count, funcs, call_id);
+        ir_var_decl_t* cond = node_to_ir(if_->condition, ir, returned, func_count, funcs, call_id);
         
         ir_inst_t inst;
         inst.op = IR_OP_BEGIN_IF;
         inst.operand_count = 1;
-        inst.operands[0] = create_var_operand(cond.v[0]);
+        inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
         size_t begin = add_inst(ir, &inst)->id;
         
         size_t last_var_count;
@@ -527,7 +519,10 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         begin_phi(ir, &last_var_count, &last_vers);
         
         for (size_t i = 0; i < if_->stmt_count; i++) {
-            node_to_ir(if_->stmts[i], ir, returned, NULL, func_count, funcs, call_id);
+            if (!node_to_ir(if_->stmts[i], ir, returned, func_count, funcs, call_id)) {
+                free(last_vers);
+                return NULL;
+            }
             if (*returned) break;
         }
         
@@ -539,7 +534,7 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         
         end_phi(ir, last_var_count, last_vers, end);
         
-        return create_swiz(gen_temp_var(ir, 0, call_id));
+        return gen_temp_var(ir, 0, call_id);
     }
     case NODET_WHILE: {
         cond_node_t* while_ = (cond_node_t*)node;
@@ -550,7 +545,7 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         inst.operand_count = 0;
         add_inst(ir, &inst);
         
-        ir_swiz_t cond = node_to_ir(while_->condition, ir, returned, NULL, func_count, funcs, call_id);
+        ir_var_decl_t* cond = node_to_ir(while_->condition, ir, returned, func_count, funcs, call_id);
         
         size_t end_while_cond_idx = ir->inst_count;
         inst.op = IR_OP_END_WHILE_COND;
@@ -563,13 +558,16 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         begin_phi(ir, &last_var_count, &last_vers);
         
         for (size_t i = 0; i < while_->stmt_count; i++) {
-            node_to_ir(while_->stmts[i], ir, returned, NULL, func_count, funcs, call_id);
+            if (!node_to_ir(while_->stmts[i], ir, returned, func_count, funcs, call_id)) {
+                free(last_vers);
+                return NULL;
+            }
             if (*returned) break;
         }
         
         inst.op = IR_OP_END_WHILE;
         inst.operand_count = 1;
-        inst.operands[0] = create_var_operand(cond.v[0]);
+        inst.operands[0] = create_var_operand(get_var_comp(cond, 0));
         add_inst(ir, &inst);
         
         size_t end_while = ir->insts[ir->inst_count-1].id;
@@ -578,7 +576,7 @@ static ir_swiz_t node_to_ir(node_t* node, ir_t* ir, bool* returned, const ir_swi
         
         end_phi(ir, last_var_count, last_vers, end_while);
         
-        return create_swiz(gen_temp_var(ir, 0, call_id));
+        return gen_temp_var(ir, 0, call_id);
     }
     }
     
@@ -627,7 +625,14 @@ bool create_ir(const ast_t* ast, prog_type_t ptype, ir_t* ir) {
     ir->next_call_id = 1;
     size_t call_id = 0;
     for (size_t i = 0; i<ast->stmt_count && !returned; i++) {
-        node_to_ir(ast->stmts[i], ir, &returned, NULL, 0, NULL, call_id);
+        if (!node_to_ir(ast->stmts[i], ir, &returned, 0, NULL, call_id)) {
+            free_ir(ir);
+            char error[sizeof(ir->error)];
+            memcpy(error, ir->error, sizeof(ir->error));
+            memset(ir, 0, sizeof(ir_t));
+            memcpy(ir->error, error, sizeof(ir->error));
+            return false;
+        }
     }
     
     if (ir->ptype == PROGT_SIM)
@@ -669,6 +674,57 @@ void free_ir(ir_t* ir) {
     
     free(ir->attrs);
     free(ir->unis);
+}
+
+void remove_redundant_moves(ir_t* ir) {
+    size_t replace_count = 0;
+    ir_var_t* replace_keys = NULL;
+    ir_var_t* replace_vals = NULL;
+    
+    ir_inst_t* insts = ir->insts;
+    size_t inst_count = ir->inst_count;
+    ir->insts = NULL;
+    ir->inst_count = 0;
+    for (size_t i = 0; i < inst_count; i++) {
+        ir_inst_t inst = insts[i];
+        
+        if (inst.op==IR_OP_MOV && inst.operands[1].type == IR_OPERAND_VAR) {
+            replace_keys = append_mem(replace_keys, replace_count, sizeof(ir_var_t), &inst.operands[0].var);
+            
+            ir_var_t var = inst.operands[1].var;
+            
+            int idx = -1;
+            for (size_t j = 0; j < replace_count; j++)
+                if (replace_keys[j].decl==var.decl && replace_keys[j].ver==var.ver &&
+                    replace_keys[j].comp_idx==var.comp_idx) {
+                    idx = j;
+                    break;
+                }
+            
+            if (idx != -1) var = replace_vals[idx];
+            
+            replace_vals = append_mem(replace_vals, replace_count, sizeof(ir_var_t), &var);
+            replace_count++;
+        } else {
+            for (size_t j = 0; j < inst.operand_count; j++) {
+                if (inst.operands[j].type != IR_OPERAND_VAR) continue;
+                ir_var_t var = inst.operands[j].var;
+                int idx = -1;
+                for (size_t k = 0; k < replace_count; k++)
+                    if (replace_keys[k].decl==var.decl && replace_keys[k].ver==var.ver &&
+                        replace_keys[k].comp_idx==var.comp_idx) {
+                        idx = k;
+                        break;
+                    }
+                
+                if (idx != -1) inst.operands[j].var = replace_vals[idx];
+            }
+            add_inst(ir, &inst)->id = inst.id;
+        }
+    }
+    free(insts);
+    free(replace_keys);
+    free(replace_vals);
 }
 
 void add_drop_insts(ir_t* ir) {
