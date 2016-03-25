@@ -307,17 +307,36 @@ void store_attr1(float val, void* attribute, attr_dtype_t dtype, size_t index) {
     }
 }
 
+#define DT static void* dispatch_table[] = {\
+    [BC_OP_ADD]=&&BC_OP_ADD,\
+    [BC_OP_SUB]=&&BC_OP_SUB,\
+    [BC_OP_MUL]=&&BC_OP_MUL,\
+    [BC_OP_DIV]=&&BC_OP_DIV,\
+    [BC_OP_POW]=&&BC_OP_POW,\
+    [BC_OP_MOVF]=&&BC_OP_MOVF,\
+    [BC_OP_SQRT]=&&BC_OP_SQRT,\
+    [BC_OP_DELETE]=&&BC_OP_DELETE,\
+    [BC_OP_LESS]=&&BC_OP_LESS,\
+    [BC_OP_GREATER]=&&BC_OP_GREATER,\
+    [BC_OP_EQUAL]=&&BC_OP_EQUAL,\
+    [BC_OP_BOOL_AND]=&&BC_OP_BOOL_AND,\
+    [BC_OP_BOOL_OR]=&&BC_OP_BOOL_OR,\
+    [BC_OP_BOOL_NOT]=&&BC_OP_BOOL_NOT,\
+    [BC_OP_SEL]=&&BC_OP_SEL,\
+    [BC_OP_COND_BEGIN]=&&BC_OP_COND_BEGIN,\
+    [BC_OP_COND_END]=&&BC_OP_COND_END,\
+    [BC_OP_WHILE_BEGIN]=&&BC_OP_WHILE_BEGIN,\
+    [BC_OP_WHILE_END_COND]=&&BC_OP_WHILE_END_COND,\
+    [BC_OP_WHILE_END]=&&BC_OP_WHILE_END,\
+    [BC_OP_END]=&&BC_OP_END,\
+    [BC_OP_EMIT]=&&BC_OP_EMIT,\
+    [BC_OP_RAND]=&&BC_OP_RAND,\
+    [BC_OP_FLOOR]=&&BC_OP_FLOOR,\
+    [BC_OP_MOV]=&&BC_OP_MOV};
+
 static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t index, system_t* system, float* regs, bool cond) {
     #ifdef VM_COMPUTED_GOTO
-    static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
-                                     &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_SQRT,
-                                     &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
-                                     &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
-                                     &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
-                                     &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
-                                     &&BC_OP_FLOOR, &&BC_OP_MOV};
+    DT
     DISPATCH;
     #else
     while (true) {
@@ -506,15 +525,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
         simd8f_init1(regs+program->uniform_regs[i], uniforms[i]);
     
     #ifdef VM_COMPUTED_GOTO
-    static void* dispatch_table[] = {&&BC_OP_ADD, &&BC_OP_SUB, &&BC_OP_MUL,
-                                     &&BC_OP_DIV, &&BC_OP_POW, &&BC_OP_MOVF,
-                                     &&BC_OP_SQRT,
-                                     &&BC_OP_DELETE, &&BC_OP_LESS, &&BC_OP_GREATER,
-                                     &&BC_OP_EQUAL, &&BC_OP_BOOL_AND, &&BC_OP_BOOL_OR,
-                                     &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
-                                     &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
-                                     &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
-                                     &&BC_OP_FLOOR, &&BC_OP_MOV};
+    DT
     DISPATCH;
     #else
     while (true) {
