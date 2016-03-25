@@ -517,6 +517,24 @@
     }
 },
 {
+    'name': 'test loops2',
+    'source':
+    '''attribute v:vec2;
+    for var i:float=0; i<1; i=i+1 {
+        v.y = v.x;
+    }
+    ''',
+    'count': 1,
+    'attributes': {
+        'v.x': [2.0],
+        'v.y': [0.0]
+    },
+    'expected': {
+        'v.x': [2.0],
+        'v.y': [2.0]
+    }
+},
+{
     'name': 'test floor, ceil and fract',
     'source':
     '''include stdlib;

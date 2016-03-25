@@ -681,6 +681,9 @@ void remove_redundant_moves(ir_t* ir) {
     ir_var_t* replace_keys = NULL;
     ir_var_t* replace_vals = NULL;
     
+    size_t cond_count = 0;
+    size_t* cond_stack = NULL;
+    
     ir_inst_t* insts = ir->insts;
     size_t inst_count = ir->inst_count;
     ir->insts = NULL;
@@ -688,7 +691,28 @@ void remove_redundant_moves(ir_t* ir) {
     for (size_t i = 0; i < inst_count; i++) {
         ir_inst_t inst = insts[i];
         
+        bool mov_redundant = false;
         if (inst.op==IR_OP_MOV && inst.operands[1].type == IR_OPERAND_VAR) {
+            mov_redundant = true;
+            if (cond_count) {
+                for (size_t i = cond_stack[cond_count-1]+1; i < inst_count; i++) {
+                    ir_inst_t* phi = insts + i;
+                    if (phi->op == IR_OP_PHI) {
+                        if (phi->operands[1].type==IR_OPERAND_VAR &&
+                            phi->operands[1].var.decl==inst.operands[0].var.decl &&
+                            phi->operands[1].var.ver==inst.operands[0].var.ver &&
+                            phi->operands[1].var.comp_idx==inst.operands[0].var.comp_idx) {
+                            mov_redundant = false;
+                            break;
+                        }
+                    } else if (phi->op != IR_OP_DROP) {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (mov_redundant) {
             replace_keys = append_mem(replace_keys, replace_count, sizeof(ir_var_t), &inst.operands[0].var);
             
             ir_var_t var = inst.operands[1].var;
@@ -721,7 +745,21 @@ void remove_redundant_moves(ir_t* ir) {
             }
             add_inst(ir, &inst)->id = inst.id;
         }
+        
+        if (inst.op == IR_OP_BEGIN_IF) {
+            size_t index = find_inst_by_id(insts, inst_count, inst.end) - insts;
+            cond_stack = append_mem(cond_stack, cond_count++, sizeof(size_t), &index);
+        } else if (inst.op == IR_OP_END_IF) {
+            cond_stack = realloc_mem(cond_stack, (--cond_count)*sizeof(size_t));
+        } else if (inst.op == IR_OP_BEGIN_WHILE) {
+            const ir_inst_t* end_cond = find_inst_by_id(insts, inst_count, inst.end_while_cond);
+            size_t index = find_inst_by_id(insts, inst_count, end_cond->end_while) - insts;
+            cond_stack = append_mem(cond_stack, cond_count++, sizeof(size_t), &index);
+        } else if (inst.op == IR_OP_END_WHILE) {
+            cond_stack = realloc_mem(cond_stack, (--cond_count)*sizeof(size_t));
+        }
     }
+    free(cond_stack);
     free(insts);
     free(replace_keys);
     free(replace_vals);
