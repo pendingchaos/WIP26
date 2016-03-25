@@ -180,16 +180,9 @@ static bool write_mov(gen_bc_state_t* state, const ir_inst_t* inst) {
         int src_reg = get_reg(state, inst->operands[1].var);
         if (src_reg < 0) return false;
         
-        int cond_reg = find_reg(state);
-        WRITEB(BC_OP_MOVF);
-        WRITEB(cond_reg);
-        WRITEU32(1)
-        
-        WRITEB(BC_OP_SEL);
+        WRITEB(BC_OP_MOV);
         WRITEB(dest_reg);
         WRITEB(src_reg);
-        WRITEB(src_reg);
-        WRITEB(cond_reg);
     } else {
         WRITEB(BC_OP_MOVF);
         WRITEB(dest_reg);

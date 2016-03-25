@@ -317,7 +317,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
                                      &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
-                                     &&BC_OP_FLOOR};
+                                     &&BC_OP_FLOOR, &&BC_OP_MOV};
     DISPATCH;
     #else
     while (true) {
@@ -474,6 +474,10 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             uint8_t a = *bc++;
             regs[d] = floorf(regs[a]);
         END_CASE
+        BEGIN_CASE(BC_OP_MOV)
+            regs[bc[0]] = regs[bc[1]];
+            bc += 2;
+        END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
         }
@@ -510,7 +514,7 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
                                      &&BC_OP_BOOL_NOT, &&BC_OP_SEL, &&BC_OP_COND_BEGIN,
                                      &&BC_OP_COND_END, &&BC_OP_WHILE_BEGIN, &&BC_OP_WHILE_END_COND,
                                      &&BC_OP_WHILE_END, &&BC_OP_END, &&BC_OP_EMIT, &&BC_OP_RAND,
-                                     &&BC_OP_FLOOR};
+                                     &&BC_OP_FLOOR, &&BC_OP_MOV};
     DISPATCH;
     #else
     while (true) {
@@ -691,6 +695,10 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             simd8f_floor(regs+d, regs[a]);
+        END_CASE
+        BEGIN_CASE(BC_OP_MOV)
+            regs[bc[0]] = regs[bc[1]];
+            bc += 2;
         END_CASE
     #ifndef VM_COMPUTED_GOTO
         default: {break;}
