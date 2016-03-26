@@ -762,7 +762,6 @@ static void* thread_func(size_t begin, size_t count, void* userdata) {
             return (void*)false;
     
     for (; i<end; i++) {
-        uint8_t d = system->particles->deleted_flags[i];
         float regs[256];
         
         for (size_t j = 0; j < p->attribute_count; j++) {
@@ -775,7 +774,8 @@ static void* thread_func(size_t begin, size_t count, void* userdata) {
         for (size_t i = 0; i < p->uniform_count; i++)
             regs[p->uniform_regs[i]] = system->sim_uniforms[i];
         
-        if (!vm_execute1(p->bc, &d, i, system, regs, false)) return (void*)false;
+        if (!vm_execute1(p->bc, system->particles->deleted_flags, i, system, regs, false))
+            return (void*)false;
         
         for (size_t j = 0; j < p->attribute_count; j++) {
             int index = system->sim_attribute_indices[j];
@@ -823,6 +823,10 @@ static bool vm_simulate_system(system_t* system) {
     threading_t* threading = &system->runtime->threading;
     size_t count = system->particles->pool_size;
     thread_res_t res = threading_run(threading, &thread_func, count, system);
+    if (!res.success) {
+        strncpy(system->runtime->error, threading->error, sizeof(system->runtime->error)-1);
+        return false;
+    }
     
     for (size_t i = 0; i < res.count; i++)
         if (!res.res[i]) return false;

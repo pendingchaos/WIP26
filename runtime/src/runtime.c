@@ -20,7 +20,7 @@ bool create_runtime(runtime_t* runtime, threading_t* threading) {
         runtime->threading = *threading;
     }
     else {
-        if (!create_null_threading(&runtime->threading)) {
+        if (!create_builtin_threading(&runtime->threading, 0)) {
             strncpy(runtime->error, runtime->threading.error, sizeof(runtime->error)-1);
             return false;
         }

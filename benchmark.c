@@ -16,11 +16,6 @@ static uint64_t get_time() {
 }
 
 int main() {
-    cpu_set_t cpus;
-    CPU_ZERO(&cpus);
-    CPU_SET(0, &cpus);
-    sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpus);
-    
     system("compiler/compiler -Icompiler/ -i benchmark.sim -o benchmark.sim.bin -t sim");
     
     runtime_t runtime;
