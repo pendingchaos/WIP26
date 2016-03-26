@@ -2,7 +2,6 @@
 
 #include <sched.h>
 #include <unistd.h>
-#include <x86intrin.h>
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
@@ -11,7 +10,7 @@
 
 static uint64_t get_time() {
     struct timespec t;
-    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t);
+    clock_gettime(CLOCK_MONOTONIC, &t);
     return t.tv_sec*(uint64_t)1000000000 + t.tv_nsec;
 }
 
@@ -58,7 +57,6 @@ int main() {
             fprintf(stderr, "Failed to spawn particle: %s\n", runtime.error);
     
     uint64_t start_nano = get_time();
-    uint64_t start_cycle = __rdtsc();
     for (size_t i = 0; i < 30; i++) {
         if (!simulate_system(&system)) {
             fprintf(stderr, "Failed to execute program: %s\n", runtime.error);
@@ -66,11 +64,9 @@ int main() {
             return 1;
         }
     }
-    uint64_t end_cycle = __rdtsc();
     uint64_t end_nano = get_time();
     
     printf("%f nanoseconds per particle\n", (double)((end_nano-start_nano)/(__float128)(particles.pool_size*30)));
-    printf("%f cycles per particle\n", (double)((end_cycle-start_cycle)/(__float128)(particles.pool_size*30)));
     
     if (!destroy_system(&system)) {
         fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);

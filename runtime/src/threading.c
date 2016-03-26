@@ -108,7 +108,7 @@ static thread_res_t pthread_run(threading_t* threading, thread_func_t func, size
 }
 
 bool create_builtin_threading(threading_t* threading, size_t count) {
-    if (!count) count = sysconf(_SC_NPROCESSORS_ONLN)+1;
+    if (!count) count = sysconf(_SC_NPROCESSORS_ONLN)*2;
     if (count > MAX_THREADS) count = MAX_THREADS;
     
     memset(threading->error, 0, sizeof(threading->error));
