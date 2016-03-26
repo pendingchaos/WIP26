@@ -1,9 +1,11 @@
 *.o
 *.d
+*.a
+*.so
 *.geany
 old_compiler
 main
-benchmark
+benchmark/runbenchmark
 compiler/compiler
 testing/runtest
 # Compiled programs

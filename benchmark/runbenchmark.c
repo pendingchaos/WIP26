@@ -1,12 +1,10 @@
 #include "runtime.h"
 
-#include <sched.h>
-#include <unistd.h>
-#include <time.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <time.h>
 
 static uint64_t get_time() {
     struct timespec t;
@@ -14,8 +12,13 @@ static uint64_t get_time() {
     return t.tv_sec*(uint64_t)1000000000 + t.tv_nsec;
 }
 
-int main() {
-    system("compiler/compiler -Icompiler/ -i benchmark.sim -o benchmark.sim.bin -t sim");
+int main(int argc, char** argv) {
+    char prog[1024];
+    snprintf(prog, sizeof(prog), "%s.bin", argv[1]);
+    
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "../compiler/compiler -I../compiler/ -i %s -o %s -t sim", argv[1], prog);
+    system(cmd);
     
     runtime_t runtime;
     if (!create_runtime(&runtime, NULL)) {
@@ -25,8 +28,8 @@ int main() {
     
     program_t program;
     program.runtime = &runtime;
-    if (!open_program("benchmark.sim.bin", &program)) {
-        fprintf(stderr, "Failed to open program.bin: %s\n", runtime.error);
+    if (!open_program(prog, &program)) {
+        fprintf(stderr, "Failed to open %s: %s\n", prog, runtime.error);
         return 1;
     }
     
@@ -37,11 +40,7 @@ int main() {
         return 1;
     }
     add_attribute(&particles, "position.x", ATTR_FLOAT32, NULL);
-    add_attribute(&particles, "position.y", ATTR_FLOAT32, NULL);
-    add_attribute(&particles, "position.z", ATTR_FLOAT32, NULL);
     add_attribute(&particles, "velocity.x", ATTR_FLOAT32, NULL);
-    add_attribute(&particles, "velocity.y", ATTR_FLOAT32, NULL);
-    add_attribute(&particles, "velocity.z", ATTR_FLOAT32, NULL);
     
     system_t system;
     system.runtime = &runtime;
@@ -57,7 +56,7 @@ int main() {
             fprintf(stderr, "Failed to spawn particle: %s\n", runtime.error);
     
     uint64_t start_nano = get_time();
-    for (size_t i = 0; i < 30; i++) {
+    for (size_t i = 0; i < 100; i++) {
         if (!simulate_system(&system)) {
             fprintf(stderr, "Failed to execute program: %s\n", runtime.error);
             destroy_program(&program);
@@ -66,7 +65,7 @@ int main() {
     }
     uint64_t end_nano = get_time();
     
-    printf("%f nanoseconds per particle\n", (double)((end_nano-start_nano)/(__float128)(particles.pool_size*30)));
+    printf("%f nanoseconds per particle\n", (double)((end_nano-start_nano)/(__float128)(particles.pool_size*100)));
     
     if (!destroy_system(&system)) {
         fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);
