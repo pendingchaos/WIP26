@@ -1,5 +1,6 @@
 #include "threading.h"
 
+#include <semaphore.h>
 #include <pthread.h>
 #include <string.h>
 #include <unistd.h>
@@ -34,76 +35,6 @@ bool destroy_threading(threading_t* threading) {
 thread_res_t threading_run(threading_t* threading, thread_func_t func, size_t count, void* data) {
     return threading->run(threading, func, count, data);
 }
-
-#if 0
-typedef struct pthread_internal_t {
-    size_t count;
-} pthread_internal_t;
-
-typedef struct pthread_data_t {
-    thread_func_t func;
-    size_t begin;
-    size_t count;
-    void* userdata;
-    void* res;
-} pthread_data_t;
-
-static bool pthread_destroy(threading_t* threading) {
-    free(threading->internal);
-    return true;
-}
-
-static void* pthread_func(void* userdata) {
-    pthread_data_t* data = userdata;
-    
-    return data->func(data->begin, data->count, data->userdata);
-}
-
-static thread_res_t pthread_run(threading_t* threading, thread_func_t func, size_t count, void* data) {
-    size_t thread_count = ((pthread_internal_t*)threading->internal)->count;
-    if (count < thread_count) thread_count = count;
-    pthread_t threads[thread_count];
-    pthread_data_t thread_data[thread_count];
-    
-    size_t begin = 0;
-    for (size_t i = 0; i < thread_count; i++) {
-        thread_data[i].func = func;
-        thread_data[i].begin = begin;
-        thread_data[i].count = count/(thread_count+1);
-        thread_data[i].userdata = data;
-        pthread_create(threads+i, NULL, &pthread_func, thread_data+i);
-        
-        begin += thread_data[i].count;
-    }
-    
-    thread_res_t res;
-    res.success = true;
-    res.count = thread_count+1;
-    res.res[0] = func(begin, count-begin, data);
-    
-    for (size_t i = 0; i < thread_count; i++)
-        pthread_join(threads[i], res.res+i+1);
-    
-    return res;
-}
-
-bool create_builtin_threading(threading_t* threading, size_t count) {
-    if (!count) count = sysconf(_SC_NPROCESSORS_ONLN);
-    if (count > MAX_THREADS) count = MAX_THREADS;
-    
-    memset(threading->error, 0, sizeof(threading->error));
-    threading->destroy = &pthread_destroy;
-    threading->run = &pthread_run;
-    threading->internal = malloc(sizeof(pthread_internal_t));
-    if (!threading->internal) ;//TODO
-    
-    pthread_internal_t* internal = threading->internal;
-    internal->count = count;
-    
-    return true;
-}
-#else
-#include <semaphore.h>
 
 typedef struct pthread_data_t {
     thread_func_t func;
@@ -204,4 +135,3 @@ bool create_builtin_threading(threading_t* threading, size_t count) {
     
     return true;
 }
-#endif
