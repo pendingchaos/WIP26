@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     snprintf(prog, sizeof(prog), "%s.bin", argv[1]);
     
     char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "../compiler/compiler -I../compiler/ -i %s -o %s -t sim", argv[1], prog);
+    snprintf(cmd, sizeof(cmd), "python assembler.py %s %s", argv[1], prog);
     system(cmd);
     
     runtime_t runtime;
@@ -35,12 +35,10 @@ int main(int argc, char** argv) {
     
     particles_t particles;
     particles.runtime = &runtime;
-    if (!create_particles(&particles, 1000000)) {
+    if (!create_particles(&particles, 2000000)) {
         fprintf(stderr, "Failed to create particles: %s\n", runtime.error);
         return 1;
     }
-    add_attribute(&particles, "position.x", ATTR_FLOAT32, NULL);
-    add_attribute(&particles, "velocity.x", ATTR_FLOAT32, NULL);
     
     system_t system;
     system.runtime = &runtime;
@@ -56,7 +54,7 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Failed to spawn particle: %s\n", runtime.error);
     
     uint64_t start_nano = get_time();
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t i = 0; i < 10; i++) {
         if (!simulate_system(&system)) {
             fprintf(stderr, "Failed to execute program: %s\n", runtime.error);
             destroy_program(&program);
@@ -65,7 +63,7 @@ int main(int argc, char** argv) {
     }
     uint64_t end_nano = get_time();
     
-    printf("%f nanoseconds per particle\n", (double)((end_nano-start_nano)/(__float128)(particles.pool_size*100)));
+    printf("%f nanoseconds per particle\n", (double)((end_nano-start_nano)/(__float128)(particles.pool_size*10)));
     
     if (!destroy_system(&system)) {
         fprintf(stderr, "Failed to destroy program: %s\n", runtime.error);

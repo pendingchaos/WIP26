@@ -1,299 +1,301 @@
 {
     'name': 'addition',
     'source':
-    '''attribute position:float;
-    attribute velocity:float;
-    position = position + velocity;
-    position = position + 1.0;
-    position = position + velocity;
-    position = position + 1.0;
-    position = position + velocity;
-    position = position + 1.0;
-    position = position + velocity;
-    position = position + 1.0;
-    position = position + velocity;
-    position = position + 1.0;
+    '''add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
+    add 0 0 0
     '''
 },
 {
     'name': 'subtraction',
     'source':
-    '''attribute position:float;
-    attribute velocity:float;
-    position = position - velocity;
-    position = position - 1.0;
-    position = position - velocity;
-    position = position - 1.0;
-    position = position - velocity;
-    position = position - 1.0;
-    position = position - velocity;
-    position = position - 1.0;
-    position = position - velocity;
-    position = position - 1.0;
+    '''sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
+    sub 0 0 0
     '''
 },
 {
     'name': 'multiplication',
     'source':
-    '''attribute position:float;
-    attribute velocity:float;
-    position = position * velocity;
-    position = position * 1.0;
-    position = position * velocity;
-    position = position * 1.0;
-    position = position * velocity;
-    position = position * 1.0;
-    position = position * velocity;
-    position = position * 1.0;
-    position = position * velocity;
-    position = position * 1.0;
+    '''mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
+    mul 0 0 0
     '''
 },
 {
     'name': 'division',
     'source':
-    '''attribute position:float;
-    attribute velocity:float;
-    position = position / velocity;
-    position = position / 1.0;
-    position = position / velocity;
-    position = position / 1.0;
-    position = position / velocity;
-    position = position / 1.0;
-    position = position / velocity;
-    position = position / 1.0;
-    position = position / velocity;
-    position = position / 1.0;
+    '''div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
+    div 0 0 0
     '''
 },
 {
     'name': 'power',
     'source':
-    '''attribute position:float;
-    attribute velocity:float;
-    position = position ^ velocity;
-    position = position ^ 1.0;
-    position = position ^ velocity;
-    position = position ^ 1.0;
-    position = position ^ velocity;
-    position = position ^ 1.0;
-    position = position ^ velocity;
-    position = position ^ 1.0;
-    position = position ^ velocity;
-    position = position ^ 1.0;
+    '''pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
+    pow 0 0 0
     '''
 },
 {
     'name': 'sqrt',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
-    position = sqrt(position);
+    '''sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
+    sqrt 0 0
     '''
 },
 {
     'name': 'floor',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
-    position = floor(position);
+    '''floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
+    floor 0 0
     '''
 },
 {
     'name': 'sel',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position = sel(position, velocity, true);
-    position = sel(position, velocity, false);
-    position = sel(position, velocity, true);
-    position = sel(position, velocity, false);
-    position = sel(position, velocity, true);
-    position = sel(position, velocity, false);
-    position = sel(position, velocity, true);
-    position = sel(position, velocity, false);
-    position = sel(position, velocity, true);
-    position = sel(position, velocity, false);
+    '''sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
+    sel 0 0 0 0
     '''
 },
 {
-    'name': '>',
+    'name': 'greater',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
-    position > velocity;
+    '''greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
+    greater 0 0 0
     '''
 },
 {
-    'name': '<',
+    'name': 'less',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
-    position < velocity;
+    '''less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
+    less 0 0 0
     '''
 },
 {
-    'name': '==',
+    'name': 'equal',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
-    position == velocity;
+    '''equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
+    equal 0 0 0
     '''
 },
 {
-    'name': '&&',
+    'name': 'and',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    var t:bool = true;
-    var f:bool = false;
-    t && t;
-    t && f;
-    f && t;
-    f && f;
-    t && t;
-    t && f;
-    f && t;
-    f && f;
-    t && t;
-    t && f;
+    '''and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
+    and 0 0 0
     '''
 },
 {
-    'name': '||',
+    'name': 'or',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    var t:bool = true;
-    var f:bool = false;
-    t || t;
-    t || f;
-    f || t;
-    f || f;
-    t || t;
-    t || f;
-    f || t;
-    f || f;
-    t || t;
-    t || f;
+    '''or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
+    or 0 0 0
     '''
 },
 {
-    'name': '!',
+    'name': 'not',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    var v:bool = !!!!!!!!!!false;
+    '''not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    not 0 0
+    '''
+},
+{
+    'name': 'rand',
+    'source':
+    '''rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
+    rand 0 0
     '''
 },
 {
     'name': 'if',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    var t:bool = true;
-    var f:bool = false;
-    if t {}
-    if f {}
-    if t {}
-    if f {}
-    if t {}
-    if f {}
-    if t {}
-    if f {}
-    if t {}
-    if f {}
-    '''
-},
-{
-    'name': 'movef',
-    'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    position = 1.0;
-    velocity = 2.0;
-    position = 1.0;
-    velocity = 2.0;
-    position = 1.0;
-    velocity = 2.0;
-    position = 1.0;
-    velocity = 2.0;
-    position = 1.0;
-    velocity = 2.0;
-    '''
+    '''beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif
+    beginif 0 0 0 0
+    endif'''
 },
 {
     'name': 'loop',
     'source':
-    '''include stdlib;
-    attribute position:float;
-    attribute velocity:float;
-    var f:bool = false;
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    while f {}
-    '''
+    '''beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile
+    beginwhile 0 0 0 0 0 0 0
+    endwhile'''
+},
+{
+    'name': 'movf',
+    'source':
+    '''movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0
+    movf 0 0'''
+},
+{
+    'name': 'mov',
+    'source':
+    '''mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0
+    mov 0 0'''
 }
