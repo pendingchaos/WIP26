@@ -24,7 +24,7 @@ int main() {
     system("compiler/compiler -Icompiler/ -i benchmark.sim -o benchmark.sim.bin -t sim");
     
     runtime_t runtime;
-    if (!create_runtime(&runtime, "auto")) {
+    if (!create_runtime(&runtime, NULL)) {
         fprintf(stderr, "Failed to create runtime: %s\n", runtime.error);
         return 1;
     }

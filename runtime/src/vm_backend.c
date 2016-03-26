@@ -8,9 +8,10 @@
 #include "runtime.h"
 
 #include <string.h>
-#include <math.h>
 #include <endian.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <math.h>
 #ifdef VM_AVX
 #include <immintrin.h>
 #endif
@@ -171,7 +172,7 @@ static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
 }
 
 static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
-    for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = cond.i[i] ? b.v[i] : a.v[i];
+    for (uint_fast8_t i = 0; i < 8; i++) dest->v[i] = cond.i[i] ? a.v[i] : b.v[i];
 }
 
 static void simd8f_floor(simd8f_t* dest, simd8f_t a) {
@@ -204,7 +205,6 @@ static void simd8f_rand(simd8f_t *dest) {
 #define END_CASE break;}
 #endif
 
-//TODO: Slow
 void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case ATTR_UINT8:
@@ -241,7 +241,31 @@ void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     }
 }
 
-//TODO: Slow
+float load_attr1(void* attribute, attr_dtype_t dtype, size_t index) {
+    switch (dtype) {
+    case ATTR_UINT8:
+        return ((uint8_t*)attribute)[index] / 255.0f;
+    case ATTR_INT8:
+        return ((int8_t*)attribute)[index] / 127.0f;
+    case ATTR_UINT16:
+        return ((uint16_t*)attribute)[index] / 65535.0f;
+    case ATTR_INT16:
+        return ((int16_t*)attribute)[index] / 32767.0f;
+    case ATTR_UINT32:
+        return ((uint32_t*)attribute)[index] / 4294967295.0;
+    case ATTR_INT32:
+        return ((int32_t*)attribute)[index] / 2147483647.0;
+        break;
+    case ATTR_FLOAT32:
+        return ((float*)attribute)[index];
+    case ATTR_FLOAT64:
+        return ((double*)attribute)[index];
+    }
+    
+    assert(false);
+    return 0.0f;
+}
+
 void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case ATTR_UINT8:
@@ -416,7 +440,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             uint8_t d = *bc++;
             uint8_t a = *bc++;
             uint8_t b = *bc++;
-            ((uint32_t*)regs)[d] = ((uint32_t*)regs)[a] && ((uint32_t*)regs)[b];
+            ((uint32_t*)regs)[d] = ((uint32_t*)regs)[a] || ((uint32_t*)regs)[b];
         END_CASE
         BEGIN_CASE(BC_OP_BOOL_NOT)
             uint8_t d = *bc++;
@@ -428,7 +452,7 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             uint8_t a = *bc++;
             uint8_t b = *bc++;
             uint8_t cond = *bc++;
-            regs[d] = regs[((uint32_t*)regs)[cond] ? b : a];
+            regs[d] = regs[((uint32_t*)regs)[cond] ? a : b];
         END_CASE
         BEGIN_CASE(BC_OP_COND_BEGIN)
             uint8_t c = *bc++;
@@ -727,6 +751,43 @@ static bool vm_execute8(const program_t* program, size_t offset, system_t* syste
     return true;
 }
 
+static void* thread_func(size_t begin, size_t count, void* userdata) {
+    system_t* system = userdata;
+    const program_t* p = system->sim_program;
+    
+    size_t end = begin + count;
+    size_t i = begin;
+    for (; (end-i) >= 8; i+=8)
+        if (!vm_execute8(p, i, system, system->sim_attribute_indices, system->sim_uniforms))
+            return (void*)false;
+    
+    for (; i<end; i++) {
+        uint8_t d = system->particles->deleted_flags[i];
+        float regs[256];
+        
+        for (size_t j = 0; j < p->attribute_count; j++) {
+            int index = system->sim_attribute_indices[j];
+            void* attr = system->particles->attributes[index];
+            attr_dtype_t dtype = system->particles->attribute_dtypes[index];
+            regs[p->attribute_load_regs[j]] = load_attr1(attr, dtype, i);
+        }
+        
+        for (size_t i = 0; i < p->uniform_count; i++)
+            regs[p->uniform_regs[i]] = system->sim_uniforms[i];
+        
+        if (!vm_execute1(p->bc, &d, i, system, regs, false)) return (void*)false;
+        
+        for (size_t j = 0; j < p->attribute_count; j++) {
+            int index = system->sim_attribute_indices[j];
+            store_attr1(regs[p->attribute_store_regs[j]],
+                        system->particles->attributes[index],
+                        system->particles->attribute_dtypes[index], i);
+        }
+    }
+    
+    return (void*)true;
+}
+
 #ifdef VM_COMPUTED_GOTO
 #undef DISPATCH
 #endif
@@ -739,10 +800,6 @@ static bool vm_create(runtime_t* runtime) {
 
 static bool vm_destroy(runtime_t* runtime) {
     return true;
-}
-
-static size_t vm_get_attribute_padding(const runtime_t* runtime) {
-    return 8;
 }
 
 static bool vm_create_program(program_t* program) {
@@ -758,26 +815,23 @@ static bool vm_simulate_system(system_t* system) {
     if (p) {
         uint8_t d = 0;
         float regs[256];
-        for (size_t i = 0; i < p->uniform_count; i++) {
+        for (size_t i = 0; i < p->uniform_count; i++)
             regs[p->uniform_regs[i]] = system->emit_uniforms[i];
-        }
-        if (!vm_execute1(p->bc, &d, 0, system, regs, false))
-            return false;
+        if (!vm_execute1(p->bc, &d, 0, system, regs, false)) return false;
     }
     
-    p = system->sim_program;
-    if (p)
-        for (size_t i = 0; i < system->particles->pool_size; i += 8)
-            if (!vm_execute8(p, i, system, system->sim_attribute_indices, system->sim_uniforms))
-                return false;
+    threading_t* threading = &system->runtime->threading;
+    size_t count = system->particles->pool_size;
+    thread_res_t res = threading_run(threading, &thread_func, count, system);
     
+    for (size_t i = 0; i < res.count; i++)
+        if (!res.res[i]) return false;
     return true;
 }
 
 bool vm_backend(backend_t* backend) {
     backend->create = &vm_create;
     backend->destroy = &vm_destroy;
-    backend->get_attribute_padding = &vm_get_attribute_padding;
     backend->create_program = &vm_create_program;
     backend->destroy_program = &vm_destroy_program;
     backend->simulate_system = &vm_simulate_system;

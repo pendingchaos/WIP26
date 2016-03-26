@@ -280,7 +280,7 @@ int main() {
     
     glEnable(GL_DEPTH_TEST);
     
-    if (!create_runtime(&runtime, "auto"))
+    if (!create_runtime(&runtime, NULL))
         FAIL("Failed to create runtime: %s", runtime.error);
     runtime_init = true;
     

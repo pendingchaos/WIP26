@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "threading.h"
+
 typedef enum bc_op_t {
     BC_OP_ADD = 0,
     BC_OP_SUB = 1,
@@ -57,7 +59,6 @@ typedef struct system_t system_t;
 struct backend_t {
     bool (*create)(runtime_t* runtime);
     bool (*destroy)(runtime_t* runtime);
-    size_t (*get_attribute_padding)(const runtime_t* runtime);
     bool (*create_program)(program_t* program);
     bool (*destroy_program)(program_t* program);
     bool (*simulate_system)(system_t* program);
@@ -66,6 +67,7 @@ struct backend_t {
 
 struct runtime_t {
     char error[256];
+    threading_t threading;
     backend_t backend;
 };
 
@@ -113,9 +115,8 @@ struct system_t {
     uint8_t emit_attribute_indices[256];
 };
 
-bool create_runtime(runtime_t* runtime, const char* backend);
+bool create_runtime(runtime_t* runtime, threading_t* threading);
 bool destroy_runtime(runtime_t* runtime);
-size_t get_attribute_padding(const runtime_t* runtime);
 bool set_error(runtime_t* runtime, const char* message);
 
 bool open_program(const char* filename, program_t* program);

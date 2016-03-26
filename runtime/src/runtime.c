@@ -11,14 +11,20 @@
 
 bool vm_backend(backend_t* backend);
 
-bool create_runtime(runtime_t* runtime, const char* backend) {
-    backend_t vm;
-    bool vm_supported = vm_backend(&vm);
-    
-    if (strcmp(backend, "auto")==0) backend = "vm";
-    
-    if (strcmp(backend, "vm")==0 && vm_supported) runtime->backend = vm;
+bool create_runtime(runtime_t* runtime, threading_t* threading) {
+    backend_t backend;
+    if (vm_backend(&backend)) runtime->backend = backend;
     else return false;
+    
+    if (threading) {
+        runtime->threading = *threading;
+    }
+    else {
+        if (!create_null_threading(&runtime->threading)) {
+            strncpy(runtime->error, runtime->threading.error, sizeof(runtime->error)-1);
+            return false;
+        }
+    }
     
     memset(runtime->error, 0, sizeof(runtime->error));
     
@@ -26,6 +32,11 @@ bool create_runtime(runtime_t* runtime, const char* backend) {
 }
 
 bool destroy_runtime(runtime_t* runtime) {
+    if (!destroy_threading(&runtime->threading)) {
+        strncpy(runtime->error, runtime->threading.error, sizeof(runtime->error)-1);
+        return false;
+    }
+    
     return runtime->backend.destroy(runtime);
 }
 
@@ -200,10 +211,6 @@ int get_uniform_index(const program_t* program, const char* name) {
     return -1;
 }
 
-size_t get_attribute_padding(const runtime_t* runtime) {
-    return runtime->backend.get_attribute_padding(runtime);
-}
-
 static size_t get_attr_dtype_size(attr_dtype_t dtype) {
     switch (dtype) {
     case ATTR_UINT8:
@@ -219,9 +226,6 @@ static size_t get_attr_dtype_size(attr_dtype_t dtype) {
 }
 
 bool create_particles(particles_t* particles, size_t pool_size) {
-    size_t padding = get_attribute_padding(particles->runtime);
-    pool_size = ceil(pool_size/(double)padding) * padding;
-    
     particles->pool_size = pool_size;
     particles->pool_usage = 0;
     particles->nexts = malloc(pool_size*sizeof(int));
