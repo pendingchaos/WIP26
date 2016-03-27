@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+static bool set_error(threading_t* threading, const char* message) {
+    strncpy(threading->error, message, sizeof(threading->error));
+    return false;
+}
+
 static bool null_destroy(threading_t* _) {
     return true;
 }
@@ -115,14 +120,23 @@ bool create_builtin_threading(threading_t* threading, size_t count) {
     threading->destroy = &pthread_destroy;
     threading->run = &pthread_run;
     threading->internal = malloc(sizeof(pthread_internal_t));
-    if (!threading->internal) ;//TODO
+    if (!threading->internal) 
+        return set_error(threading, "Failed to allocate threading internal data");
     
     pthread_internal_t* internal = threading->internal;
     internal->count = count;
     
     for (size_t i = 0; i < count; i++) {
-        sem_init(internal->end_sems+i, 0, 0);
-        sem_init(internal->begin_sems+i, 0, 0);
+        if (sem_init(internal->end_sems+i, 0, 0) < 0) {
+            free(internal);
+            threading->internal = NULL;
+            return set_error(threading, "Failed to create semaphore");
+        }
+        if (sem_init(internal->begin_sems+i, 0, 0) < 0) {
+            free(internal);
+            threading->internal = NULL;
+            return set_error(threading, "Failed to create semaphore");
+        }
     }
     
     for (size_t i = 0; i < internal->count; i++) {
@@ -131,7 +145,11 @@ bool create_builtin_threading(threading_t* threading, size_t count) {
     }
     
     for (size_t i = 0; i < count; i++)
-        pthread_create(internal->threads+i, NULL, &pthread_func, internal->data+i);
+        if (pthread_create(internal->threads+i, NULL, &pthread_func, internal->data+i)) {
+            free(internal);
+            threading->internal = NULL;
+            return set_error(threading, "Failed to create thread");
+        }
     
     return true;
 }
