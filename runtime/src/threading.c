@@ -15,8 +15,8 @@ static bool null_destroy(threading_t* _) {
     return true;
 }
 
-static thread_res_t null_run(threading_t* _, thread_func_t func, size_t count, void* data) {
-    void* ptr = func(0, count, data);
+static thread_res_t null_run(threading_t* _, thread_run_t run) {
+    void* ptr = run.func(0, run.count, run.data);
     
     thread_res_t res;
     res.success = true;
@@ -37,8 +37,8 @@ bool destroy_threading(threading_t* threading) {
     return threading->destroy(threading);
 }
 
-thread_res_t threading_run(threading_t* threading, thread_func_t func, size_t count, void* data) {
-    return threading->run(threading, func, count, data);
+thread_res_t threading_run(threading_t* threading, thread_run_t run) {
+    return threading->run(threading, run);
 }
 
 typedef struct pthread_data_t {
@@ -83,15 +83,15 @@ static void* pthread_func(void* userdata) {
     return NULL;
 }
 
-static thread_res_t pthread_run(threading_t* threading, thread_func_t func, size_t count, void* data) {
+static thread_res_t pthread_run(threading_t* threading, thread_run_t run) {
     pthread_internal_t* internal = threading->internal;
     
     size_t begin = 0;
     for (size_t i = 0; i < internal->count; i++) {
-        internal->data[i].func = func;
+        internal->data[i].func = run.func;
         internal->data[i].begin = begin;
-        internal->data[i].count = count/(internal->count+1);
-        internal->data[i].userdata = data;
+        internal->data[i].count = run.count/(internal->count+1);
+        internal->data[i].userdata = run.data;
         begin += internal->data[i].count;
     }
     
@@ -101,7 +101,7 @@ static thread_res_t pthread_run(threading_t* threading, thread_func_t func, size
     thread_res_t res;
     res.success = true;
     res.count = internal->count+1;
-    res.res[0] = func(begin, count-begin, data);
+    res.res[0] = run.func(begin, run.count-begin, run.data);
     
     for (size_t i = 0; i < internal->count; i++)
         sem_wait(internal->end_sems+i);

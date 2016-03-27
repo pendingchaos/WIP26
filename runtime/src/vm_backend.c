@@ -821,8 +821,10 @@ static bool vm_simulate_system(system_t* system) {
     }
     
     threading_t* threading = &system->runtime->threading;
-    size_t count = system->particles->pool_size;
-    thread_res_t res = threading_run(threading, &thread_func, count, system);
+    thread_run_t run = (thread_run_t){.func = &thread_func,
+                                      .count=system->particles->pool_size,
+                                      .data=system};
+    thread_res_t res = threading_run(threading, run);
     if (!res.success) {
         strncpy(system->runtime->error, threading->error, sizeof(system->runtime->error)-1);
         return false;
