@@ -49,6 +49,7 @@ typedef struct pthread_data_t {
     void* res;
     sem_t* begin_sem;
     sem_t* end_sem;
+    bool destroy;
 } pthread_data_t;
 
 typedef struct pthread_internal_t {
@@ -62,10 +63,17 @@ typedef struct pthread_internal_t {
 static bool pthread_destroy(threading_t* threading) {
     pthread_internal_t* internal = threading->internal;
     for (size_t i = 0; i < internal->count; i++) {
-        pthread_cancel(internal->threads[i]);
+        internal->data[i].destroy = true;
+        sem_post(internal->begin_sems+i);
+        void* res;
+        pthread_join(internal->threads[i], &res);
+    }
+    
+    for (size_t i = 0; i < internal->count; i++) {
         sem_destroy(internal->end_sems+i);
         sem_destroy(internal->begin_sems+i);
     }
+    
     free(internal);
     return true;
 }
@@ -75,12 +83,14 @@ static void* pthread_func(void* userdata) {
     
     while (true) {
         sem_wait(data->begin_sem);
+        
+        if (data->destroy) return NULL;
+        
         void* res = data->func(data->begin, data->count, data->userdata);
         data->res = res;
+        
         sem_post(data->end_sem);
     }
-    
-    return NULL;
 }
 
 static thread_res_t pthread_run(threading_t* threading, thread_run_t run) {
@@ -142,6 +152,7 @@ bool create_builtin_threading(threading_t* threading, size_t count) {
     for (size_t i = 0; i < internal->count; i++) {
         internal->data[i].begin_sem = internal->begin_sems + i;
         internal->data[i].end_sem = internal->end_sems + i;
+        internal->data[i].destroy = false;
     }
     
     for (size_t i = 0; i < count; i++)
