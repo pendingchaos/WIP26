@@ -10,7 +10,7 @@ output.write(struct.pack("2B", 0, 0))
 
 bc = []
 for line in lines:
-    parts = line.split(' ')
+    parts = line.lstrip().rstrip().split(' ')
     if parts[0] == 'add':
         bc.append(0)
         bc.append(int(parts[1]))
