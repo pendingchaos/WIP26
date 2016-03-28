@@ -205,7 +205,7 @@ static void simd8f_rand(simd8f_t *dest) {
 #define END_CASE break;}
 #endif
 
-void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
+static void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case ATTR_UINT8:
         for (size_t i = 0; i < 8; i++)
@@ -241,7 +241,7 @@ void load_attr(float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     }
 }
 
-float load_attr1(void* attribute, attr_dtype_t dtype, size_t index) {
+static float load_attr1(void* attribute, attr_dtype_t dtype, size_t index) {
     switch (dtype) {
     case ATTR_UINT8:
         return ((uint8_t*)attribute)[index] / 255.0f;
@@ -266,7 +266,7 @@ float load_attr1(void* attribute, attr_dtype_t dtype, size_t index) {
     return 0.0f;
 }
 
-void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
+static void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t offset) {
     switch (dtype) {
     case ATTR_UINT8:
         for (size_t i = 0; i < 8; i++)
@@ -302,7 +302,7 @@ void store_attr(const float* val, void* attribute, attr_dtype_t dtype, size_t of
     }
 }
 
-void store_attr1(float val, void* attribute, attr_dtype_t dtype, size_t index) {
+static void store_attr1(float val, void* attribute, attr_dtype_t dtype, size_t index) {
     switch (dtype) {
     case ATTR_UINT8:
         ((uint8_t*)attribute)[index] = val * 255.0f;
