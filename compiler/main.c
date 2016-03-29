@@ -260,13 +260,15 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
         }
         case BC_OP_SQRT:
         case BC_OP_BOOL_NOT:
-        case BC_OP_FLOOR: {
+        case BC_OP_FLOOR:
+        case BC_OP_MOV: {
             uint8_t d = *bc++;
             uint8_t v = *bc++;
             switch (op) {
             case BC_OP_SQRT: printf("sqrt r%u r%u\n", d, v); break;
             case BC_OP_BOOL_NOT: printf("boolnot r%u r%u\n", d, v); break;
             case BC_OP_FLOOR: printf("floor r%u r%u\n", d, v); break;
+            case BC_OP_MOV: printf("mov r%u r%u\n", d, v); break;
             }
             break;
         }
@@ -332,7 +334,7 @@ static void print_bc(uint8_t* begin, uint8_t* end) {
             putchar('\n');
             break;
         default:
-            printf("(error)\n");
+            printf("(error %u)\n", op);
             break;
         }
     }

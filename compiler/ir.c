@@ -692,6 +692,14 @@ void remove_redundant_moves(ir_t* ir) {
         ir_inst_t inst = insts[i];
         
         bool mov_redundant = false;
+        /*TODO
+        This does not handle IR like this:
+            beginif cond
+                neg temp vel_0
+                mov vel_1 temp
+            endif starting at instruction 16
+            phi vel_2 vel_1 vel_0
+        */
         if (inst.op==IR_OP_MOV && inst.operands[1].type == IR_OPERAND_VAR) {
             mov_redundant = true;
             if (cond_count) {
