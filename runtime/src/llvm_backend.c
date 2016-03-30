@@ -151,9 +151,9 @@ static LLVMBasicBlockRef to_ir(LLVMBasicBlockRef block, program_t* program,
             break;
         }
         case BC_OP_DELETE: {
-            LLVMValueRef index = LLVMBuildLoad(llvm->builder, llvm->inv_index, get_name(runtime));
-            LLVMValueRef args[] = {llvm->particles, index};
-            LLVMBuildCall(llvm->builder, llvm->del_particle_func, args, 2, get_name(runtime));
+            //LLVMValueRef index = LLVMBuildLoad(llvm->builder, llvm->inv_index, get_name(runtime));
+            //LLVMValueRef args[] = {llvm->particles, index};
+            //LLVMBuildCall(llvm->builder, llvm->del_particle_func, args, 2, get_name(runtime));
             
             LLVMBuildBr(llvm->builder, end_block);
             block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
@@ -330,8 +330,9 @@ static void create_body_block(program_t* program, LLVMBasicBlockRef body_block,
         floats = LLVMBuildBitCast(llvm->builder, floats,
                                   LLVMPointerType(LLVMFloatType(), 0),
                                   get_name(runtime));
+        LLVMValueRef inv_index = LLVMBuildLoad(llvm->builder, llvm->inv_index, get_name(runtime));
         LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, floats,
-                                            &index, 1, get_name(runtime));
+                                            &inv_index, 1, get_name(runtime));
         LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));
         
         LLVMBuildStore(llvm->builder, val, regs[program->attribute_load_regs[i]]);
@@ -367,8 +368,9 @@ static void create_body_block(program_t* program, LLVMBasicBlockRef body_block,
         floats = LLVMBuildBitCast(llvm->builder, floats,
                                   LLVMPointerType(LLVMFloatType(), 0),
                                   get_name(runtime));
+        LLVMValueRef inv_index = LLVMBuildLoad(llvm->builder, llvm->inv_index, get_name(runtime));
         LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, floats,
-                                             &index, 1, get_name(runtime));
+                                             &inv_index, 1, get_name(runtime));
         
         LLVMValueRef val = LLVMBuildLoad(llvm->builder, regs[program->attribute_store_regs[i]], get_name(runtime));
         
@@ -390,14 +392,14 @@ static bool create_module(program_t* program) {
     llvm->pow_func = get_intrinsic2(llvm->module, "llvm.pow.f32");
     llvm->del_particle_func = get_del_particle_func(llvm->module);
     
-    LLVMTypeRef param_types[8] = {LLVMInt32Type(), //int begin
+    LLVMTypeRef param_types[7] = {LLVMInt32Type(), //int begin
                                   LLVMInt32Type(), //int count
-                                  LLVMPointerType(LLVMFloatType(), 0), //int* uniforms
+                                  LLVMPointerType(LLVMFloatType(), 0), //float* uniforms
                                   LLVMPointerType(LLVMPointerType(LLVMInt32Type(), 0), 0), //int**, attr_data //presorted
                                   LLVMPointerType(LLVMInt32Type(), 0), //int* attr_dtypes //presorted
                                   LLVMPointerType(LLVMIntType(8), 0), //int8* deleted_flags
                                   LLVMPointerType(LLVMInt32Type(), 0)}; //particles_t* particles
-    LLVMTypeRef ret_type = LLVMFunctionType(LLVMPointerType(LLVMFloatType(), 0), param_types, 8, 0);
+    LLVMTypeRef ret_type = LLVMFunctionType(LLVMInt32Type(), param_types, 7, 0);
     llvm->main_func = LLVMAddFunction(llvm->module, get_name(runtime), ret_type);
     
     LLVMValueRef begin = LLVMGetParam(llvm->main_func, 0);
@@ -405,11 +407,12 @@ static bool create_module(program_t* program) {
     llvm->uniforms = LLVMGetParam(llvm->main_func, 2);
     llvm->attr_data = LLVMGetParam(llvm->main_func, 3);
     llvm->attr_dtypes = LLVMGetParam(llvm->main_func, 4);
-    llvm->particles = LLVMGetParam(llvm->main_func, 5);
+    llvm->particles = LLVMGetParam(llvm->main_func, 6);
     
     LLVMBasicBlockRef init_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
     LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
     LLVMBasicBlockRef body_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef end_body_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
     LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
     
     //Initialization block
@@ -428,7 +431,7 @@ static bool create_module(program_t* program) {
     //Condition block
     LLVMPositionBuilderAtEnd(llvm->builder, cond_block);
     
-    LLVMValueRef cmp_res = LLVMBuildICmp(llvm->builder, LLVMIntULE, 
+    LLVMValueRef cmp_res = LLVMBuildICmp(llvm->builder, LLVMIntULT,
                                          LLVMBuildLoad(llvm->builder, i, get_name(runtime)),
                                          count,
                                          get_name(runtime));
@@ -436,12 +439,26 @@ static bool create_module(program_t* program) {
     LLVMBuildCondBr(llvm->builder, cmp_res, body_block, end_block);
     
     //Body block
-    create_body_block(program, body_block, regs, cond_block);
+    create_body_block(program, body_block, regs, end_body_block);
+    
+    //End body block
+    LLVMPositionBuilderAtEnd(llvm->builder, end_body_block);
+    LLVMValueRef a = LLVMBuildLoad(llvm->builder, i, get_name(runtime));
+    LLVMValueRef b = LLVMConstInt(LLVMInt32Type(), 1, false);
+    LLVMBuildStore(llvm->builder, LLVMBuildAdd(llvm->builder, a, b, get_name(runtime)), i);
+    LLVMBuildBr(llvm->builder, cond_block);
     
     //End block
     LLVMPositionBuilderAtEnd(llvm->builder, end_block);
-    //LLVMBuildRet(llvm->builder, LLVMConstReal(LLVMFloatType(), 0.0));
-    LLVMBuildRet(llvm->builder, regs[0]);
+    LLVMBuildRet(llvm->builder, LLVMConstInt(LLVMInt32Type(), 0, false));
+    
+    //Optimize
+    if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
+        printf("Error writing bitcode\n");
+    system("opt test.bc -O3 > test_opt.bc");
+    LLVMMemoryBufferRef buf;
+    LLVMCreateMemoryBufferWithContentsOfFile("test_opt.bc", &buf, NULL);
+    LLVMParseBitcode(buf, &llvm->module, NULL);
     
     if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
         printf("Error writing bitcode\n");
@@ -451,12 +468,14 @@ static bool create_module(program_t* program) {
     LLVMDisposeMessage(error);
     
     error = NULL;
-    if (LLVMCreateExecutionEngineForModule(&llvm->exec_engine, llvm->module, &error)) {
+    if (LLVMCreateJITCompilerForModule(&llvm->exec_engine, llvm->module, 3, &error)) {
         char new_error[1024];
         strncpy(new_error, error, sizeof(new_error));
         LLVMDisposeMessage(error);
         return set_error(program->runtime, new_error);
     }
+    
+    LLVMTargetMachineEmitToFile(LLVMGetExecutionEngineTargetMachine(llvm->exec_engine), llvm->module, "something.s", LLVMAssemblyFile, NULL);
     
     return true;
 }
@@ -469,6 +488,8 @@ static bool llvm_create(runtime_t* runtime) {
     runtime->backend.internal = backend;
     
     LLVMInitializeNativeTarget();
+    LLVMInitializeNativeAsmPrinter();
+    LLVMInitializeNativeAsmParser();
     
     return true;
 }
@@ -496,14 +517,49 @@ static bool llvm_destroy_program(program_t* program) {
 }
 
 static bool llvm_simulate_system(system_t* system) {
+    if (system->sim_program) {
+        program_t* prog = system->sim_program;
+        llvm_prog_t* llvm = prog->backend_internal;
+        
+        particles_t* particles = system->particles;
+        unsigned int begin = 0;
+        unsigned int count = particles->pool_size;
+        float* uniforms = system->sim_uniforms;
+        void* attr_data[256];
+        int attr_dtypes[256];
+        for (size_t i = 0; i < prog->attribute_count; i++) {
+            uint8_t index = system->sim_attribute_indices[i];
+            attr_data[i] = system->particles->attributes[index];
+            attr_dtypes[i] = (int)system->particles->attribute_dtypes[index];
+        }
+        uint8_t* deleted_flags = particles->deleted_flags;
+        
+        uint64_t func_ptr = LLVMGetFunctionAddress(llvm->exec_engine, LLVMGetValueName(llvm->main_func));
+        assert(func_ptr);
+        
+        int (*func)(unsigned int,
+                    unsigned int,
+                    float*,
+                    void**,
+                    int*,
+                    uint8_t*,
+                    particles_t*) = func_ptr;
+        
+        func(begin, count, uniforms, attr_data, attr_dtypes, deleted_flags, particles);
+    }
+    
     return true;
 }
 
 bool llvm_backend(backend_t* backend) {
+#ifdef LLVM_NATIVE_ARCH
     backend->create = &llvm_create;
     backend->destroy = &llvm_destroy;
     backend->create_program = &llvm_create_program;
     backend->destroy_program = &llvm_destroy_program;
     backend->simulate_system = &llvm_simulate_system;
     return true;
+#else
+    return false;
+#endif
 }
