@@ -12,6 +12,7 @@
 
 typedef struct llvm_prog_t {
     LLVMModuleRef module;
+    LLVMModuleRef opt_module;
     LLVMBuilderRef builder;
     LLVMExecutionEngineRef exec_engine;
     LLVMValueRef main_func;
@@ -693,25 +694,28 @@ static bool create_module(program_t* program) {
         LLVMBuildRet(llvm->builder, LLVMConstInt(LLVMInt32Type(), 0, false));
     }
     
-    //Optimize
-    if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
-        printf("Error writing bitcode\n");
-    system("opt test.bc -O3 > test_opt.bc");
-    LLVMMemoryBufferRef buf;
-    LLVMCreateMemoryBufferWithContentsOfFile("test_opt.bc", &buf, NULL);
-    LLVMParseBitcode(buf, &llvm->module, NULL);
-    system("rm test_opt.bc");
-    system("rm test.bc");
-    
-    if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
-        printf("Error writing bitcode\n");
-    
     char* error = NULL;
     LLVMVerifyModule(llvm->module, LLVMAbortProcessAction, &error);
     LLVMDisposeMessage(error);
     
+    //Optimize
+    if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
+        printf("Error writing bitcode\n");
+    LLVMDisposeBuilder(llvm->builder);
+    llvm->opt_module = LLVMModuleCreateWithName(get_name(program->runtime));
+    system("opt test.bc -O3 > test_opt.bc");
+    LLVMMemoryBufferRef buf;
+    LLVMCreateMemoryBufferWithContentsOfFile("test_opt.bc", &buf, NULL);
+    LLVMParseBitcode(buf, &llvm->opt_module, NULL);
+    LLVMDisposeMemoryBuffer(buf);
+    system("rm test_opt.bc");
+    system("rm test.bc");
+    
+    if (LLVMWriteBitcodeToFile(llvm->opt_module, "test.bc"))
+        printf("Error writing bitcode\n");
+    
     error = NULL;
-    if (LLVMCreateJITCompilerForModule(&llvm->exec_engine, llvm->module, 3, &error)) {
+    if (LLVMCreateJITCompilerForModule(&llvm->exec_engine, llvm->opt_module, 3, &error)) {
         char new_error[1024];
         strncpy(new_error, error, sizeof(new_error));
         LLVMDisposeMessage(error);
@@ -776,8 +780,8 @@ static bool llvm_create_program(program_t* program) {
 
 static bool llvm_destroy_program(program_t* program) {
     llvm_prog_t* prog = program->backend_internal;
+    LLVMDisposeModule(prog->module);
     LLVMDisposeExecutionEngine(prog->exec_engine);
-    LLVMDisposeBuilder(prog->builder);
     free(prog);
     return true;
 }
