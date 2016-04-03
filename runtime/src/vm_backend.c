@@ -502,8 +502,8 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             if (particle_index < 0) return false;
             
             uint8_t count = *bc++;
-            for (size_t i = 0; i < count; i++) {
-                int attr_index = system->sim_attribute_indices[i];
+            for (size_t i = 0; i < count; i++) { //TODO: Use sim_attribute_indices with simulation programs
+                int attr_index = system->emit_attribute_indices[i];
                 store_attr1(regs[*bc++], system->particles->attributes[attr_index],
                             system->particles->attribute_dtypes[attr_index],
                             particle_index);
