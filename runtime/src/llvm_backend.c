@@ -880,7 +880,7 @@ bool llvm_backend(backend_t* backend) {
     backend->create_program = &llvm_create_program;
     backend->destroy_program = &llvm_destroy_program;
     backend->simulate_system = &llvm_simulate_system;
-    return true;
+    return false;
 #else
     return false;
 #endif

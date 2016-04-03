@@ -99,6 +99,8 @@ struct particles_t {
     attr_dtype_t attribute_dtypes[256];
     void* attributes[256];
     uint8_t* deleted_flags;
+    
+    void* _del_particle_mutex;
 };
 
 struct system_t {

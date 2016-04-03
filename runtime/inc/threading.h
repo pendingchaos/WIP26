@@ -14,6 +14,10 @@ struct threading_t {
     char error[256];
     bool (*destroy)(threading_t*);
     thread_res_t (*run)(threading_t*, thread_run_t);
+    void* (*create_mutex)(threading_t*);
+    void (*destroy_mutex)(threading_t*, void*);
+    void (*lock_mutex)(threading_t*, void*);
+    void (*unlock_mutex)(threading_t*, void*);
     void* internal;
 };
 
@@ -33,4 +37,9 @@ bool create_builtin_threading(threading_t* threading, size_t count);
 bool create_null_threading(threading_t* threading);
 bool destroy_threading(threading_t* threading);
 thread_res_t threading_run(threading_t* threading, thread_run_t run);
+
+void* create_mutex(threading_t* threading);
+void destroy_mutex(threading_t* threading, void* mut);
+void lock_mutex(threading_t* threading, void* mut);
+void unlock_mutex(threading_t* threading, void* mut);
 #endif

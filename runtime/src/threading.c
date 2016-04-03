@@ -6,6 +6,30 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+bool destroy_threading(threading_t* threading) {
+    return threading->destroy(threading);
+}
+
+thread_res_t threading_run(threading_t* threading, thread_run_t run) {
+    return threading->run(threading, run);
+}
+
+void* create_mutex(threading_t* threading) {
+    return threading->create_mutex(threading);
+}
+
+void destroy_mutex(threading_t* threading, void* mut) {
+    threading->destroy_mutex(threading, mut);
+}
+
+void lock_mutex(threading_t* threading, void* mut) {
+    threading->lock_mutex(threading, mut);
+}
+
+void unlock_mutex(threading_t* threading, void* mut) {
+    threading->unlock_mutex(threading, mut);
+}
+
 static bool set_error(threading_t* threading, const char* message) {
     strncpy(threading->error, message, sizeof(threading->error));
     return false;
@@ -25,20 +49,29 @@ static thread_res_t null_run(threading_t* _, thread_run_t run) {
     return res;
 }
 
+static void* null_create_mutex(threading_t* threading) {
+    return threading;
+}
+
+static void null_destroy_mutex(threading_t* threading, void* mut) {
+}
+
+static void null_lock_mutex(threading_t* threading, void* mut) {
+}
+
+static void null_unlock_mutex(threading_t* threading, void* mut) {
+}
+
 bool create_null_threading(threading_t* threading) {
     memset(threading->error, 0, sizeof(threading->error));
     threading->destroy = &null_destroy;
     threading->run = &null_run;
+    threading->create_mutex = &null_create_mutex;
+    threading->destroy_mutex = &null_destroy_mutex;
+    threading->lock_mutex = &null_lock_mutex;
+    threading->unlock_mutex = &null_unlock_mutex;
     threading->internal = NULL;
     return true;
-}
-
-bool destroy_threading(threading_t* threading) {
-    return threading->destroy(threading);
-}
-
-thread_res_t threading_run(threading_t* threading, thread_run_t run) {
-    return threading->run(threading, run);
 }
 
 typedef struct pthread_data_t {
@@ -122,6 +155,33 @@ static thread_res_t pthread_run(threading_t* threading, thread_run_t run) {
     return res;
 }
 
+static void* pthread_create_mutex(threading_t* threading) {
+    pthread_mutex_t* mut = malloc(sizeof(pthread_mutex_t));
+    
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    
+    pthread_mutex_init(mut, &attr);
+    
+    pthread_mutexattr_destroy(&attr);
+    
+    return mut;
+}
+
+static void pthread_destroy_mutex(threading_t* threading, void* mut) {
+    pthread_mutex_destroy(mut);
+    free(mut);
+}
+
+static void pthread_lock_mutex(threading_t* threading, void* mut) {
+    pthread_mutex_lock(mut);
+}
+
+static void pthread_unlock_mutex(threading_t* threading, void* mut) {
+    pthread_mutex_unlock(mut);
+}
+
 bool create_builtin_threading(threading_t* threading, size_t count) {
     if (!count) count = sysconf(_SC_NPROCESSORS_ONLN)*2;
     if (count > MAX_THREADS) count = MAX_THREADS;
@@ -129,6 +189,10 @@ bool create_builtin_threading(threading_t* threading, size_t count) {
     memset(threading->error, 0, sizeof(threading->error));
     threading->destroy = &pthread_destroy;
     threading->run = &pthread_run;
+    threading->create_mutex = &pthread_create_mutex;
+    threading->destroy_mutex = &pthread_destroy_mutex;
+    threading->lock_mutex = &pthread_lock_mutex;
+    threading->unlock_mutex = &pthread_unlock_mutex;
     threading->internal = malloc(sizeof(pthread_internal_t));
     if (!threading->internal) 
         return set_error(threading, "Failed to allocate threading internal data");

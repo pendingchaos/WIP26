@@ -458,12 +458,8 @@ static bool vm_execute1(const uint8_t* bc, const uint8_t* deleted_flags, size_t 
             uint8_t c = *bc++;
             uint32_t count = *(uint32_t*)bc;
             bc += 6;
-            
-            if (deleted_flags[index]) bc += le32toh(count);
-            else if (((uint32_t*)regs)[c]) {
-                if (!vm_execute1(bc, deleted_flags, index, system, regs, true))
-                    return false;
-            } else bc += le32toh(count);
+            if (deleted_flags[index] || !((uint32_t*)regs)[c])
+                bc += le32toh(count);
         END_CASE
         BEGIN_CASE(BC_OP_COND_END)
             if (cond) return true;
@@ -762,6 +758,8 @@ static void* thread_func(size_t begin, size_t count, void* userdata) {
             return (void*)false;
     
     for (; i<end; i++) {
+        if (system->particles->deleted_flags[i]) continue;
+        
         float regs[256];
         
         for (size_t j = 0; j < p->attribute_count; j++) {

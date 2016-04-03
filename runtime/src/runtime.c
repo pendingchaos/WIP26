@@ -9,11 +9,13 @@
 #include <math.h>
 #include <stdio.h>
 
+bool llvm_backend(backend_t* backend);
 bool vm_backend(backend_t* backend);
 
 bool create_runtime(runtime_t* runtime, threading_t* threading) {
     backend_t backend;
-    if (vm_backend(&backend)) runtime->backend = backend;
+    if (llvm_backend(&backend)) runtime->backend = backend;
+    else if (vm_backend(&backend)) runtime->backend = backend;
     else return false;
     
     if (threading) {
@@ -32,12 +34,14 @@ bool create_runtime(runtime_t* runtime, threading_t* threading) {
 }
 
 bool destroy_runtime(runtime_t* runtime) {
+    if (!runtime->backend.destroy(runtime)) return false;
+    
     if (!destroy_threading(&runtime->threading)) {
         strncpy(runtime->error, runtime->threading.error, sizeof(runtime->error)-1);
         return false;
     }
     
-    return runtime->backend.destroy(runtime);
+    return true;
 }
 
 bool set_error(runtime_t* runtime, const char* message) {
@@ -248,10 +252,14 @@ bool create_particles(particles_t* particles, size_t pool_size) {
     }
     memset(particles->deleted_flags, 1, pool_size);
     
+    particles->_del_particle_mutex = create_mutex(&particles->runtime->threading);
+    
     return true;
 }
 
 bool destroy_particles(particles_t* particles) {
+    destroy_mutex(&particles->runtime->threading, particles->_del_particle_mutex);
+    
     for (size_t i = 0; i < 256; i++) free(particles->attributes[i]);
     for (size_t i = 0; i < 256; i++) free(particles->attribute_names[i]);
     free(particles->nexts);
@@ -351,6 +359,8 @@ int spawn_particle(particles_t* particles) {
 }
 
 bool delete_particle(particles_t* particles, int index) {
+    lock_mutex(&particles->runtime->threading, particles->_del_particle_mutex);
+    
     if (index < 0 || index >= particles->pool_size)
         return set_error(particles->runtime, "Invalid particle index");
     
@@ -358,6 +368,8 @@ bool delete_particle(particles_t* particles, int index) {
     particles->nexts[index] = particles->next_particle;
     particles->next_particle = index;
     particles->pool_usage--;
+    
+    unlock_mutex(&particles->runtime->threading, particles->_del_particle_mutex);
     
     return true;
 }
