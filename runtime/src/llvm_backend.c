@@ -726,8 +726,6 @@ static bool create_module(program_t* program) {
     LLVMAddGlobalMapping(llvm->exec_engine, llvm->spawn_particle_func, &spawn_particle);
     LLVMAddGlobalMapping(llvm->exec_engine, llvm->randf_func, &randf);
     
-    //LLVMTargetMachineEmitToFile(LLVMGetExecutionEngineTargetMachine(llvm->exec_engine), llvm->module, "something.s", LLVMAssemblyFile, NULL);
-    
     return true;
 }
 
@@ -737,25 +735,6 @@ static bool llvm_create(runtime_t* runtime) {
         return set_error(runtime, "Failed to allocate internal LLVM backend data");
     backend->next_name = 0;
     runtime->backend.internal = backend;
-    
-    //TODO: It's likely that not all of these are needed
-    /*LLVMInitializeCore(LLVMGetGlobalPassRegistry());    
-    LLVMInitializeScalarOpts(LLVMGetGlobalPassRegistry());    
-    LLVMInitializeObjCARCOpts(LLVMGetGlobalPassRegistry());    
-    LLVMInitializeVectorization(LLVMGetGlobalPassRegistry());
-    LLVMInitializeIPO(LLVMGetGlobalPassRegistry());
-    LLVMInitializeAnalysis(LLVMGetGlobalPassRegistry());
-    LLVMInitializeTransformUtils(LLVMGetGlobalPassRegistry());
-    LLVMInitializeInstCombine(LLVMGetGlobalPassRegistry());
-    LLVMInitializeInstrumentation(LLVMGetGlobalPassRegistry());
-    LLVMInitializeTarget(LLVMGetGlobalPassRegistry());*/
-    //LLVMInitializeCodeGenPreparePass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeAtomicExpandPass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeRewriteSymbolsPass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeWinEHPreparePass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeDwarfEHPreparePass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeSafeStackPass(LLVMGetGlobalPassRegistry());
-    //LLVMInitializeSjLjEHPreparePass(LLVMGetGlobalPassRegistry());
     
     LLVMInitializeNativeTarget();
     LLVMInitializeNativeAsmPrinter();
@@ -850,24 +829,6 @@ static bool llvm_simulate_system(system_t* system) {
         
         for (size_t i = 0; i < res.count; i++)
             if (!res.res[i]) return false;
-        /*program_t* prog = system->sim_program;
-        llvm_prog_t* llvm = prog->backend_internal;
-        
-        particles_t* particles = system->particles;
-        float* uniforms = system->sim_uniforms;
-        void* attr_data[256];
-        int attr_dtypes[256];
-        for (size_t i = 0; i < prog->attribute_count; i++) {
-            uint8_t index = system->sim_attribute_indices[i];
-            attr_data[i] = system->particles->attributes[index];
-            attr_dtypes[i] = (int)system->particles->attribute_dtypes[index];
-        }
-        uint8_t* deleted_flags = particles->deleted_flags;
-        
-        uint64_t func_ptr = LLVMGetFunctionAddress(llvm->exec_engine, LLVMGetValueName(llvm->main_func));
-        assert(func_ptr);
-        
-        ((sim_func_t)func_ptr)(0, particles->pool_size, uniforms, attr_data, attr_dtypes, deleted_flags, particles);*/
     }
     
     return true;

@@ -97,12 +97,14 @@ static void simd8f_bool_not(simd8f_t* dest, simd8f_t a) {
 static void simd8f_sel(simd8f_t* dest, simd8f_t a, simd8f_t b, simd8f_t cond) {
     //__mmask8 mask = _mm256_cmp_epu32_mask(*(__m256i*)&cond, _mm256_set1_epi32(0), /*_MM_CMPINT_NEQ*/4);
     //*dest = _mm256_mask_blend_ps(mask, a, b);
-    uint32_t* condi = (uint32_t*)&cond;
+    *dest = _mm256_or_ps(_mm256_and_ps(*(__m256*)&a, *(__m256*)&cond),
+                         _mm256_andnot_ps(*(__m256*)&cond, *(__m256*)&b));
+    /*uint32_t* condi = (uint32_t*)&cond;
     float* af = (float*)&a;
     float* bf = (float*)&b;
     float destf[8];
     for (uint_fast8_t i = 0; i < 8; i++) destf[i] = condi[i] ? af[i] : bf[i];
-    *dest = _mm256_loadu_ps(destf);
+    *dest = _mm256_loadu_ps(destf);*/
 }
 
 static void simd8f_floor(simd8f_t* dest, simd8f_t a) {
