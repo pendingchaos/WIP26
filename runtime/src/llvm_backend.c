@@ -107,6 +107,193 @@ static void store_reg_b(program_t* program, LLVMValueRef* regs, uint8_t i, LLVMV
     LLVMBuildStore(llvm->builder, val, regs[i]);
 }
 
+static LLVMBasicBlockRef load_attr(LLVMValueRef dest, size_t i, llvm_prog_t* llvm,
+                                   runtime_t* runtime, LLVMValueRef inv_index) {
+    LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), i, false);
+    
+    LLVMValueRef dtype = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_dtypes,
+                                              &index, 1, get_name(runtime));
+    dtype = LLVMBuildLoad(llvm->builder, dtype, get_name(runtime));
+    
+    LLVMBasicBlockRef u8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef u16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef u32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef f32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef f64_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    
+    LLVMValueRef switch_ = LLVMBuildSwitch(llvm->builder, dtype, end_block, 8);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT8, false), u8_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT8, false), i8_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT16, false), u16_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT16, false), i16_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT32, false), u32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT32, false), i32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT32, false), f32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT64, false), f64_block);
+    
+    #define LOAD_INT(block, type, signed_, max) {\
+        LLVMPositionBuilderAtEnd(llvm->builder, block);\
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,\
+                                                 &index, 1, get_name(runtime));\
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));\
+        vals = LLVMBuildBitCast(llvm->builder, vals,\
+                                LLVMPointerType(type, 0),\
+                                get_name(runtime));\
+        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,\
+                                            &inv_index, 1, get_name(runtime));\
+        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));\
+        if (signed_) {\
+            val = LLVMBuildSIToFP(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
+            val = LLVMBuildFDiv(llvm->builder, val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
+        } else {\
+            val = LLVMBuildUIToFP(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
+            val = LLVMBuildFDiv(llvm->builder, val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
+        }\
+        val = LLVMBuildFPTrunc(llvm->builder, val, LLVMFloatType(), get_name(runtime));\
+        LLVMBuildStore(llvm->builder, val, dest);\
+        LLVMBuildBr(llvm->builder, end_block);\
+    }
+    
+    LOAD_INT(u8_block, LLVMInt8Type(), false, 255);
+    LOAD_INT(i8_block, LLVMInt8Type(), true, 127);
+    LOAD_INT(u16_block, LLVMInt16Type(), false, 65535);
+    LOAD_INT(i16_block, LLVMInt16Type(), true, 32767);
+    LOAD_INT(u32_block, LLVMInt32Type(), false, 4294967295);
+    LOAD_INT(i32_block, LLVMInt32Type(), true, 2147483647);
+    
+    #undef LOAD_INT
+    
+    //ATTR_FLOAT32
+    {
+        LLVMPositionBuilderAtEnd(llvm->builder, f32_block);
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
+                                                 &index, 1, get_name(runtime));
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
+        vals = LLVMBuildBitCast(llvm->builder, vals,
+                                LLVMPointerType(LLVMFloatType(), 0),
+                                get_name(runtime));
+        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,
+                                            &inv_index, 1, get_name(runtime));
+        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));
+        LLVMBuildStore(llvm->builder, val, dest);
+        LLVMBuildBr(llvm->builder, end_block);
+    }
+    
+    //ATTR_FLOAT64
+    {
+        LLVMPositionBuilderAtEnd(llvm->builder, f64_block);
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
+                                                 &index, 1, get_name(runtime));
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
+        vals = LLVMBuildBitCast(llvm->builder, vals,
+                                LLVMPointerType(LLVMDoubleType(), 0),
+                                get_name(runtime));
+        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,
+                                            &inv_index, 1, get_name(runtime));
+        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));
+        val = LLVMBuildFPTrunc(llvm->builder, val, LLVMFloatType(), get_name(runtime));
+        LLVMBuildStore(llvm->builder, val, dest);
+        LLVMBuildBr(llvm->builder, end_block);
+    }
+    
+    LLVMPositionBuilderAtEnd(llvm->builder, end_block);
+    return end_block;
+}
+
+static LLVMBasicBlockRef store_attr(LLVMValueRef val, size_t i, llvm_prog_t* llvm,
+                                    runtime_t* runtime, LLVMValueRef inv_index) {
+    LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), i, false);
+    
+    LLVMValueRef dtype = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_dtypes,
+                                              &index, 1, get_name(runtime));
+    dtype = LLVMBuildLoad(llvm->builder, dtype, get_name(runtime));
+    
+    LLVMBasicBlockRef u8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef u16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef u32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef i32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef f32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef f64_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
+    
+    LLVMValueRef switch_ = LLVMBuildSwitch(llvm->builder, dtype, end_block, 8);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT8, false), u8_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT8, false), i8_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT16, false), u16_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT16, false), i16_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT32, false), u32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT32, false), i32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT32, false), f32_block);
+    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT64, false), f64_block);
+    
+    #define STORE_INT(block, type, signed_, max) {\
+        LLVMPositionBuilderAtEnd(llvm->builder, block);\
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,\
+                                                 &index, 1, get_name(runtime));\
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));\
+        vals = LLVMBuildBitCast(llvm->builder, vals,\
+                                LLVMPointerType(type, 0),\
+                                get_name(runtime));\
+        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,\
+                                             &inv_index, 1, get_name(runtime));\
+        LLVMValueRef new_val = LLVMBuildFPExt(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
+        new_val = LLVMBuildFMul(llvm->builder, new_val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
+        if (signed_) new_val = LLVMBuildFPToSI(llvm->builder, new_val, type, get_name(runtime));\
+        else new_val = LLVMBuildFPToUI(llvm->builder, new_val, type, get_name(runtime));\
+        LLVMBuildStore(llvm->builder, new_val, dest_ptr);\
+        LLVMBuildBr(llvm->builder, end_block);\
+    }
+    
+    STORE_INT(u8_block, LLVMInt8Type(), false, 255);
+    STORE_INT(i8_block, LLVMInt8Type(), true, 127);
+    STORE_INT(u16_block, LLVMInt16Type(), false, 65535);
+    STORE_INT(i16_block, LLVMInt16Type(), true, 32767);
+    STORE_INT(u32_block, LLVMInt32Type(), false, 4294967295);
+    STORE_INT(i32_block, LLVMInt32Type(), true, 2147483647);
+    
+    #undef STORE_INT
+    
+    //ATTR_FLOAT32
+    {
+        LLVMPositionBuilderAtEnd(llvm->builder, f32_block);
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
+                                                 &index, 1, get_name(runtime));
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
+        vals = LLVMBuildBitCast(llvm->builder, vals,
+                                LLVMPointerType(LLVMFloatType(), 0),
+                                get_name(runtime));
+        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,
+                                             &inv_index, 1, get_name(runtime));
+        LLVMBuildStore(llvm->builder, val, dest_ptr);
+        LLVMBuildBr(llvm->builder, end_block);
+    }
+    
+    //ATTR_FLOAT64
+    {
+        LLVMPositionBuilderAtEnd(llvm->builder, f64_block);
+        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
+                                                 &index, 1, get_name(runtime));
+        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
+        vals = LLVMBuildBitCast(llvm->builder, vals,
+                                LLVMPointerType(LLVMDoubleType(), 0),
+                                get_name(runtime));
+        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,
+                                            &inv_index, 1, get_name(runtime));
+        LLVMValueRef new_val = LLVMBuildFPExt(llvm->builder, val, LLVMDoubleType(), get_name(runtime));
+        LLVMBuildStore(llvm->builder, new_val, dest_ptr);
+        LLVMBuildBr(llvm->builder, end_block);
+    }
+    
+    LLVMPositionBuilderAtEnd(llvm->builder, end_block);
+    return end_block;
+}
+
 static LLVMBasicBlockRef to_ir(LLVMBasicBlockRef block, program_t* program,
                                LLVMValueRef* regs, uint8_t* bc, uint8_t* end,
                                LLVMBasicBlockRef end_block) {
@@ -311,21 +498,8 @@ static LLVMBasicBlockRef to_ir(LLVMBasicBlockRef block, program_t* program,
             
             uint8_t count = *bc++;
             for (size_t i = 0; i < count; i++) {
-                LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), i, false);
-                
-                //TODO: Data types
-                LLVMValueRef floats = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
-                                                           &index, 1, get_name(runtime));
-                floats = LLVMBuildLoad(llvm->builder, floats, get_name(runtime));
-                floats = LLVMBuildBitCast(llvm->builder, floats,
-                                          LLVMPointerType(LLVMFloatType(), 0),
-                                          get_name(runtime));
-                LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, floats,
-                                                     &particle_index, 1, get_name(runtime));
-                
                 LLVMValueRef val = LLVMBuildLoad(llvm->builder, regs[*bc++], get_name(runtime));
-                
-                LLVMBuildStore(llvm->builder, val, dest_ptr);
+                block = store_attr(val, i, llvm, runtime, particle_index);
             }
             break;
         }
@@ -353,193 +527,6 @@ static LLVMBasicBlockRef to_ir(LLVMBasicBlockRef block, program_t* program,
     }
     
     return block;
-}
-
-static LLVMBasicBlockRef load_attr(LLVMValueRef dest, size_t i, llvm_prog_t* llvm,
-                                   runtime_t* runtime, LLVMValueRef inv_index) {
-    LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), i, false);
-    
-    LLVMValueRef dtype = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_dtypes,
-                                              &index, 1, get_name(runtime));
-    dtype = LLVMBuildLoad(llvm->builder, dtype, get_name(runtime));
-    
-    LLVMBasicBlockRef u8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef u16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef u32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef f32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef f64_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    
-    LLVMValueRef switch_ = LLVMBuildSwitch(llvm->builder, dtype, end_block, 8);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT8, false), u8_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT8, false), i8_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT16, false), u16_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT16, false), i16_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT32, false), u32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT32, false), i32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT32, false), f32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT64, false), f64_block);
-    
-    #define LOAD_INT(block, type, signed_, max) {\
-        LLVMPositionBuilderAtEnd(llvm->builder, block);\
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,\
-                                                 &index, 1, get_name(runtime));\
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));\
-        vals = LLVMBuildBitCast(llvm->builder, vals,\
-                                LLVMPointerType(type, 0),\
-                                get_name(runtime));\
-        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,\
-                                            &inv_index, 1, get_name(runtime));\
-        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));\
-        if (signed_) {\
-            val = LLVMBuildSIToFP(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
-            val = LLVMBuildFDiv(llvm->builder, val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
-        } else {\
-            val = LLVMBuildUIToFP(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
-            val = LLVMBuildFDiv(llvm->builder, val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
-        }\
-        val = LLVMBuildFPTrunc(llvm->builder, val, LLVMFloatType(), get_name(runtime));\
-        LLVMBuildStore(llvm->builder, val, dest);\
-        LLVMBuildBr(llvm->builder, end_block);\
-    }
-    
-    LOAD_INT(u8_block, LLVMInt8Type(), false, 255);
-    LOAD_INT(i8_block, LLVMInt8Type(), true, 127);
-    LOAD_INT(u16_block, LLVMInt16Type(), false, 65535);
-    LOAD_INT(i16_block, LLVMInt16Type(), true, 32767);
-    LOAD_INT(u32_block, LLVMInt32Type(), false, 4294967295);
-    LOAD_INT(i32_block, LLVMInt32Type(), true, 2147483647);
-    
-    #undef LOAD_INT
-    
-    //ATTR_FLOAT32
-    {
-        LLVMPositionBuilderAtEnd(llvm->builder, f32_block);
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
-                                                 &index, 1, get_name(runtime));
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
-        vals = LLVMBuildBitCast(llvm->builder, vals,
-                                LLVMPointerType(LLVMFloatType(), 0),
-                                get_name(runtime));
-        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,
-                                            &inv_index, 1, get_name(runtime));
-        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));
-        LLVMBuildStore(llvm->builder, val, dest);
-        LLVMBuildBr(llvm->builder, end_block);
-    }
-    
-    //ATTR_FLOAT64
-    {
-        LLVMPositionBuilderAtEnd(llvm->builder, f64_block);
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
-                                                 &index, 1, get_name(runtime));
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
-        vals = LLVMBuildBitCast(llvm->builder, vals,
-                                LLVMPointerType(LLVMDoubleType(), 0),
-                                get_name(runtime));
-        LLVMValueRef val_ptr = LLVMBuildGEP(llvm->builder, vals,
-                                            &inv_index, 1, get_name(runtime));
-        LLVMValueRef val = LLVMBuildLoad(llvm->builder, val_ptr, get_name(runtime));
-        val = LLVMBuildFPTrunc(llvm->builder, val, LLVMFloatType(), get_name(runtime));
-        LLVMBuildStore(llvm->builder, val, dest);
-        LLVMBuildBr(llvm->builder, end_block);
-    }
-    
-    LLVMPositionBuilderAtEnd(llvm->builder, end_block);
-    return end_block;
-}
-
-static LLVMBasicBlockRef store_attr(LLVMValueRef val, size_t i, llvm_prog_t* llvm,
-                                    runtime_t* runtime, LLVMValueRef inv_index) {
-    LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), i, false);
-    
-    LLVMValueRef dtype = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_dtypes,
-                                              &index, 1, get_name(runtime));
-    dtype = LLVMBuildLoad(llvm->builder, dtype, get_name(runtime));
-    
-    LLVMBasicBlockRef u8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i8_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef u16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i16_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef u32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef i32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef f32_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef f64_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(llvm->main_func, get_name(runtime));
-    
-    LLVMValueRef switch_ = LLVMBuildSwitch(llvm->builder, dtype, end_block, 8);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT8, false), u8_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT8, false), i8_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT16, false), u16_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT16, false), i16_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_UINT32, false), u32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_INT32, false), i32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT32, false), f32_block);
-    LLVMAddCase(switch_, LLVMConstInt(LLVMInt32Type(), ATTR_FLOAT64, false), f64_block);
-    
-    #define STORE_INT(block, type, signed_, max) {\
-        LLVMPositionBuilderAtEnd(llvm->builder, block);\
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,\
-                                                 &index, 1, get_name(runtime));\
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));\
-        vals = LLVMBuildBitCast(llvm->builder, vals,\
-                                LLVMPointerType(type, 0),\
-                                get_name(runtime));\
-        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,\
-                                             &inv_index, 1, get_name(runtime));\
-        LLVMValueRef new_val = LLVMBuildFPExt(llvm->builder, val, LLVMDoubleType(), get_name(runtime));\
-        new_val = LLVMBuildFMul(llvm->builder, new_val, LLVMConstReal(LLVMDoubleType(), max), get_name(runtime));\
-        if (signed_) new_val = LLVMBuildFPToSI(llvm->builder, val, type, get_name(runtime));\
-        else new_val = LLVMBuildFPToUI(llvm->builder, val, type, get_name(runtime));\
-        LLVMBuildStore(llvm->builder, new_val, dest_ptr);\
-        LLVMBuildBr(llvm->builder, end_block);\
-    }
-    
-    STORE_INT(u8_block, LLVMInt8Type(), false, 255);
-    STORE_INT(i8_block, LLVMInt8Type(), true, 127);
-    STORE_INT(u16_block, LLVMInt16Type(), false, 65535);
-    STORE_INT(i16_block, LLVMInt16Type(), true, 32767);
-    STORE_INT(u32_block, LLVMInt32Type(), false, 4294967295);
-    STORE_INT(i32_block, LLVMInt32Type(), true, 2147483647);
-    
-    #undef STORE_INT
-    
-    //ATTR_FLOAT32
-    {
-        LLVMPositionBuilderAtEnd(llvm->builder, f32_block);
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
-                                                 &index, 1, get_name(runtime));
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
-        vals = LLVMBuildBitCast(llvm->builder, vals,
-                                LLVMPointerType(LLVMFloatType(), 0),
-                                get_name(runtime));
-        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,
-                                             &inv_index, 1, get_name(runtime));
-        LLVMBuildStore(llvm->builder, val, dest_ptr);
-        LLVMBuildBr(llvm->builder, end_block);
-    }
-    
-    //ATTR_FLOAT64
-    {
-        LLVMPositionBuilderAtEnd(llvm->builder, f64_block);
-        LLVMValueRef vals = LLVMBuildInBoundsGEP(llvm->builder, llvm->attr_data,
-                                                 &index, 1, get_name(runtime));
-        vals = LLVMBuildLoad(llvm->builder, vals, get_name(runtime));
-        vals = LLVMBuildBitCast(llvm->builder, vals,
-                                LLVMPointerType(LLVMDoubleType(), 0),
-                                get_name(runtime));
-        LLVMValueRef dest_ptr = LLVMBuildGEP(llvm->builder, vals,
-                                            &inv_index, 1, get_name(runtime));
-        LLVMValueRef new_val = LLVMBuildFPExt(llvm->builder, val, LLVMDoubleType(), get_name(runtime));
-        LLVMBuildStore(llvm->builder, new_val, dest_ptr);
-        LLVMBuildBr(llvm->builder, end_block);
-    }
-    
-    LLVMPositionBuilderAtEnd(llvm->builder, end_block);
-    return end_block;
 }
 
 static void create_body_block(program_t* program, LLVMBasicBlockRef body_block,
@@ -709,12 +696,12 @@ static bool create_module(program_t* program) {
     //Optimize
     if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
         printf("Error writing bitcode\n");
-    /*system("opt test.bc -O3 > test_opt.bc");
+    system("opt test.bc -O3 > test_opt.bc");
     LLVMMemoryBufferRef buf;
     LLVMCreateMemoryBufferWithContentsOfFile("test_opt.bc", &buf, NULL);
     LLVMParseBitcode(buf, &llvm->module, NULL);
     system("rm test_opt.bc");
-    system("rm test.bc");*/
+    system("rm test.bc");
     
     if (LLVMWriteBitcodeToFile(llvm->module, "test.bc"))
         printf("Error writing bitcode\n");
